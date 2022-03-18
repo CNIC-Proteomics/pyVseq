@@ -177,7 +177,7 @@ def errorMatrix(fr_ns, mz, theo_spec):
     terrors = (((exp - theo_spec)/theo_spec)*1000000).abs()
     terrors2 =(((mzs2 - theo_spec)/theo_spec)*1000000).abs()
     terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
-    return(terrors, terrors2, terrors3)
+    return(terrors, terrors2, terrors3, exp)
 
 def makeFrags(seq_len):
     '''
@@ -215,6 +215,13 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm):
     c_assign["CHARGE"] = c_assign.apply(lambda x: x.FRAGS.count('+'), axis=1).replace(0, 1)
     return(c_assign)
 
+def makeAblines(texp, minv):
+    masses = pd.concat([texp[0], minv], axis = 1)
+    matches = masses[(masses < 51).sum(axis=1) >= 0.001]
+    if len(matches) == 0 or len(matches) == 2:
+        matches = pd.DataFrame([[1,3],[2,4]])
+    return(matches)
+
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -224,11 +231,11 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
     exp_spec, ions = expSpectrum(fr_ns, sub.FirstScan)
     theo_spec = theoSpectrum(sub.Sequence, len(ions), 0)
-    terrors, terrors2, terrors3 = errorMatrix(fr_ns, ions.MZ, theo_spec)
+    terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec)
     
     ## DM OPERATIONS ##
     dm_theo_spec = theoSpectrum(sub.Sequence, len(ions), dm)
-    dmterrors, dmterrors2, dmterrors3 = errorMatrix(fr_ns, ions.MZ, dm_theo_spec)
+    dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec)
     dmterrorsmin = pd.DataFrame(np.array([dmterrors, dmterrors2, dmterrors3]).min(0)) # Parallel minima
     dmfppm = dmterrorsmin[(dmterrorsmin < 300).sum(axis=1) >= 0.01*len(dmterrorsmin.columns)]
     dmfppm_fake = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
@@ -257,7 +264,12 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     zoom = ppmfinal.apply(lambda x: random.randint(50, 90) if x.minv > 50 else x.minv , axis = 1)
     minv = ppmfinal["minv"]
     ppmfinal = ppmfinal.drop("minv", axis=1)
-    fppm = ppmfinal[(ppmfinal < 50).sum(axis=1) >= 0.001]
+    fppm = ppmfinal[(ppmfinal < 50).sum(axis=1) >= 0.001] 
+    fppm = fppm.T
+    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+    
+    ## ABLINES ##
+    matches = makeAblines(texp, minv)
     
     return    
 
