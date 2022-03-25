@@ -4,6 +4,8 @@ Created on Wed Mar  2 14:10:14 2022
 
 @author: alaguillog
 """
+# mgf = 'S:\\U_Proteomica\\UNIDAD\\DatosCrudos\\LopezOtin\\COVID\\COVID_TMT\\COVID_TMT1_F2.mgf'
+# seq2 = kLETEVMq
 
 # import modules
 import os
@@ -215,12 +217,22 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm):
     c_assign["CHARGE"] = c_assign.apply(lambda x: x.FRAGS.count('+'), axis=1).replace(0, 1)
     return(c_assign)
 
-def makeAblines(texp, minv):
+def makeAblines(texp, minv, assign):
     masses = pd.concat([texp[0], minv], axis = 1)
     matches = masses[(masses < 51).sum(axis=1) >= 0.001]
+    matches.reset_index(inplace=True, drop=True)
     if len(matches) == 0 or len(matches) == 2:
         matches = pd.DataFrame([[1,3],[2,4]])
-    return(matches)
+    
+    matches_ions = pd.DataFrame()
+    for mi in list(range(0,len(matches))):
+        for ci in list(range(0, len(assign))):
+            if abs(matches.iloc[mi,0]-assign.iloc[ci,0])/assign.iloc[ci,0]*1000000 <= 51:
+                asign = pd.Series([matches.iloc[mi,0], assign.iloc[ci,1], matches.iloc[mi,1]])
+                matches_ions = pd.concat([matches_ions, asign], ignore_index=True, axis=1)
+                #matches.iloc[2,1]
+    matches_ions = matches_ions.T
+    return(matches_ions)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
@@ -269,7 +281,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
     
     ## ABLINES ##
-    matches = makeAblines(texp, minv)
+    matches_ions = makeAblines(texp, minv, assign)
     
     return    
 
@@ -286,7 +298,7 @@ def main(args):
     exps = list(scan_info.Raw.unique())
     for exp in exps:
         exp = str(exp).replace(".txt","").replace(".raw","")
-        sql = scan_info.loc[scan_info.Raw=="COVID_TMT1_F2"]
+        sql = scan_info.loc[scan_info.Raw == exp]
         data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
