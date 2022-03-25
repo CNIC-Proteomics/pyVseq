@@ -124,7 +124,7 @@ def expSpectrum(fr_ns, scan):
     spec["CORR_INT"] = spec.REL_INT*spec_correction
     spec.loc[spec['CORR_INT'].idxmax()]['CORR_INT'] = max(spec.REL_INT)
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
-    return(spec, ions)
+    return(spec, ions, spec_correction)
 
 def theoSpectrum(seq, len_ions, dm):
     '''
@@ -217,7 +217,7 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm):
     c_assign["CHARGE"] = c_assign.apply(lambda x: x.FRAGS.count('+'), axis=1).replace(0, 1)
     return(c_assign)
 
-def makeAblines(texp, minv, assign):
+def makeAblines(texp, minv, assign, ions):
     masses = pd.concat([texp[0], minv], axis = 1)
     matches = masses[(masses < 51).sum(axis=1) >= 0.001]
     matches.reset_index(inplace=True, drop=True)
@@ -232,7 +232,12 @@ def makeAblines(texp, minv, assign):
                 matches_ions = pd.concat([matches_ions, asign], ignore_index=True, axis=1)
                 #matches.iloc[2,1]
     matches_ions = matches_ions.T
-    return(matches_ions)
+    matches_ions.columns = ["MZ","FRAGS","PPM"]
+    proof = pd.merge(matches_ions, ions[['MZ','INT']], how="left", on="MZ")
+    if len(proof)==0:
+        mzcycle = itertools.cycle([ions.MZ.iloc[0], ions.MZ.iloc[1]])
+        proof = pd.concat([matches_ions, pd.Series([next(mzcycle) for count in range(len(matches_ions))], name="INT")], axis=1)
+    return(proof)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
@@ -241,7 +246,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions = expSpectrum(fr_ns, sub.FirstScan)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan)
     theo_spec = theoSpectrum(sub.Sequence, len(ions), 0)
     terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec)
     
@@ -249,6 +254,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     dm_theo_spec = theoSpectrum(sub.Sequence, len(ions), dm)
     dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec)
     dmterrorsmin = pd.DataFrame(np.array([dmterrors, dmterrors2, dmterrors3]).min(0)) # Parallel minima
+    parcialdm = dmterrorsmin
     dmfppm = dmterrorsmin[(dmterrorsmin < 300).sum(axis=1) >= 0.01*len(dmterrorsmin.columns)]
     dmfppm_fake = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
     if dmfppm.empty: dmfppm = dmfppm_fake 
@@ -266,9 +272,11 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     ## PPM ERRORS ##
     if sub.Charge == 2:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2]).min(0))
+        parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, dmterrors, dmterrors2]).min(0))
     elif sub.Charge == 3:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3]).min(0))
+        parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
     else:
         sys.exit('ERROR: Charge is not 2 or 3')
@@ -281,8 +289,26 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
     
     ## ABLINES ##
-    matches_ions = makeAblines(texp, minv, assign)
+    proof = makeAblines(texp, minv, assign, ions)
+    proof.INT = proof.INT * spec_correction
+    proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
+    proofb = proof[proof.FRAGS.str.contains("b")]
+    proofy = proof[proof.FRAGS.str.contains("y")]
     
+    ## SELECT MAXIMUM PPM ERROR TO CONSIDER ## #TODO: Make this a parameter
+    fppm[fppm>50] = 50 #TODO: this does not match Rvseq values - too many columns
+    parcial[parcial<50] = 2
+    parcial[parcial>50] = 0
+    parcialdm[parcialdm<50] = 3
+    parcialdm[parcialdm>50] = 0
+    ppmfinal[ppmfinal<=300] = 1
+    ppmfinal[ppmfinal>300] = 0
+    
+    deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
+    deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
+    if deltamplot.empty:
+        deltamplot = parcial
+    deltamplot.reset_index(inplace=True, drop=True)
     return    
 
 def main(args):
