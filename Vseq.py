@@ -277,6 +277,27 @@ def qeScore(ppmfinal, int2):
     escore = (qscore.INT/1000000).sum()
     return(qscore, escore)
 
+def asBY(deltaplot, sub):
+    asB = pd.DataFrame()
+    asY = pd.DataFrame()
+    for i in list(range(0,deltaplot.shape[0])):
+        if deltaplot.deltav2[i] <= len(sub.Sequence)-1:
+            asB = pd.concat([asB, deltaplot.iloc[i]], axis=1)
+        if deltaplot.deltav2[i] > len(sub.Sequence)-1:
+            asY = pd.concat([asY, deltaplot.iloc[i]], axis=1)
+    asB = asB.T.drop("row", axis=1)
+    asB = asB.iloc[::-1]
+    asB.columns = ["row","col"]
+    asY = asY.T.drop("row", axis=1)
+    asY = asY.iloc[::-1]
+    asY.columns = ["row","col"]
+    if asB.empty:
+        asB = pd.DataFrame([[0,0]], columns=["row", "col"])
+    if asY.empty:
+        asY = pd.DataFrame([[0,0]], columns=["row", "col"])
+    
+    return(BDAG, YDAG)
+
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -352,6 +373,12 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     
     ## Q-SCORE AND E-SCORE ##
     qscore, escore = qeScore(ppmfinal, ions.INT)
+    #matched_ions = qscore.shape[0]
+    
+    pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
+    specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
+    
+    BDAG, YDAG = asBY(deltaplot, sub)
     
     return    
 
