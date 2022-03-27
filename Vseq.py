@@ -286,15 +286,32 @@ def asBY(deltaplot, sub):
         if deltaplot.deltav2[i] > len(sub.Sequence)-1:
             asY = pd.concat([asY, deltaplot.iloc[i]], axis=1)
     asB = asB.T.drop("row", axis=1)
-    asB = asB.iloc[::-1]
+    #asB = asB.iloc[::-1]
     asB.columns = ["row","col"]
+    asB.reset_index(inplace=True, drop=True)
     asY = asY.T.drop("row", axis=1)
-    asY = asY.iloc[::-1]
     asY.columns = ["row","col"]
+    asY.reset_index(inplace=True, drop=True)
     if asB.empty:
         asB = pd.DataFrame([[0,0]], columns=["row", "col"])
     if asY.empty:
         asY = pd.DataFrame([[0,0]], columns=["row", "col"])
+        
+    BDAG = pd.DataFrame([[0,0,0,0,0,0,0,0]] * asB.shape[0],
+                        columns=["row", "col", "dist", "value", "concsec", "int", "error", "counts"])
+    BDAG.row = asB.row
+    BDAG.col = asB.col
+    BDAG.counts = pd.Series(BDAG.index.values + 1)
+    YDAG = pd.DataFrame([[0,0,0,0,0,0,0,0]] * asY.shape[0],
+                        columns=["row", "col", "dist", "value", "concsec", "int", "error", "counts"])
+    YDAG.row = asY.row
+    YDAG.col = asY.col
+    YDAG.counts = pd.Series(YDAG.index.values + 1)
+    
+    for asBY, BYDAG in [[asB, BDAG], [asY, YDAG]]:
+        for i in list(range(0,BYDAG.shape[0]))[::-1]:
+            BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
+            BYDAG.dist.iloc[i] = 
     
     return(BDAG, YDAG)
 
