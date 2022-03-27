@@ -263,12 +263,19 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot["deltav1"] = 0
     return(deltamplot, deltaplot)
 
-def qScore(ppmfinal):
+def qeScore(ppmfinal, int2):
+    int2.reset_index(inplace=True, drop=True)
     err = 15
     ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
-    qss = ppmfinal["minv"]
-    
-    return(qss)
+    qscore = pd.DataFrame(ppmfinal["minv"])
+    qscore[qscore > err] = 0
+    qscore["INT"] = int2
+    qscoreFALSE = pd.DataFrame([[21,21],[21,21]])
+    qscore = qscore[(qscore>0).all(1)]
+    if qscore.shape[0] == 2:
+        qscore = qscoreFALSE
+    escore = (qscore.INT/1000000).sum()
+    return(qscore, escore)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
@@ -343,8 +350,8 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
     #frv2 = ions.INT
     
-    ## Q-SCORE ##
-    qss = qScore(ppmfinal)
+    ## Q-SCORE AND E-SCORE ##
+    qscore, escore = qeScore(ppmfinal, ions.INT)
     
     return    
 
