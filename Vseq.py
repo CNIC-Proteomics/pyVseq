@@ -263,6 +263,13 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot["deltav1"] = 0
     return(deltamplot, deltaplot)
 
+def qScore(ppmfinal):
+    err = 15
+    ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
+    qss = ppmfinal["minv"]
+    
+    return(qss)
+
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -325,11 +332,19 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     parcial[parcial>50] = 0
     parcialdm[parcialdm<50] = 3
     parcialdm[parcialdm>50] = 0
-    ppmfinal[ppmfinal<=300] = 1
-    ppmfinal[ppmfinal>300] = 0
+    pppmfinal = ppmfinal.copy()
+    pppmfinal[pppmfinal<=300] = 1
+    pppmfinal[pppmfinal>300] = 0
     
     deltamplot, deltaplot = deltaPlot(parcialdm, parcial, ppmfinal)
+    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+    z = max(fppm.max())
     
+    ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
+    #frv2 = ions.INT
+    
+    ## Q-SCORE ##
+    qss = qScore(ppmfinal)
     
     return    
 
