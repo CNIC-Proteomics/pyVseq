@@ -239,6 +239,30 @@ def makeAblines(texp, minv, assign, ions):
         proof = pd.concat([matches_ions, pd.Series([next(mzcycle) for count in range(len(matches_ions))], name="INT")], axis=1)
     return(proof)
 
+def deltaPlot(parcialdm, parcial, ppmfinal):
+    deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
+    deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
+    if deltamplot.empty:
+        deltamplot = parcial
+    #deltamplot.reset_index(inplace=True, drop=True)
+    rplot = []
+    cplot = []
+    for ki in list(range(0,deltamplot.shape[0])): #rows
+        for kj in list(range(0,deltamplot.shape[0])): #columns
+            if deltamplot.iloc[ki,kj] == 3:
+                rplot.append(deltamplot.index.values[ki]) 
+                cplot.append(deltamplot.columns.values[kj]) 
+    deltaplot = pd.DataFrame([pd.Series(rplot), pd.Series(cplot)]).T
+    if deltaplot.shape[0] != 0:
+        deltaplot.columns = ["row", "deltav2"]
+        deltaplot["deltav1"] = deltamplot.shape[0] - deltaplot.row
+    else:
+        deltaplot = pd.concat([deltaplot, pd.Series([0])],axis=0)
+        deltaplot.columns = ["row"]
+        deltaplot["deltav2"] = 0
+        deltaplot["deltav1"] = 0
+    return(deltamplot, deltaplot)
+
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -304,11 +328,9 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     ppmfinal[ppmfinal<=300] = 1
     ppmfinal[ppmfinal>300] = 0
     
-    deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
-    deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
-    if deltamplot.empty:
-        deltamplot = parcial
-    deltamplot.reset_index(inplace=True, drop=True)
+    deltamplot, deltaplot = deltaPlot(parcialdm, parcial, ppmfinal)
+    
+    
     return    
 
 def main(args):
