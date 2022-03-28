@@ -16,6 +16,7 @@ import argparse
 import configparser
 import itertools
 import logging
+import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path
 import random
@@ -431,6 +432,16 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
+def plotPpmMatrix(sub, fppm, dm, frags):
+    fppm.index = list(frags.by)
+    mainT = sub.Sequence + "+" + str(dm) 
+    z  = max(fppm.max())
+    outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) + "_" + str(sub.Sequence) + "_" + str(sub.FirstScan) + ".png")
+    
+    fig = plt.figure()
+    fig.set_size_inches(22, 15)
+    return
+
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -520,7 +531,10 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     ## V-SCORE ##
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
-    return    
+    ## PLOTS ##
+    plotPpmMatrix(sub, fppm, dm, frags)
+    
+    return
 
 def main(args):
     '''
