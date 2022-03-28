@@ -314,7 +314,7 @@ def asBY(deltaplot, sub):
     YDAG.sort_values(by="counts")
     
     for asBY, BYDAG in [[asB, BDAG], [asY, YDAG]]:
-        if len(asB) > 1:
+        if len(asBY) > 1:
             for i in list(range(1,BYDAG.shape[0]))[::-1]:
                 BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
                 BYDAG.dist.iloc[i-1] = abs(BYDAG.col.iloc[i] - BYDAG.col.iloc[i-1])
@@ -331,39 +331,104 @@ def asBY(deltaplot, sub):
     YDAGmax = YDAGmax.row - len(sub.Sequence)
     return(BDAGmax, YDAGmax)
 
-def vScore(qscore, sub, proofb, proofy):
+def vScore(qscore, sub, proofb, proofy, assign):
     '''
     Calculate vScore.
     '''
+    
+    ## SS1 ##
     if len(qscore) <= (len(sub.Sequence)*2)/4:
         SS1 = 1
-    elif len(qscore) > (len(sub.Sequence)*2)/4:
+    if len(qscore) > (len(sub.Sequence)*2)/4:
         SS1 = 2
-    elif len(qscore) > (len(sub.Sequence)*2)/3:
+    if len(qscore) > (len(sub.Sequence)*2)/3:
         SS1 = 3
-    elif len(qscore) > (len(sub.Sequence)*2)/2:
+    if len(qscore) > (len(sub.Sequence)*2)/2:
         SS1 = 4
-        
+    
+    ## SS2 ##
     proofb_vscore = proofb[proofb.PPM < 20]
+    proofb_vscore.reset_index(inplace=True)
     if len(proofb_vscore) == 0:
         SS2 = 0
-    elif len(proofb_vscore) != 0:
+    if len(proofb_vscore) != 0:
         SS2 = SS1 * 1.5
-    elif len(proofb_vscore) > len(sub.Sequence)/3:
+    if len(proofb_vscore) > len(sub.Sequence)/3:
         SS2 = SS1 * 2.5
-    elif len(proofb_vscore) > (len(sub.Sequence)*2)/3:
+    if len(proofb_vscore) > (len(sub.Sequence)*2)/3:
         SS2 = SS1 * 3.5
     
+    ## SS3 ##
     proofy_vscore = proofy[proofy.PPM < 20]
+    proofy_vscore.reset_index(inplace=True)
     if len(proofy_vscore) == 0:
         SS3 = 0
-    elif len(proofy_vscore) != 0:
+    if len(proofy_vscore) != 0:
         SS3 = SS1 * 3
-    elif len(proofy_vscore) > len(sub.Sequence)/3:
+    if len(proofy_vscore) > len(sub.Sequence)/3:
         SS3 = SS1 * 5
-    elif len(proofy_vscore) > (len(sub.Sequence)*2)/3:
+    if len(proofy_vscore) > (len(sub.Sequence)*2)/3:
         SS3 = SS1 * 7
+
+    ## SS4 ##
+    SS4b = SS4y = 0
+    temp = []
+    for proofby_vscore, SS4 in [[proofb_vscore, SS4b], [proofy_vscore, SS4y]]:
+        if len(proofby_vscore) > 1:
+            proofby_vscore = pd.concat([proofby_vscore, pd.merge(proofby_vscore, assign, on="FRAGS")[["ION", "CHARGE"]]], axis=1)
+            proofby_vscore = proofby_vscore.sort_values(by="CHARGE")
+            proofby_vscore["ION_DIFF"] = -pd.to_numeric(proofby_vscore.ION).diff(periods=-1)
+            SS4 = len(proofby_vscore[proofby_vscore.ION_DIFF == 1])
+            temp.append([proofby_vscore, SS4])
+    proofb_vscore, proofy_vscore = temp[0][0], temp[1][0]
+    SS4b, SS4y = temp[0][1], temp[1][1]
+    SS4 = SS4b + SS4y
     
+    ## SS5 and SS6 ##
+    if len(proofb_vscore) <= 1:
+        SS5b = 0
+        SS6b = 0
+        Kv = 0.1
+    if len(proofb_vscore) > 1:
+        SS5b = statistics.median(pd.to_numeric(proofb_vscore.ION))
+        SS6b = statistics.median(pd.to_numeric(proofb_vscore.PPM))
+    if len(proofy_vscore) <= 1:
+        SS5y = 0
+        SS6y = 0
+        Kv = 0.1
+    if len(proofy_vscore) > 1:
+        SS5y = statistics.median(pd.to_numeric(proofy_vscore.ION))
+        SS6y = statistics.median(pd.to_numeric(proofy_vscore.PPM))
+    SS5 = SS5b + SS5y
+    SS6 = SS6b + SS6y/2
+    if SS6b == 0 or SS6y == 0:
+        SS6 = SS6b + SS6y
+    if SS6 < 16:
+        Kerr = 3
+    if SS6 < 11:
+        Kerr = 6
+    if SS6 < 6:
+        Kerr = 9
+    
+    ## Kv ##
+    if SS4b < 4 and SS4y < 4 and SS5b < 7 and SS5y < 7:
+        Kv = 0.01
+    if SS4b <= 4 or SS4y <= 4:
+        if SS5b >= 8 or SS5y >= 8:
+            Kv = 0.8
+    if SS4b >=5 or SS4y >= 5:
+        if SS5b < 6 or SS5y < 6:
+            Kv = 1.2
+    if SS4b >=5 or SS4y >= 5:
+        if SS5b >= 6 or SS5y >= 6:
+            Kv = 1.5
+    if SS4b > 7 or SS4y > 7:
+        if SS5b >= 8 or SS5y >= 8:
+            Kv = 1.8
+    if SS4b > 7 and SS4y > 7 and SS5b >= 8 and SS5y >= 8:
+        Kv = 2.7
+        
+    vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
@@ -453,7 +518,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     # TODO: dta files required
     
     ## V-SCORE ##
-    vscore = vScore(qscore, sub, proofb, proofy)
+    vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     return    
 
