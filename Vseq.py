@@ -17,6 +17,7 @@ import configparser
 import itertools
 import logging
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 import pandas as pd
 from pathlib import Path
 import random
@@ -432,7 +433,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags):
+def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(dm) 
     z  = max(fppm.max())
@@ -440,6 +441,29 @@ def plotPpmMatrix(sub, fppm, dm, frags):
     
     fig = plt.figure()
     fig.set_size_inches(22, 15)
+    ax1 = fig.add_subplot(2,4,(1,2))
+    ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
+    plt.yscale("log")
+    plt.xlabel("error in ppm______________________ >50", fontsize=15)
+    plt.ylabel("intensity(log)", fontsize=15)
+    plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
+    plt.axvline(x=15, color='tab:blue', label='axvline - full height', ls="--")
+    
+    ax2 = fig.add_subplot(2,4,4)
+    plt.yscale("log")
+    plt.scatter(zoom, ions.INT)
+    
+    ax3 = fig.add_subplot(2,4,(1,2))
+    plt.yscale("log")
+    plt.scatter(zoom, ions.INT)
+    
+    ax4 = fig.add_subplot(2,4,(5,6))
+    plt.yscale("log")
+    plt.scatter(zoom, ions.INT)
+    
+    ax5 = fig.add_subplot(2,4,(7,8))
+    plt.yscale("log")
+    plt.scatter(zoom, ions.INT)
     return
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
@@ -532,7 +556,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    plotPpmMatrix(sub, fppm, dm, frags)
+    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions)
     
     return
 
