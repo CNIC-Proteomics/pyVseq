@@ -302,22 +302,37 @@ def asBY(deltaplot, sub):
         asY = pd.DataFrame([[0,0]], columns=["row", "col"])
         
     BDAG = pd.DataFrame([[0,0,0,0,0,0,0,0]] * asB.shape[0],
-                        columns=["row", "col", "dist", "value", "concsec", "int", "error", "counts"])
+                        columns=["row", "col", "dist", "value", "consec", "int", "error", "counts"])
     BDAG.row = asB.row
     BDAG.col = asB.col
     BDAG.counts = pd.Series(BDAG.index.values + 1)
     YDAG = pd.DataFrame([[0,0,0,0,0,0,0,0]] * asY.shape[0],
-                        columns=["row", "col", "dist", "value", "concsec", "int", "error", "counts"])
+                        columns=["row", "col", "dist", "value", "consec", "int", "error", "counts"])
     YDAG.row = asY.row
     YDAG.col = asY.col
     YDAG.counts = pd.Series(YDAG.index.values + 1)
+    YDAG.sort_values(by="counts")
     
     for asBY, BYDAG in [[asB, BDAG], [asY, YDAG]]:
-        for i in list(range(1,BYDAG.shape[0]))[::-1]:
-            BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
-            BYDAG.dist.iloc[i-1] = abs(BYDAG.col.iloc[i] - BYDAG.col.iloc[i-1])
-    
-    return(BDAG, YDAG)
+        if len(asB) > 1:
+            for i in list(range(1,BYDAG.shape[0]))[::-1]:
+                BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
+                BYDAG.dist.iloc[i-1] = abs(BYDAG.col.iloc[i] - BYDAG.col.iloc[i-1])
+                for j in list(range(1,i+1)):
+                    if BYDAG.dist.iloc[i] <= 7:
+                        BYDAG.value.iloc[j] = BYDAG.value.iloc[i] + 1
+                    elif BYDAG.dist.iloc[i] > 7:
+                        BYDAG.value.iloc[j] = 0
+            BYDAG.consec = BYDAG.value + 1
+    BDAGmax = BDAG[BDAG.value == BDAG.value.max()]
+    if len(BDAG) == 1:
+        BDAGmax.row = 0
+    YDAGmax = YDAG[YDAG.value == YDAG.value.max()]
+    YDAGmax = YDAGmax.row - len(sub.Sequence)
+    return(BDAGmax, YDAGmax)
+
+def vScore():
+    return(vscore)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
@@ -399,7 +414,14 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
     specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
     
-    BDAG, YDAG = asBY(deltaplot, sub)
+    BDAGmax, YDAGmax = asBY(deltaplot, sub)
+    #PTMprob = list(sub.Sequence)
+    
+    ## SURVEY SCAN INFORMATION ##
+    # TODO: dta files required
+    
+    ## V-SCORE ##
+    vscore = vScore()
     
     return    
 
