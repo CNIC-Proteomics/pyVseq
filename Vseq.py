@@ -331,7 +331,39 @@ def asBY(deltaplot, sub):
     YDAGmax = YDAGmax.row - len(sub.Sequence)
     return(BDAGmax, YDAGmax)
 
-def vScore():
+def vScore(qscore, sub, proofb, proofy):
+    '''
+    Calculate vScore.
+    '''
+    if len(qscore) <= (len(sub.Sequence)*2)/4:
+        SS1 = 1
+    elif len(qscore) > (len(sub.Sequence)*2)/4:
+        SS1 = 2
+    elif len(qscore) > (len(sub.Sequence)*2)/3:
+        SS1 = 3
+    elif len(qscore) > (len(sub.Sequence)*2)/2:
+        SS1 = 4
+        
+    proofb_vscore = proofb[proofb.PPM < 20]
+    if len(proofb_vscore) == 0:
+        SS2 = 0
+    elif len(proofb_vscore) != 0:
+        SS2 = SS1 * 1.5
+    elif len(proofb_vscore) > len(sub.Sequence)/3:
+        SS2 = SS1 * 2.5
+    elif len(proofb_vscore) > (len(sub.Sequence)*2)/3:
+        SS2 = SS1 * 3.5
+    
+    proofy_vscore = proofy[proofy.PPM < 20]
+    if len(proofy_vscore) == 0:
+        SS3 = 0
+    elif len(proofy_vscore) != 0:
+        SS3 = SS1 * 3
+    elif len(proofy_vscore) > len(sub.Sequence)/3:
+        SS3 = SS1 * 5
+    elif len(proofy_vscore) > (len(sub.Sequence)*2)/3:
+        SS3 = SS1 * 7
+    
     return(vscore)
 
 def doVseq(sub, tquery, fr_ns, arg_dm):
@@ -421,7 +453,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     # TODO: dta files required
     
     ## V-SCORE ##
-    vscore = vScore()
+    vscore = vScore(qscore, sub, proofb, proofy)
     
     return    
 
