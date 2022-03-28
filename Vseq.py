@@ -13,7 +13,7 @@ Created on Wed Mar  2 14:10:14 2022
 import os
 import sys
 import argparse
-from colour import Color
+#from colour import Color
 import configparser
 import itertools
 import logging
@@ -434,11 +434,14 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof, deltamplot):
+def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
-    outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) + "_" + str(sub.Sequence) + "_" + str(sub.FirstScan) + ".png")
+    outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) +
+                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                           + ".png")
     
     frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
@@ -457,9 +460,41 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
     plt.axvline(x=err, color='tab:blue', ls="--")
     ## SCAN INFO ##
-    ax2 = fig.add_subplot(2,4,4)
-    plt.yscale("log")
-    plt.scatter(zoom, ions.INT)
+    ax2 = fig.add_subplot(2,4,3)
+    plt.axis('off')
+    plt.text(0, 0.5,
+             'FirstScan='+str(sub.FirstScan)+'\n'+
+             'Charge='+str(sub.Charge)+'\n'+
+             'RT='+str(sub.RetentionTime)+'\n'+
+             'DeltaM='+str(round(dm,6))+'\n'+
+             'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
+             'Escore='+str(escore)+'\n'+
+             'Vscore='+str(vscore)+'\n',
+             fontsize=15,
+             horizontalalignment='left',
+             verticalalignment='center',
+             transform = ax2.transAxes)
+    ## MODIFIED RESIDUE CHARACTERIZATION ##
+    PTMprob = list(sub.Sequence)
+    ax3 = fig.add_subplot(2,4,4)
+    plt.axis('off')
+    if dm >= min_dm:
+        plt.text(0, 0.5,
+                  'PTM pinpointing:'+'\n'+
+                  'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
+                  'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
+                  fontsize=15,
+                  horizontalalignment='left',
+                  verticalalignment='center',
+                  transform = ax3.transAxes)
+    else:
+        plt.text(0, 0.5,
+                  'Unmodified Peptide',
+                  color="red",
+                  fontsize=15,
+                  horizontalalignment='left',
+                  verticalalignment='center',
+                  transform = ax3.transAxes)
     ## M/Z vs INTENSITY ##
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
@@ -512,7 +547,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     plt.show()
     return
 
-def doVseq(sub, tquery, fr_ns, arg_dm, err):
+def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
@@ -593,7 +628,6 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err):
     specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
     
     BDAGmax, YDAGmax = asBY(deltaplot, sub)
-    #PTMprob = list(sub.Sequence)
     
     ## SURVEY SCAN INFORMATION ##
     # TODO: dta files required
@@ -602,7 +636,8 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof, deltamplot)
+    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm)
     
     return
 
@@ -612,6 +647,7 @@ def main(args):
     '''
     ## USER PARAMS TO ADD ##
     err = 15
+    min_dm = 3
     try:
         arg_dm = float(args.deltamass)
     except ValueError:
@@ -634,7 +670,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, arg_dm, err)
+                doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm)
                 
             
 
