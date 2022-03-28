@@ -18,6 +18,7 @@ import configparser
 import itertools
 import logging
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
 import pandas as pd
 from pathlib import Path
 import random
@@ -433,7 +434,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof):
+def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof, deltamplot):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
@@ -488,6 +489,26 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     plt.ylabel("large--Exp.masses--small", fontsize=15)
     for i, j in enumerate(frags.by):
         plt.axvline(x=frags.by[i], color='white', ls="--")
+    ## DM PINPOINTING ##
+    # for i, c in enumerate(fppm.T.columns):
+    #     for j, v in enumerate(fppm.T[c]):
+    #         if v < z:
+    #             ax5.text(i + 0.5, j + 0.5, '★', color='white', size=20, ha='center', va='center')
+    #posmatrix = fppm.T.copy()
+    deltamplot.columns = frags.by
+    posmatrix = deltamplot.copy()
+    for col in posmatrix.columns:
+        posmatrix[col].values[:] = 0
+    for row in posmatrix.iterrows():
+        posmatrix.loc[row[0]] = deltamplot.loc[row[0]]
+    posmatrix[posmatrix<3] = 0
+    posmatrix[posmatrix!=0] = 1
+    posmatrix.columns = list(range(0,posmatrix.shape[1]))
+    for i, c in enumerate(posmatrix.columns):
+        for j, v in enumerate(posmatrix[c]):
+            if v == 1:
+                text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
+                text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
     plt.show()
     return
 
@@ -581,7 +602,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof)
+    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof, deltamplot)
     
     return
 
