@@ -22,6 +22,7 @@ import pandas as pd
 from pathlib import Path
 import random
 import re
+import seaborn as sns
 import scipy.stats
 import statistics
 import numpy as np
@@ -434,7 +435,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
 
 def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof):
     fppm.index = list(frags.by)
-    mainT = sub.Sequence + "+" + str(dm) 
+    mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
     outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) + "_" + str(sub.Sequence) + "_" + str(sub.FirstScan) + ".png")
     
@@ -475,9 +476,15 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
             txtcolor = "blue"
         ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
     ## FRAGMENTS ##
+    # colors = ["red","green","blue","orange","grey"]
+    # gradient = []
+    # for color in colors:
+    #     newcolors = list(Color("red").range_to(Color("green"),12))
     ax5 = fig.add_subplot(2,4,(7,8))
-    plt.yscale("log")
-    plt.scatter(zoom, ions.INT)
+    sns.heatmap(fppm, cmap=frag_palette)
+    plt.title(mainT, fontsize=20)
+    plt.xlabel("b series --------- y series", fontsize=15)
+    plt.ylabel("large--Exp.masses--small", fontsize=15)
     plt.show()
     return
 
