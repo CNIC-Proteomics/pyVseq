@@ -13,11 +13,11 @@ Created on Wed Mar  2 14:10:14 2022
 import os
 import sys
 import argparse
+from colour import Color
 import configparser
 import itertools
 import logging
 import matplotlib.pyplot as plt
-import matplotlib.transforms as mtransforms
 import pandas as pd
 from pathlib import Path
 import random
@@ -267,9 +267,8 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot["deltav1"] = 0
     return(deltamplot, deltaplot)
 
-def qeScore(ppmfinal, int2):
+def qeScore(ppmfinal, int2, err):
     int2.reset_index(inplace=True, drop=True)
-    err = 15
     ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
     qscore = pd.DataFrame(ppmfinal["minv"])
     qscore[qscore > err] = 0
@@ -433,40 +432,47 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions):
+def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(dm) 
     z  = max(fppm.max())
     outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) + "_" + str(sub.Sequence) + "_" + str(sub.FirstScan) + ".png")
     
+    frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
+                    "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
+                    "#005DA1", "#0048B6", "#0034CA", "#001FDF", "#000AF4", "#0A06F4", "#1F14DF", "#3421CA", "#482FB6", "#5D3CA1",
+                    "#724A8C", "#875777", "#9C6562", "#B0724E", "#C57F39", "#DA8D24", "#EF9A0F", "#FDA503", "#F8A713", "#F3A922",
+                    "#EDAB32", "#E8AD41", "#E3AF51", "#DDB160", "#D8B370", "#D3B57F", "#CDB78F", "#C8B99E", "#C3BBAE", "#BEBEBE"]
+    
     fig = plt.figure()
     fig.set_size_inches(22, 15)
+    ## PPM vs INTENSITY(LOG)
     ax1 = fig.add_subplot(2,4,(1,2))
     ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
     plt.yscale("log")
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
     plt.ylabel("intensity(log)", fontsize=15)
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
-    plt.axvline(x=15, color='tab:blue', label='axvline - full height', ls="--")
-    
+    plt.axvline(x=err, color='tab:blue', label='axvline - full height', ls="--")
+    ## SCAN INFO ##
     ax2 = fig.add_subplot(2,4,4)
     plt.yscale("log")
     plt.scatter(zoom, ions.INT)
-    
-    ax3 = fig.add_subplot(2,4,(1,2))
-    plt.yscale("log")
-    plt.scatter(zoom, ions.INT)
-    
+    ## M/Z vs INTENSITY ##
     ax4 = fig.add_subplot(2,4,(5,6))
-    plt.yscale("log")
-    plt.scatter(zoom, ions.INT)
-    
+    plt.title(specpar, color="darkblue", fontsize=20)
+    plt.xlabel("m/z", fontsize=15)
+    plt.ylabel("Relative Intensity", fontsize=15)
+    plt.yticks(rotation=90, va="center")
+    plt.plot(exp_spec.MZ, exp_spec.REL_INT, linewidth=0.5)
+    ## FRAGMENTS ##
     ax5 = fig.add_subplot(2,4,(7,8))
     plt.yscale("log")
     plt.scatter(zoom, ions.INT)
+    plt.show()
     return
 
-def doVseq(sub, tquery, fr_ns, arg_dm):
+def doVseq(sub, tquery, fr_ns, arg_dm, err):
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
@@ -540,7 +546,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     #frv2 = ions.INT
     
     ## Q-SCORE AND E-SCORE ##
-    qscore, escore = qeScore(ppmfinal, ions.INT)
+    qscore, escore = qeScore(ppmfinal, ions.INT, err)
     #matched_ions = qscore.shape[0]
     
     pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
@@ -556,7 +562,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions)
+    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec)
     
     return
 
@@ -564,6 +570,8 @@ def main(args):
     '''
     Main function
     '''
+    ## USER PARAMS TO ADD ##
+    err = 15
     try:
         arg_dm = float(args.deltamass)
     except ValueError:
@@ -586,7 +594,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, arg_dm)
+                doVseq(sub, tquery, fr_ns, arg_dm, err)
                 
             
 
