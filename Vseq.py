@@ -451,6 +451,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     
     fig = plt.figure()
     fig.set_size_inches(22, 15)
+    #fig.suptitle('VSeq', fontsize=20)
     ## PPM vs INTENSITY(LOG)
     ax1 = fig.add_subplot(2,4,(1,2))
     ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
@@ -463,6 +464,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     ax2 = fig.add_subplot(2,4,3)
     plt.axis('off')
     plt.text(0, 0.5,
+             'Raw='+str(sub.Raw)+'\n'+
              'FirstScan='+str(sub.FirstScan)+'\n'+
              'Charge='+str(sub.Charge)+'\n'+
              'RT='+str(sub.RetentionTime)+'\n'+
@@ -646,8 +648,8 @@ def main(args):
     Main function
     '''
     ## USER PARAMS TO ADD ##
-    err = 15
-    min_dm = 3
+    err = mass._sections['Parameters']['ppm_error']
+    min_dm = mass._sections['Parameters']['min_dm']
     try:
         arg_dm = float(args.deltamass)
     except ValueError:
@@ -691,7 +693,6 @@ if __name__ == '__main__':
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-m', '--mass', default=defaultconfig, help='Path to custom massfile.ini file')
     parser.add_argument('-d', '--deltamass', default=0, help='Minimum deltamass to consider')
 
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')    
@@ -699,17 +700,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # parse config
-    config = configparser.ConfigParser(inline_comment_prefixes='#')
-    config.read(args.config)
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
-    mass.read(args.mass)
-    if args.ppm is not None:
-        config.set('PeakAssignator', 'ppm_max', str(args.ppm))
-        config.set('Logging', 'create_ini', '1')
+    mass.read(args.config)
     # if something is changed, write a copy of ini
-    if config.getint('Logging', 'create_ini') == 1:
+    if mass.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/Vseq.ini', 'w') as newconfig:
-            config.write(newconfig)
+            mass.write(newconfig)
 
     # logging debug level. By default, info level
     log_file = outfile = args.infile[:-4] + 'Vseq_log.txt'
