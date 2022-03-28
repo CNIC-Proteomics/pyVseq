@@ -5,6 +5,8 @@ Created on Wed Mar  2 14:10:14 2022
 @author: alaguillog
 """
 # mgf = 'S:\\U_Proteomica\\UNIDAD\\DatosCrudos\\LopezOtin\\COVID\\COVID_TMT\\COVID_TMT1_F2.mgf'
+# infile = 'C:\\Users\\alaguillog\\GitHub\\vseq_input_data.csv'
+# massfile = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\massfile_original.ini'
 # seq2 = kLETEVMq
 
 # import modules
@@ -67,7 +69,7 @@ def getTquery(fr_ns):
 
 def getTheoMH(charge, sequence, nt, ct):
     '''    
-    Calculate theoretical MZ using the PSM sequence.
+    Calculate theoretical MH using the PSM sequence.
     '''
     AAs = dict(mass._sections['Aminoacids'])
     MODs = dict(mass._sections['Fixed Modifications'])
@@ -288,9 +290,11 @@ def asBY(deltaplot, sub):
     asB = asB.T.drop("row", axis=1)
     #asB = asB.iloc[::-1]
     asB.columns = ["row","col"]
+    asB = asB.sort_values(by="row")
     asB.reset_index(inplace=True, drop=True)
     asY = asY.T.drop("row", axis=1)
     asY.columns = ["row","col"]
+    asY = asY.sort_values(by="row")
     asY.reset_index(inplace=True, drop=True)
     if asB.empty:
         asB = pd.DataFrame([[0,0]], columns=["row", "col"])
@@ -309,9 +313,9 @@ def asBY(deltaplot, sub):
     YDAG.counts = pd.Series(YDAG.index.values + 1)
     
     for asBY, BYDAG in [[asB, BDAG], [asY, YDAG]]:
-        for i in list(range(0,BYDAG.shape[0]))[::-1]:
+        for i in list(range(1,BYDAG.shape[0]))[::-1]:
             BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
-            BYDAG.dist.iloc[i] = 
+            BYDAG.dist.iloc[i-1] = abs(BYDAG.col.iloc[i] - BYDAG.col.iloc[i-1])
     
     return(BDAG, YDAG)
 
@@ -381,7 +385,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm):
     pppmfinal[pppmfinal<=300] = 1
     pppmfinal[pppmfinal>300] = 0
     
-    deltamplot, deltaplot = deltaPlot(parcialdm, parcial, ppmfinal)
+    deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
     if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
     z = max(fppm.max())
     
