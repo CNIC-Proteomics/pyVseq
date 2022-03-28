@@ -454,7 +454,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
     plt.ylabel("intensity(log)", fontsize=15)
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
-    plt.axvline(x=err, color='tab:blue', label='axvline - full height', ls="--")
+    plt.axvline(x=err, color='tab:blue', ls="--")
     ## SCAN INFO ##
     ax2 = fig.add_subplot(2,4,4)
     plt.yscale("log")
@@ -475,6 +475,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
         if "y" in txt:
             txtcolor = "blue"
         ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
+        plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
     ## FRAGMENTS ##
     # colors = ["red","green","blue","orange","grey"]
     # gradient = []
