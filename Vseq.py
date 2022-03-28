@@ -482,10 +482,12 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     # for color in colors:
     #     newcolors = list(Color("red").range_to(Color("green"),12))
     ax5 = fig.add_subplot(2,4,(7,8))
-    sns.heatmap(fppm, cmap=frag_palette)
+    sns.heatmap(fppm.T, cmap=frag_palette)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
+    for i, j in enumerate(frags.by):
+        plt.axvline(x=frags.by[i], color='white', ls="--")
     plt.show()
     return
 
