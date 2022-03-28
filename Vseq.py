@@ -467,13 +467,13 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proo
     plt.xlabel("m/z", fontsize=15)
     plt.ylabel("Relative Intensity", fontsize=15)
     plt.yticks(rotation=90, va="center")
-    plt.plot(exp_spec.MZ, exp_spec.REL_INT, linewidth=0.5, color="darkblue")
+    plt.plot(exp_spec.MZ, exp_spec.CORR_INT, linewidth=0.5, color="darkblue")
     for i, txt in enumerate(tempfrags.FRAGS):
         if "b" in txt:
             txtcolor = "red"
         if "y" in txt:
             txtcolor = "blue"
-        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.REL_INT[i]), color=txtcolor, fontsize=20, ha="center")
+        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
     ## FRAGMENTS ##
     ax5 = fig.add_subplot(2,4,(7,8))
     plt.yscale("log")
