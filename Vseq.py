@@ -432,7 +432,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec):
+def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(dm) 
     z  = max(fppm.max())
@@ -459,12 +459,21 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec):
     plt.yscale("log")
     plt.scatter(zoom, ions.INT)
     ## M/Z vs INTENSITY ##
+    tempfrags = pd.merge(proof, exp_spec)
+    tempfrags = tempfrags[tempfrags.REL_INT != 0]
+    tempfrags.reset_index(inplace=True)
     ax4 = fig.add_subplot(2,4,(5,6))
     plt.title(specpar, color="darkblue", fontsize=20)
     plt.xlabel("m/z", fontsize=15)
     plt.ylabel("Relative Intensity", fontsize=15)
     plt.yticks(rotation=90, va="center")
-    plt.plot(exp_spec.MZ, exp_spec.REL_INT, linewidth=0.5)
+    plt.plot(exp_spec.MZ, exp_spec.REL_INT, linewidth=0.5, color="darkblue")
+    for i, txt in enumerate(tempfrags.FRAGS):
+        if "b" in txt:
+            txtcolor = "red"
+        if "y" in txt:
+            txtcolor = "blue"
+        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.REL_INT[i]), color=txtcolor, fontsize=20, ha="center")
     ## FRAGMENTS ##
     ax5 = fig.add_subplot(2,4,(7,8))
     plt.yscale("log")
@@ -562,7 +571,7 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec)
+    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec, proof)
     
     return
 
