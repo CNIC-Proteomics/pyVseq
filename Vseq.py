@@ -254,7 +254,7 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
     rplot = []
     cplot = []
     for ki in list(range(0,deltamplot.shape[0])): #rows
-        for kj in list(range(0,deltamplot.shape[0])): #columns
+        for kj in list(range(0,deltamplot.shape[1])): #columns
             if deltamplot.iloc[ki,kj] == 3:
                 rplot.append(deltamplot.index.values[ki]) 
                 cplot.append(deltamplot.columns.values[kj]) 
@@ -382,6 +382,8 @@ def vScore(qscore, sub, proofb, proofy, assign):
             proofby_vscore = proofby_vscore.sort_values(by="CHARGE")
             proofby_vscore["ION_DIFF"] = -pd.to_numeric(proofby_vscore.ION).diff(periods=-1)
             SS4 = len(proofby_vscore[proofby_vscore.ION_DIFF == 1])
+            temp.append([proofby_vscore, SS4])
+        else:
             temp.append([proofby_vscore, SS4])
     proofb_vscore, proofy_vscore = temp[0][0], temp[1][0]
     SS4b, SS4y = temp[0][1], temp[1][1]
@@ -574,12 +576,13 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     #               horizontalalignment='left',
     #               verticalalignment='center',
     #               transform = ax3.transAxes)
+    plt.tight_layout()
     plt.show()
     fig.savefig(outplot, bbox_inches='tight')  
     return
 
-def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
-    logging("\t\t\tDM Operations...")
+def doVseq(sub, tquery, fr_ns, min_dm, err):
+    logging.info("\t\t\tDM Operations...")
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
@@ -607,14 +610,14 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
     dmterrors3.columns = frags.by3
     
     ## ASSIGN IONS WITHIN SPECTRA ##
-    assign = assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm)
+    assign = assignIons(theo_spec, dm_theo_spec, frags, dm, min_dm)
     
     ## PPM ERRORS ##
     if sub.Charge == 2:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2]).min(0))
         parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, dmterrors, dmterrors2]).min(0))
-    elif sub.Charge == 3:
+    elif sub.Charge >= 3:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3]).min(0))
         parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
@@ -668,10 +671,10 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    logging("\t\t\tPlotting...")
+    logging.info("\t\t\tPlotting...")
     plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm)
-    logging("\t\t\tDone.")
+    logging.info("\t\t\tDone.")
 
     return
 
@@ -680,35 +683,34 @@ def main(args):
     Main function
     '''
     ## USER PARAMS TO ADD ##
-    err = mass._sections['Parameters']['ppm_error']
-    min_dm = mass._sections['Parameters']['min_dm']
-    try:
-        arg_dm = float(args.deltamass)
-    except ValueError:
-        sys.exit("Minimum deltamass (-d) must be a number!")
+    err = float(mass._sections['Parameters']['ppm_error'])
+    min_dm = float(mass._sections['Parameters']['min_dm'])
+    # try:
+    #     arg_dm = float(args.deltamass)
+    # except ValueError:
+    #     sys.exit("Minimum deltamass (-d) must be a number!")
     # Set variables from input file
-    logging("Reading input file")
+    logging.info("Reading input file")
     scan_info = pd.read_csv(args.infile, sep=",", float_precision='high', low_memory=False)
     exps = list(scan_info.Raw.unique())
     for exp in exps:
-        logging("Experiment: " + str(exp))
-        exp = str(exp).replace(".txt","").replace(".raw","")
+        logging.info("Experiment: " + str(exp))
+        exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
         data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
-        logging("\tReading mgf file")
+        logging.info("\tReading mgf file")
         fr_ns = pd.read_csv(mgf, header=None)
         tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
-            logging("\t\tScan: " + str(exp))
+            logging.info("\t\tScan: " + str(scan))
             subs = sql.loc[sql.FirstScan==scan]
-            logging.info("SCAN="+str(scan))
             for index, sub in subs.iterrows():
-                logging.info(sub.Sequence)
+                #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm)
+                doVseq(sub, tquery, fr_ns, min_dm, err)
                 
             
 
