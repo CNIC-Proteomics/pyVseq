@@ -92,6 +92,8 @@ def getTheoMH(charge, sequence, nt, ct):
             total_aas += float(AAs[aa.lower()])
         if aa.lower() in MODs:
             total_aas += float(MODs[aa.lower()])
+        if aa.islower():
+            total_aas += float(MODs['isolab'])
     MH = total_aas - (charge-1)*m_proton
     return MH
 
@@ -531,7 +533,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
         header6 = [ytable.add_cell(9,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header6[0].get_text().set_text("B series") 
         header4 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header4[0].get_text().set_text(str(PTMprob[YDAGmax[0]])+str(YDAGmax[0]))
+        header4[0].get_text().set_text(str(PTMprob[YDAGmax.to_list()[0]])+str(YDAGmax.to_list()[0]))
         header5 = [ytable.add_cell(10,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header5[0].get_text().set_text("Y series")
     else:
@@ -577,8 +579,8 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     #               verticalalignment='center',
     #               transform = ax3.transAxes)
     plt.tight_layout()
-    plt.show()
-    fig.savefig(outplot, bbox_inches='tight')  
+    #plt.show()
+    fig.savefig(outplot)  
     return
 
 def doVseq(sub, tquery, fr_ns, min_dm, err):
