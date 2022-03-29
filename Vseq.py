@@ -575,7 +575,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     #               verticalalignment='center',
     #               transform = ax3.transAxes)
     plt.show()
-    fig.savefig(outplot)  
+    fig.savefig(outplot, bbox_inches='tight')  
     return
 
 def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
