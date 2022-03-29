@@ -439,11 +439,12 @@ def vScore(qscore, sub, proofb, proofy, assign):
     return(vscore)
 
 def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm):
+                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+                  pathdict):
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
-    outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) +
+    outplot = os.path.join(pathdict["out"], str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + ".pdf")
     
@@ -586,7 +587,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.savefig(outplot)  
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, err):
+def doVseq(sub, tquery, fr_ns, min_dm, err, pathdict):
     logging.info("\t\t\tDM Operations...")
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
@@ -678,7 +679,8 @@ def doVseq(sub, tquery, fr_ns, min_dm, err):
     ## PLOTS ##
     logging.info("\t\t\tPlotting...")
     plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm)
+                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+                  pathdict)
     logging.info("\t\t\tDone.")
 
     return
@@ -715,7 +717,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, err)
+                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict)
                 
             
 
