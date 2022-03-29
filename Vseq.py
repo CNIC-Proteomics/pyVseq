@@ -82,7 +82,7 @@ def getTheoMH(charge, sequence, nt, ct):
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     total_aas = 2*m_hydrogen + m_oxygen
     total_aas += charge*m_proton
-    #♠total_aas += float(MODs['nt']) + float(MODs['ct'])
+    #total_aas += float(MODs['nt']) + float(MODs['ct'])
     if nt:
         total_aas += float(MODs['nt'])
     if ct:
