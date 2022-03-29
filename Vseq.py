@@ -510,43 +510,70 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
             txtcolor = "blue"
         ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
         plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
-    ## SCAN INFO ##
-    ax2 = fig.add_subplot(2,6,(10,11))
-    plt.axis('off')
-    plt.text(0, 0.5,
-             'Raw='+str(sub.Raw)+'\n'+
-             'FirstScan='+str(sub.FirstScan)+'\n'+
-             'Charge='+str(sub.Charge)+'\n'+
-             'RT='+str(sub.RetentionTime)+'\n'+
-             'DeltaM='+str(round(dm,6))+'\n'+
-             'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
-             'Escore='+str(escore)+'\n'+
-             'Vscore='+str(vscore)+'\n',
-             fontsize=20,
-             horizontalalignment='left',
-             verticalalignment='center',
-             transform = ax2.transAxes)
-    ## MODIFIED RESIDUE CHARACTERIZATION ##
+    ## INFO TABLE ##
     PTMprob = list(sub.Sequence)
-    ax3 = fig.add_subplot(2,6,12)
-    plt.axis('off')
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')), str(escore), str(vscore)],
+                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "M.Mass", "Escore", "Vscore"])
+    ax2 = fig.add_subplot(2,6,(10,11))
+    ax2.axis('off')
+    ax2.axis('tight')
+    ytable = plt.table(cellText=datatable.values, rowLabels=datatable.index.to_list(), loc='center', fontsize=15)
+    header = [ytable.add_cell(-1,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
+    header[0].visible_edges = "TLR"
+    header[0].get_text().set_text("SCAN INFO")
+    header2 = [ytable.add_cell(8,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
+    header2[0].get_text().set_text("PTM PINPOINTING")
     if dm >= min_dm:
-        plt.text(-0.5, 0.5,
-                  'PTM pinpointing:'+'\n'+
-                  'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
-                  'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
-                  fontsize=20,
-                  horizontalalignment='left',
-                  verticalalignment='center',
-                  transform = ax3.transAxes)
+        header3 = [ytable.add_cell(9,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]))
+        header6 = [ytable.add_cell(9,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header6[0].get_text().set_text("B series") 
+        header4 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header4[0].get_text().set_text(str(PTMprob[YDAGmax[0]])+str(YDAGmax[0]))
+        header5 = [ytable.add_cell(10,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header5[0].get_text().set_text("Y series")
     else:
-        plt.text(-0.5, 0.5,
-                  'Unmodified Peptide',
-                  color="red",
-                  fontsize=20,
-                  horizontalalignment='left',
-                  verticalalignment='center',
-                  transform = ax3.transAxes)
+        header3 = [ytable.add_cell(9,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="red")]
+        header3[0].get_text().set_text("Unmodified Peptide")
+    ytable.scale(0.5, 2)
+    ytable.set_fontsize(15)
+    ## SCAN INFO ##
+    # ax2 = fig.add_subplot(2,6,(10,11))
+    # plt.axis('off')
+    # plt.text(0, 0.5,
+    #          'Raw='+str(sub.Raw)+'\n'+
+    #          'FirstScan='+str(sub.FirstScan)+'\n'+
+    #          'Charge='+str(sub.Charge)+'\n'+
+    #          'RT='+str(sub.RetentionTime)+'\n'+
+    #          'DeltaM='+str(round(dm,6))+'\n'+
+    #          'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
+    #          'Escore='+str(escore)+'\n'+
+    #          'Vscore='+str(vscore)+'\n',
+    #          fontsize=20,
+    #          horizontalalignment='left',
+    #          verticalalignment='center',
+    #          transform = ax2.transAxes)
+    ## MODIFIED RESIDUE CHARACTERIZATION ##
+    # PTMprob = list(sub.Sequence)
+    # ax3 = fig.add_subplot(2,6,12)
+    # plt.axis('off')
+    # if dm >= min_dm:
+    #     plt.text(-0.5, 0.5,
+    #               'PTM pinpointing:'+'\n'+
+    #               'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
+    #               'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
+    #               fontsize=20,
+    #               horizontalalignment='left',
+    #               verticalalignment='center',
+    #               transform = ax3.transAxes)
+    # else:
+    #     plt.text(-0.5, 0.5,
+    #               'Unmodified Peptide',
+    #               color="red",
+    #               fontsize=20,
+    #               horizontalalignment='left',
+    #               verticalalignment='center',
+    #               transform = ax3.transAxes)
     plt.show()
     fig.savefig(outplot)  
     return
