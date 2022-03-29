@@ -464,25 +464,11 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     plt.ylabel("intensity(log)", fontsize=15)
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
     plt.axvline(x=err, color='tab:blue', ls="--")
-    ## FRAGMENTS ##
+    ## FRAGMENTS and DM PINPOINTING##
     # colors = ["red","green","blue","orange","grey"]
     # gradient = []
     # for color in colors:
     #     newcolors = list(Color("red").range_to(Color("green"),12))
-    ax5 = fig.add_subplot(2,6,(3,6))
-    sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
-    ax5.figure.axes[-1].yaxis.label.set_size(15)
-    plt.title(mainT, fontsize=20)
-    plt.xlabel("b series --------- y series", fontsize=15)
-    plt.ylabel("large--Exp.masses--small", fontsize=15)
-    for i, j in enumerate(frags.by):
-        plt.axvline(x=frags.by[i], color='white', ls="--")
-    ## DM PINPOINTING ##
-    # for i, c in enumerate(fppm.T.columns):
-    #     for j, v in enumerate(fppm.T[c]):
-    #         if v < z:
-    #             ax5.text(i + 0.5, j + 0.5, '★', color='white', size=20, ha='center', va='center')
-    #posmatrix = fppm.T.copy()
     deltamplot.columns = frags.by
     posmatrix = deltamplot.copy()
     for col in posmatrix.columns:
@@ -490,13 +476,30 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     for row in posmatrix.iterrows():
         posmatrix.loc[row[0]] = deltamplot.loc[row[0]]
     posmatrix[posmatrix<3] = 0
-    posmatrix[posmatrix!=0] = 1
+    posmatrix = posmatrix.astype(bool).astype(str)
+    posmatrix[posmatrix=='False'] = ''
+    posmatrix[posmatrix=='True'] = '★'
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
-    for i, c in enumerate(posmatrix.columns):
-        for j, v in enumerate(posmatrix[c]):
-            if v == 1:
-                text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
-                text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
+    posmatrix = posmatrix.loc[list(fppm.T.index.values)]
+    ax5 = fig.add_subplot(2,6,(3,6))
+    sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
+                cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    ax5.figure.axes[-1].yaxis.label.set_size(15)
+    plt.title(mainT, fontsize=20)
+    plt.xlabel("b series --------- y series", fontsize=15)
+    plt.ylabel("large--Exp.masses--small", fontsize=15)
+    for i, j in enumerate(frags.by):
+        plt.axvline(x=frags.by[i], color='white', ls="--")
+    # for i, c in enumerate(fppm.T.columns):
+    #     for j, v in enumerate(fppm.T[c]):
+    #         if v < z:
+    #             ax5.text(i + 0.5, j + 0.5, '★', color='white', size=20, ha='center', va='center')
+    #posmatrix = fppm.T.copy()
+    # for i, c in enumerate(posmatrix.columns):
+    #     for j, v in enumerate(posmatrix[c]):
+    #         if v == 1:
+    #             text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
+    #             text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
     ## M/Z vs INTENSITY ##
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
