@@ -441,7 +441,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     z  = max(fppm.max())
     outplot = os.path.join(os.path.dirname(args.infile), str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
-                           + ".png")
+                           + ".pdf")
     
     frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
@@ -453,74 +453,21 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.set_size_inches(22, 15)
     #fig.suptitle('VSeq', fontsize=20)
     ## PPM vs INTENSITY(LOG)
-    ax1 = fig.add_subplot(2,4,(1,2))
+    ax1 = fig.add_subplot(2,6,(1,2))
     ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
     plt.yscale("log")
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
     plt.ylabel("intensity(log)", fontsize=15)
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
     plt.axvline(x=err, color='tab:blue', ls="--")
-    ## SCAN INFO ##
-    ax2 = fig.add_subplot(2,4,3)
-    plt.axis('off')
-    plt.text(0, 0.5,
-             'Raw='+str(sub.Raw)+'\n'+
-             'FirstScan='+str(sub.FirstScan)+'\n'+
-             'Charge='+str(sub.Charge)+'\n'+
-             'RT='+str(sub.RetentionTime)+'\n'+
-             'DeltaM='+str(round(dm,6))+'\n'+
-             'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
-             'Escore='+str(escore)+'\n'+
-             'Vscore='+str(vscore)+'\n',
-             fontsize=15,
-             horizontalalignment='left',
-             verticalalignment='center',
-             transform = ax2.transAxes)
-    ## MODIFIED RESIDUE CHARACTERIZATION ##
-    PTMprob = list(sub.Sequence)
-    ax3 = fig.add_subplot(2,4,4)
-    plt.axis('off')
-    if dm >= min_dm:
-        plt.text(0, 0.5,
-                  'PTM pinpointing:'+'\n'+
-                  'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
-                  'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
-                  fontsize=15,
-                  horizontalalignment='left',
-                  verticalalignment='center',
-                  transform = ax3.transAxes)
-    else:
-        plt.text(0, 0.5,
-                  'Unmodified Peptide',
-                  color="red",
-                  fontsize=15,
-                  horizontalalignment='left',
-                  verticalalignment='center',
-                  transform = ax3.transAxes)
-    ## M/Z vs INTENSITY ##
-    tempfrags = pd.merge(proof, exp_spec)
-    tempfrags = tempfrags[tempfrags.REL_INT != 0]
-    tempfrags.reset_index(inplace=True)
-    ax4 = fig.add_subplot(2,4,(5,6))
-    plt.title(specpar, color="darkblue", fontsize=20)
-    plt.xlabel("m/z", fontsize=15)
-    plt.ylabel("Relative Intensity", fontsize=15)
-    plt.yticks(rotation=90, va="center")
-    plt.plot(exp_spec.MZ, exp_spec.CORR_INT, linewidth=0.5, color="darkblue")
-    for i, txt in enumerate(tempfrags.FRAGS):
-        if "b" in txt:
-            txtcolor = "red"
-        if "y" in txt:
-            txtcolor = "blue"
-        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
-        plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
     ## FRAGMENTS ##
     # colors = ["red","green","blue","orange","grey"]
     # gradient = []
     # for color in colors:
     #     newcolors = list(Color("red").range_to(Color("green"),12))
-    ax5 = fig.add_subplot(2,4,(7,8))
-    sns.heatmap(fppm.T, cmap=frag_palette)
+    ax5 = fig.add_subplot(2,6,(3,6))
+    sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    ax5.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
@@ -546,7 +493,62 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
             if v == 1:
                 text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
                 text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
+    ## M/Z vs INTENSITY ##
+    tempfrags = pd.merge(proof, exp_spec)
+    tempfrags = tempfrags[tempfrags.REL_INT != 0]
+    tempfrags.reset_index(inplace=True)
+    ax4 = fig.add_subplot(2,6,(7,9))
+    plt.title(specpar, color="darkblue", fontsize=20)
+    plt.xlabel("m/z", fontsize=15)
+    plt.ylabel("Relative Intensity", fontsize=15)
+    plt.yticks(rotation=90, va="center")
+    plt.plot(exp_spec.MZ, exp_spec.CORR_INT, linewidth=0.5, color="darkblue")
+    for i, txt in enumerate(tempfrags.FRAGS):
+        if "b" in txt:
+            txtcolor = "red"
+        if "y" in txt:
+            txtcolor = "blue"
+        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
+        plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
+    ## SCAN INFO ##
+    ax2 = fig.add_subplot(2,6,(10,11))
+    plt.axis('off')
+    plt.text(0, 0.5,
+             'Raw='+str(sub.Raw)+'\n'+
+             'FirstScan='+str(sub.FirstScan)+'\n'+
+             'Charge='+str(sub.Charge)+'\n'+
+             'RT='+str(sub.RetentionTime)+'\n'+
+             'DeltaM='+str(round(dm,6))+'\n'+
+             'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
+             'Escore='+str(escore)+'\n'+
+             'Vscore='+str(vscore)+'\n',
+             fontsize=20,
+             horizontalalignment='left',
+             verticalalignment='center',
+             transform = ax2.transAxes)
+    ## MODIFIED RESIDUE CHARACTERIZATION ##
+    PTMprob = list(sub.Sequence)
+    ax3 = fig.add_subplot(2,6,12)
+    plt.axis('off')
+    if dm >= min_dm:
+        plt.text(-0.5, 0.5,
+                  'PTM pinpointing:'+'\n'+
+                  'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
+                  'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
+                  fontsize=20,
+                  horizontalalignment='left',
+                  verticalalignment='center',
+                  transform = ax3.transAxes)
+    else:
+        plt.text(-0.5, 0.5,
+                  'Unmodified Peptide',
+                  color="red",
+                  fontsize=20,
+                  horizontalalignment='left',
+                  verticalalignment='center',
+                  transform = ax3.transAxes)
     plt.show()
+    fig.savefig(outplot)  
     return
 
 def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
@@ -693,9 +695,8 @@ if __name__ == '__main__':
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
+    parser.add_argument('-e', '--error', default=0, help='Maximum ppm error to consider')
     parser.add_argument('-d', '--deltamass', default=0, help='Minimum deltamass to consider')
-
-    parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')    
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
