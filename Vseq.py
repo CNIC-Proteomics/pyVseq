@@ -579,6 +579,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     return
 
 def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
+    logging("\t\t\tDM Operations...")
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
@@ -667,9 +668,11 @@ def doVseq(sub, tquery, fr_ns, arg_dm, err, min_dm):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
+    logging("\t\t\tPlotting...")
     plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm)
-    
+    logging("\t\t\tDone.")
+
     return
 
 def main(args):
@@ -684,18 +687,22 @@ def main(args):
     except ValueError:
         sys.exit("Minimum deltamass (-d) must be a number!")
     # Set variables from input file
+    logging("Reading input file")
     scan_info = pd.read_csv(args.infile, sep=",", float_precision='high', low_memory=False)
     exps = list(scan_info.Raw.unique())
     for exp in exps:
+        logging("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","")
         sql = scan_info.loc[scan_info.Raw == exp]
         data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
+        logging("\tReading mgf file")
         fr_ns = pd.read_csv(mgf, header=None)
         tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
+            logging("\t\tScan: " + str(exp))
             subs = sql.loc[sql.FirstScan==scan]
             logging.info("SCAN="+str(scan))
             for index, sub in subs.iterrows():
