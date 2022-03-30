@@ -505,11 +505,11 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     posmatrix[posmatrix<3] = 0
     posmatrix = posmatrix.astype(bool).astype(str)
     posmatrix[posmatrix=='False'] = ''
-    posmatrix[posmatrix=='True'] = '★'
+    posmatrix[posmatrix=='True'] = '⬤'
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     posmatrix = posmatrix.loc[list(fppm.T.index.values)]
     ax5 = fig.add_subplot(2,6,(3,6))
-    sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
+    sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                 cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     ax5.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
