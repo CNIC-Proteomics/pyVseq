@@ -25,6 +25,8 @@ import statistics
 import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
+from Vseq import doVseq
+
 # table = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\vseqexplorer_input_data.csv'
 # config = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\Vseq.ini'
 
@@ -38,9 +40,13 @@ def getTquery(fr_ns):
     cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
     cquery = cquery[0].str.replace("CHARGE=","")
     cquery.reset_index(inplace=True, drop=True)
+    rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
+    rquery = rquery[0].str.replace("RTINSECONDS=","")
+    rquery.reset_index(inplace=True, drop=True)
     tquery = pd.concat([squery.rename('SCANS'),
                         mquery.rename('PEPMASS'),
-                        cquery.rename('CHARGE')],
+                        cquery.rename('CHARGE'),
+                        rquery.rename('RT')],
                        axis=1)
     tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
     tquery['CHARGE'] = tquery.CHARGE.str[:-1]
@@ -48,7 +54,7 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
-def getTheoMZH(sequence, charge, nt, ct):
+def getTheoMZH(charge, sequence, nt, ct):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
@@ -72,8 +78,11 @@ def getTheoMZH(sequence, charge, nt, ct):
             total_aas += float(MODs['isolab'])
     MH = total_aas - (charge-1)*m_proton
     #MZ = (total_aas + int(charge)*m_proton) / int(charge)
-    MZ = total_aas / int(charge)
-    return MZ, MH
+    if charge > 0:
+        MZ = total_aas / int(charge)
+        return MZ, MH
+    else:
+        return MH
 
 def expSpectrum(fr_ns, scan):
     '''
@@ -126,7 +135,7 @@ def theoSpectrum(seq, len_ions, dm):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMZH(0,yn,nt,True)[1] + dm
+        fragy = getTheoMZH(0,yn,nt,True) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
@@ -135,7 +144,7 @@ def theoSpectrum(seq, len_ions, dm):
         bn = list(seq[::-1][i:])
         if i > 0: ct = False
         else: ct = True
-        fragb = getTheoMZH(0,bn,True,ct)[1] - 2*m_hydrogen - m_oxygen + dm
+        fragb = getTheoMZH(0,bn,True,ct) - 2*m_hydrogen - m_oxygen + dm
         outb[i:] = fragb
     
     ## FRAGMENT MATRIX ##
@@ -146,48 +155,103 @@ def theoSpectrum(seq, len_ions, dm):
     spec.reset_index(inplace=True, drop=True)
     return(spec)
 
+def eScore(ppmfinal, int2, err):
+    int2.reset_index(inplace=True, drop=True)
+    ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
+    qscore = pd.DataFrame(ppmfinal["minv"])
+    qscore[qscore > err] = 0
+    qscore["INT"] = int2
+    qscoreFALSE = pd.DataFrame([[21,21],[21,21]])
+    qscore = qscore[(qscore>0).all(1)]
+    if qscore.shape[0] == 2:
+        qscore = qscoreFALSE
+    escore = (qscore.INT/1000000).sum()
+    return(escore)
+
+def getIons(mgf, x, dm_theo_spec, ftol, err):
+    spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
+    ions_exp = len(ions)
+    ions_matched = []
+    b_ions = []
+    y_ions = []
+    for frag in ions.MZ:
+        tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
+        if tempbool.any():
+            ions_matched.append(frag)
+            b_ions = b_ions + [x for x in list(tempbool[tempbool==True].index.values) if "b" in x]
+            y_ions = y_ions + [x for x in list(tempbool[tempbool==True].index.values) if "y" in x]
+    return([len(ions_matched), ions_exp, b_ions, y_ions])
+
 def main(args):
     '''
     Main function
     '''
-    tol = float(mass._sections['Explorer']['tolerance'])
-    
+    ## PARAMETERS ##
+    ptol = float(mass._sections['Explorer']['precursor_tolerance'])
+    ftol = float(mass._sections['Explorer']['fragment_tolerance'])
+    bestn = int(mass._sections['Explorer']['best_n'])
+    err = float(mass._sections['Parameters']['ppm_error'])
+    min_dm = float(mass._sections['Parameters']['min_dm'])
+    ## INPUT ##
     logging.info("Reading input table")
     seqtable = pd.read_csv(args.table, sep=",", float_precision='high', low_memory=False)
     logging.info("Reading input file")
     mgf = pd.read_csv(args.infile, header=None)
     tquery = getTquery(mgf)
-    
+    ## COMPARE EACH SEQUENCE ##
     for index, query in seqtable.iterrows():
         logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                      + str(query.ExpNeutralMass) + " Th, Charge "
                      + str(query.Charge))
         ## MZ and MH ##
-        query['MZ'] = getTheoMZH(query.Sequence, query.Charge, True, True)[0]
-        query['MH'] = getTheoMZH(query.Sequence, query.Charge, True, True)[1]
+        query['MZ'] = getTheoMZH(query.Charge, query.Sequence, True, True)[0]
+        query['MH'] = getTheoMZH(query.Charge, query.Sequence, True, True)[1]
         ## DM ##
         mim = query.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
         dm = mim - query.MH
+        dm_theo_spec = theoSpectrum(query.Sequence, len(query.Sequence), dm).loc[0]
+        frags = ["b" + str(i) for i in list(range(1,len(query.Sequence)+1))] + ["y" + str(i) for i in list(range(1,len(query.Sequence)+1))[::-1]]
+        dm_theo_spec.index = frags
         ## TOLERANCE ##
-        upper = query.MZ + tol
-        lower = query.MZ - tol
+        upper = query.MZ + ptol
+        lower = query.MZ - ptol
         ## OPERATIONS ##
         subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
         logging.info("\t" + str(subtquery.shape[0]) + " scans found within ±"
-                     + str(tol) + " Th")
+                     + str(ptol) + " Th")
         logging.info("Comparing...")
         subtquery['Sequence'] = query.Sequence
         subtquery['ExpNeutralMass'] = query.ExpNeutralMass
-        subtquery['scan']
-        subtquery['ions_matched']
-        subtquery['ions_total']
-        subtquery['e_score']
-        subtquery['retention_time']
-        subtquery['description']
-    
+        subtquery['DeltaMass'] = dm
+        subtquery['templist'] = subtquery.apply(lambda x: getIons(mgf, x, dm_theo_spec, ftol, err), axis = 1)
+        subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
+        #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
+        subtquery['ions_total'] = len(query.Sequence) * 2
+        subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
+        subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
+        subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
+        subtquery = subtquery.drop('templist', axis = 1)
+        ## SORT BY ions_matched ##
+        subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
+        subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
+        subtquery.reset_index(drop=True, inplace=True)
+        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
+        f_subtquery = subtquery.iloc[0:bestn]
+        logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+        f_subtquery['e_score'] = f_subtquery.apply(lambda x: doVseq(x,
+                                                                    tquery,
+                                                                    mgf,
+                                                                    min_dm,
+                                                                    err,
+                                                                    os.path.split(Path(args.infile))[0],
+                                                                    False,
+                                                                    mass), axis = 1)
+        ## PLOT n BEST CANDIDATES ##
+
     logging.info("Writing output table")
     outfile = os.path.join(os.path.split(Path(args.table))[0],
                            os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
+    return
     
 
 if __name__ == '__main__':
