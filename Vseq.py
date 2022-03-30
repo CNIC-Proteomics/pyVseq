@@ -470,7 +470,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     #fig.suptitle('VSeq', fontsize=20)
     ## PPM vs INTENSITY(LOG)
     ax1 = fig.add_subplot(2,6,(1,2))
-    ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
+    #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
     plt.yscale("log")
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
     plt.ylabel("intensity(log)", fontsize=15)

@@ -182,7 +182,26 @@ def getIons(mgf, x, dm_theo_spec, ftol, err):
             y_ions = y_ions + [x for x in list(tempbool[tempbool==True].index.values) if "y" in x]
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
-def plotRT(cand):
+def plotRT(subtquery):
+    fig = plt.figure()
+    fig.set_size_inches(15, 20)
+    fig.suptitle(str(subtquery.Sequence.loc[0]) + '+' + str(round(subtquery.DeltaMass.loc[0],6)), fontsize=30)
+    ## RT vs E-SCORE ##
+    ax1 = fig.add_subplot(3,1,1)
+    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.ylabel("E-score", fontsize=15)
+    plt.scatter(subtquery.RetentionTime, subtquery.e_score)
+    ## RT vs MATCHED IONS ##
+    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.ylabel("Matched Ions", fontsize=15)
+    ax2 = fig.add_subplot(3,1,2)
+    plt.scatter(subtquery.RetentionTime, subtquery.ions_matched)
+    ## RT vs MATCHED IONS * E-SCORE ##
+    ax3 = fig.add_subplot(3,1,3)
+    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.ylabel("Matched Ions * E-score", fontsize=15)
+    plt.scatter(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
     return
 
 def main(args):
@@ -262,8 +281,8 @@ def main(args):
                                            mass,
                                            True), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
-
-        subtquery.apply(lambda x: plotBestN(x))
+        plotRT(subtquery)
+        
     logging.info("Writing output table")
     outfile = os.path.join(os.path.split(Path(args.table))[0],
                            os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
