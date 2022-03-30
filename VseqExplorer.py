@@ -183,6 +183,23 @@ def getIons(mgf, x, dm_theo_spec, ftol, err):
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
 def plotRT(subtquery):
+    ## DUMMY RT VALUES ##
+    subtquery.sort_values(by=['RetentionTime'], inplace=True)
+    subtquery.reset_index(drop=True, inplace=True)
+    for index, row in subtquery.iterrows():
+        before = pd.Series([0]*row.shape[0], index=row.index)
+        after = pd.Series([0]*row.shape[0], index=row.index)
+        before.RetentionTime = row.RetentionTime - 0.1
+        after.RetentionTime = row.RetentionTime + 0.1
+        before.Sequence = row.Sequence
+        after.Sequence = row.Sequence
+        before.DeltaMass = row.DeltaMass
+        after.DeltaMass = row.DeltaMass
+        subtquery.loc[subtquery.shape[0]] = before
+        subtquery.loc[subtquery.shape[0]] = after
+    subtquery.sort_values(by=['RetentionTime'], inplace=True)
+    subtquery.reset_index(drop=True, inplace=True)
+    ## PLOTS ##
     fig = plt.figure()
     fig.set_size_inches(15, 20)
     fig.suptitle(str(subtquery.Sequence.loc[0]) + '+' + str(round(subtquery.DeltaMass.loc[0],6)), fontsize=30)
@@ -190,17 +207,17 @@ def plotRT(subtquery):
     ax1 = fig.add_subplot(3,1,1)
     plt.xlabel("Retention Time (seconds)", fontsize=15)
     plt.ylabel("E-score", fontsize=15)
-    plt.scatter(subtquery.RetentionTime, subtquery.e_score)
+    plt.plot(subtquery.RetentionTime, subtquery.e_score, linewidth=1, color="darkblue")
     ## RT vs MATCHED IONS ##
+    ax2 = fig.add_subplot(3,1,2)
     plt.xlabel("Retention Time (seconds)", fontsize=15)
     plt.ylabel("Matched Ions", fontsize=15)
-    ax2 = fig.add_subplot(3,1,2)
-    plt.scatter(subtquery.RetentionTime, subtquery.ions_matched)
+    plt.plot(subtquery.RetentionTime, subtquery.ions_matched, linewidth=1, color="darkblue")
     ## RT vs MATCHED IONS * E-SCORE ##
     ax3 = fig.add_subplot(3,1,3)
     plt.xlabel("Retention Time (seconds)", fontsize=15)
     plt.ylabel("Matched Ions * E-score", fontsize=15)
-    plt.scatter(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score)
+    plt.plot(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score, linewidth=1, color="darkblue")
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     return
 
@@ -253,6 +270,7 @@ def main(args):
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
         subtquery = subtquery.drop('templist', axis = 1)
         subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
+        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
         subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
                                                                 tquery,
                                                                 mgf,
@@ -268,7 +286,6 @@ def main(args):
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
         subtquery.reset_index(drop=True, inplace=True)
-        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
         f_subtquery.apply(lambda x: doVseq(x,
