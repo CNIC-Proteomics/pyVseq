@@ -168,18 +168,22 @@ def eScore(ppmfinal, int2, err):
     escore = (qscore.INT/1000000).sum()
     return(escore)
 
-def getIons(mgf, x, dm_theo_spec, ftol, err):
+def getIons(mgf, x, dm_theo_spec, ftol):
+    # TODO: ftol ppm to m/z
     spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
     ions_exp = len(ions)
     ions_matched = []
     b_ions = []
     y_ions = []
     for frag in ions.MZ:
-        tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
-        if tempbool.any():
+        terrors = (((frag - dm_theo_spec)/dm_theo_spec)*1000000).abs()
+        terrors[terrors<=ftol] = True
+        terrors[terrors>ftol] = False
+        #tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
+        if terrors.any():
             ions_matched.append(frag)
-            b_ions = b_ions + [x for x in list(tempbool[tempbool==True].index.values) if "b" in x]
-            y_ions = y_ions + [x for x in list(tempbool[tempbool==True].index.values) if "y" in x]
+            b_ions = b_ions + [x for x in list(terrors[terrors==True].index.values) if "b" in x]
+            y_ions = y_ions + [x for x in list(terrors[terrors==True].index.values) if "y" in x]
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
 def plotRT(subtquery):
@@ -262,7 +266,7 @@ def main(args):
         subtquery['Sequence'] = query.Sequence
         subtquery['ExpNeutralMass'] = query.ExpNeutralMass
         subtquery['DeltaMass'] = dm
-        subtquery['templist'] = subtquery.apply(lambda x: getIons(mgf, x, dm_theo_spec, ftol, err), axis = 1)
+        subtquery['templist'] = subtquery.apply(lambda x: getIons(mgf, x, dm_theo_spec, ftol), axis = 1)
         subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
         #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
         subtquery['ions_total'] = len(query.Sequence) * 2
