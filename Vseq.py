@@ -71,10 +71,12 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
-def getTheoMH(charge, sequence, nt, ct):
+def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     '''    
     Calculate theoretical MH using the PSM sequence.
     '''
+    if not standalone:
+        mass = massconfig
     AAs = dict(mass._sections['Aminoacids'])
     MODs = dict(mass._sections['Fixed Modifications'])
     m_proton = mass.getfloat('Masses', 'm_proton')
@@ -134,11 +136,13 @@ def expSpectrum(fr_ns, scan):
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
     return(spec, ions, spec_correction)
 
-def theoSpectrum(seq, len_ions, dm):
+def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
     '''
     Prepare theoretical fragment matrix.
 
     '''
+    if not standalone:
+        mass = massconfig
     m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     ## Y SERIES ##
@@ -148,7 +152,7 @@ def theoSpectrum(seq, len_ions, dm):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMH(0,yn,nt,True) + dm
+        fragy = getTheoMH(0,yn,nt,True, massconfig, standalone) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
@@ -157,7 +161,7 @@ def theoSpectrum(seq, len_ions, dm):
         bn = list(seq[::-1][i:])
         if i > 0: ct = False
         else: ct = True
-        fragb = getTheoMH(0,bn,True,ct) - 2*m_hydrogen - m_oxygen + dm
+        fragb = getTheoMH(0,bn,True,ct, massconfig, standalone) - 2*m_hydrogen - m_oxygen + dm
         outb[i:] = fragb
     
     ## FRAGMENT MATRIX ##
@@ -168,10 +172,12 @@ def theoSpectrum(seq, len_ions, dm):
     spec.reset_index(inplace=True, drop=True)
     return(spec)
 
-def errorMatrix(fr_ns, mz, theo_spec):
+def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     '''
     Prepare ppm-error and experimental mass matrices.
     '''
+    if not standalone:
+        mass = massconfig
     m_proton = mass.getfloat('Masses', 'm_proton')
     exp = pd.DataFrame(np.tile(pd.DataFrame(mz), (1, len(theo_spec.columns)))) 
     
@@ -202,7 +208,9 @@ def makeFrags(seq_len):
     frags.bydm2 = frags.by + "*++"
     return(frags)
 
-def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm):
+def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalone):
+    if not standalone:
+        mass = massconfig
     m_proton = mass.getfloat('Masses', 'm_proton')
     assign = pd.concat([frags.by, theo_spec.iloc[0]], axis=1)
     assign.columns = ['FRAGS', '+']
@@ -440,11 +448,13 @@ def vScore(qscore, sub, proofb, proofy, assign):
 
 def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                  pathdict):
+                  outpath, massconfig, standalone):
+    if not standalone:
+        mass = massconfig
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
-    outplot = os.path.join(pathdict["out"], str(sub.Raw) +
+    outplot = os.path.join(outpath, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + ".pdf")
     
@@ -587,21 +597,23 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.savefig(outplot)  
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, err, pathdict):
-    logging.info("\t\t\tDM Operations...")
-    parental = getTheoMH(sub.Charge, sub.Sequence, True, True)
+def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig):
+    if not standalone:
+        logging.info("\t\t\tDM Operations...")
+        mass = massconfig
+    parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
     exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan)
-    theo_spec = theoSpectrum(sub.Sequence, len(ions), 0)
-    terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec)
+    theo_spec = theoSpectrum(sub.Sequence, len(ions), 0, massconfig, standalone)
+    terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec, massconfig, standalone)
     
     ## DM OPERATIONS ##
-    dm_theo_spec = theoSpectrum(sub.Sequence, len(ions), dm)
-    dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec)
+    dm_theo_spec = theoSpectrum(sub.Sequence, len(ions), dm, massconfig, standalone)
+    dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec, massconfig, standalone)
     dmterrorsmin = pd.DataFrame(np.array([dmterrors, dmterrors2, dmterrors3]).min(0)) # Parallel minima
     parcialdm = dmterrorsmin
     dmfppm = dmterrorsmin[(dmterrorsmin < 300).sum(axis=1) >= 0.01*len(dmterrorsmin.columns)]
@@ -616,7 +628,7 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, pathdict):
     dmterrors3.columns = frags.by3
     
     ## ASSIGN IONS WITHIN SPECTRA ##
-    assign = assignIons(theo_spec, dm_theo_spec, frags, dm, min_dm)
+    assign = assignIons(theo_spec, dm_theo_spec, frags, dm, min_dm, massconfig, standalone)
     
     ## PPM ERRORS ##
     if sub.Charge == 2:
@@ -677,13 +689,16 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, pathdict):
     vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    logging.info("\t\t\tPlotting...")
+    if standalone:
+        logging.info("\t\t\tPlotting...")
     plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                  pathdict)
-    logging.info("\t\t\tDone.")
-
-    return
+                  outpath, massconfig, standalone)
+    if standalone:
+        logging.info("\t\t\tDone.")
+        return
+    else:
+        return(escore)
 
 def main(args):
     '''
@@ -717,7 +732,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict)
+                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict["out"], True, False)
                 
             
 
