@@ -77,6 +77,9 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     '''
     if not standalone:
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     AAs = dict(mass._sections['Aminoacids'])
     MODs = dict(mass._sections['Fixed Modifications'])
     m_proton = mass.getfloat('Masses', 'm_proton')
@@ -143,6 +146,9 @@ def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
     '''
     if not standalone:
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     ## Y SERIES ##
@@ -178,6 +184,9 @@ def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     '''
     if not standalone:
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     m_proton = mass.getfloat('Masses', 'm_proton')
     exp = pd.DataFrame(np.tile(pd.DataFrame(mz), (1, len(theo_spec.columns)))) 
     
@@ -211,6 +220,9 @@ def makeFrags(seq_len):
 def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalone):
     if not standalone:
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     m_proton = mass.getfloat('Masses', 'm_proton')
     assign = pd.concat([frags.by, theo_spec.iloc[0]], axis=1)
     assign.columns = ['FRAGS', '+']
@@ -452,6 +464,9 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   outpath, massconfig, standalone):
     if not standalone:
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
@@ -602,6 +617,9 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     if not standalone:
         logging.info("\t\t\tDM Operations...")
         mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
