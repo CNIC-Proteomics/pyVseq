@@ -597,7 +597,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.savefig(outplot)  
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig):
+def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dograph):
     if not standalone:
         logging.info("\t\t\tDM Operations...")
         mass = massconfig
@@ -691,14 +691,19 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig):
     ## PLOTS ##
     if standalone:
         logging.info("\t\t\tPlotting...")
-    plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                  outpath, massconfig, standalone)
+    if dograph:
+        plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+                      proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+                      outpath, massconfig, standalone)
     if standalone:
         logging.info("\t\t\tDone.")
         return
-    else:
+    elif dograph and not standalone:
+        return
+    elif not dograph and not standalone:
         return(escore)
+    else:
+        return
 
 def main(args):
     '''
@@ -732,7 +737,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict["out"], True, False)
+                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict["out"], True, False, True)
                 
             
 
