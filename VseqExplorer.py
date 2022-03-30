@@ -169,7 +169,6 @@ def eScore(ppmfinal, int2, err):
     return(escore)
 
 def getIons(mgf, x, dm_theo_spec, ftol):
-    # TODO: ftol ppm to m/z
     spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
     ions_exp = len(ions)
     ions_matched = []
@@ -187,7 +186,8 @@ def getIons(mgf, x, dm_theo_spec, ftol):
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
 def plotRT(subtquery):
-    ## DUMMY RT VALUES ##
+    outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(subtquery.Charge.loc[0]) + "_RT_plots.pdf"
+    ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.reset_index(drop=True, inplace=True)
     for index, row in subtquery.iterrows():
@@ -223,6 +223,7 @@ def plotRT(subtquery):
     plt.ylabel("Matched Ions * E-score", fontsize=15)
     plt.plot(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score, linewidth=1, color="darkblue")
     plt.tight_layout(rect=[0, 0, 1, 0.98])
+    fig.savefig(os.path.join(args.outpath, outgraph))
     return
 
 def main(args):
@@ -235,6 +236,8 @@ def main(args):
     bestn = int(mass._sections['Explorer']['best_n'])
     err = float(mass._sections['Parameters']['ppm_error'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
+    if not os.path.exists(args.outpath):
+        os.mkdir(args.outpath)
     ## INPUT ##
     logging.info("Reading input table")
     seqtable = pd.read_csv(args.table, sep=",", float_precision='high', low_memory=False)
@@ -329,6 +332,8 @@ if __name__ == '__main__':
     parser.add_argument('-t',  '--table', required=True, help='Table of sequences to compare')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
+    args = parser.parse_args()
+    parser.add_argument('-o', '--outpath', default=os.path.join(os.path.dirname(args.infile),"Vseq_Results"), help='Path to save results')
     args = parser.parse_args()
     
     # parse config
