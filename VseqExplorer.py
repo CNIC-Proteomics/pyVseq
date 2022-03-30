@@ -182,6 +182,9 @@ def getIons(mgf, x, dm_theo_spec, ftol, err):
             y_ions = y_ions + [x for x in list(tempbool[tempbool==True].index.values) if "y" in x]
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
+def plotRT(cand):
+    return
+
 def main(args):
     '''
     Main function
@@ -229,8 +232,19 @@ def main(args):
         subtquery['ions_total'] = len(query.Sequence) * 2
         subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
-        subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
         subtquery = subtquery.drop('templist', axis = 1)
+        subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
+        subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
+                                                                tquery,
+                                                                mgf,
+                                                                min_dm,
+                                                                err,
+                                                                os.path.split(Path(args.infile))[0],
+                                                                False,
+                                                                mass,
+                                                                False)
+                                               if x.b_series and x.y_series
+                                               else 0, axis = 1)
         ## SORT BY ions_matched ##
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
@@ -238,16 +252,18 @@ def main(args):
         subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
-        f_subtquery['e_score'] = f_subtquery.apply(lambda x: doVseq(x,
-                                                                    tquery,
-                                                                    mgf,
-                                                                    min_dm,
-                                                                    err,
-                                                                    os.path.split(Path(args.infile))[0],
-                                                                    False,
-                                                                    mass), axis = 1)
-        ## PLOT n BEST CANDIDATES ##
+        f_subtquery.apply(lambda x: doVseq(x,
+                                           tquery,
+                                           mgf,
+                                           min_dm,
+                                           err,
+                                           os.path.split(Path(args.infile))[0],
+                                           False,
+                                           mass,
+                                           True), axis = 1)
+        ## PLOT RT vs E-SCORE and MATCHED IONS ##
 
+        subtquery.apply(lambda x: plotBestN(x))
     logging.info("Writing output table")
     outfile = os.path.join(os.path.split(Path(args.table))[0],
                            os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
