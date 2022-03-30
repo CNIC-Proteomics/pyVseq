@@ -289,6 +289,7 @@ def qeScore(ppmfinal, int2, err):
     qscore = qscore[(qscore>0).all(1)]
     if qscore.shape[0] == 2:
         qscore = qscoreFALSE
+        qscore.columns = ["minv", "INT"]
     escore = (qscore.INT/1000000).sum()
     return(qscore, escore)
 
@@ -649,26 +650,27 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     fppm = fppm.T
     if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
     
-    ## ABLINES ##
-    proof = makeAblines(texp, minv, assign, ions)
-    proof.INT = proof.INT * spec_correction
-    proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
-    proofb = proof[proof.FRAGS.str.contains("b")]
-    proofy = proof[proof.FRAGS.str.contains("y")]
+    if dograph or standalone:
+        ## ABLINES ##
+        proof = makeAblines(texp, minv, assign, ions)
+        proof.INT = proof.INT * spec_correction
+        proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
+        proofb = proof[proof.FRAGS.str.contains("b")]
+        proofy = proof[proof.FRAGS.str.contains("y")]
+        
+        ## SELECT MAXIMUM PPM ERROR TO CONSIDER ## #TODO: Make this a parameter
+        fppm[fppm>50] = 50 #TODO: this does not match Rvseq values - too many columns
+        parcial[parcial<50] = 2
+        parcial[parcial>50] = 0
+        parcialdm[parcialdm<50] = 3
+        parcialdm[parcialdm>50] = 0
+        pppmfinal = ppmfinal.copy()
+        pppmfinal[pppmfinal<=300] = 1
+        pppmfinal[pppmfinal>300] = 0
     
-    ## SELECT MAXIMUM PPM ERROR TO CONSIDER ## #TODO: Make this a parameter
-    fppm[fppm>50] = 50 #TODO: this does not match Rvseq values - too many columns
-    parcial[parcial<50] = 2
-    parcial[parcial>50] = 0
-    parcialdm[parcialdm<50] = 3
-    parcialdm[parcialdm>50] = 0
-    pppmfinal = ppmfinal.copy()
-    pppmfinal[pppmfinal<=300] = 1
-    pppmfinal[pppmfinal>300] = 0
-    
-    deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
-    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
-    z = max(fppm.max())
+        deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
+        if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+        z = max(fppm.max())
     
     ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
     #frv2 = ions.INT
@@ -677,16 +679,17 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     qscore, escore = qeScore(ppmfinal, ions.INT, err)
     #matched_ions = qscore.shape[0]
     
-    pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
-    specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
-    
-    BDAGmax, YDAGmax = asBY(deltaplot, sub)
-    
-    ## SURVEY SCAN INFORMATION ##
-    # TODO: dta files required
-    
-    ## V-SCORE ##
-    vscore = vScore(qscore, sub, proofb, proofy, assign)
+    if dograph or standalone:
+        pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
+        specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
+        
+        BDAGmax, YDAGmax = asBY(deltaplot, sub)
+        
+        ## SURVEY SCAN INFORMATION ##
+        # TODO: dta files required
+        
+        ## V-SCORE ##
+        vscore = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
     if standalone:

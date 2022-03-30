@@ -243,8 +243,8 @@ def main(args):
                                                                 False,
                                                                 mass,
                                                                 False)
-                                               if x.b_series and x.y_series
-                                               else 0, axis = 1)
+                                               #if x.b_series and x.y_series else 0
+                                               , axis = 1)
         ## SORT BY ions_matched ##
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
