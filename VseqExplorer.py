@@ -185,7 +185,7 @@ def getIons(mgf, x, dm_theo_spec, ftol):
             y_ions = y_ions + [x for x in list(terrors[terrors==True].index.values) if "y" in x]
     return([len(ions_matched), ions_exp, b_ions, y_ions])
 
-def plotRT(subtquery):
+def plotRT(subtquery, outpath):
     outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(subtquery.Charge.loc[0]) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
@@ -223,7 +223,7 @@ def plotRT(subtquery):
     plt.ylabel("Matched Ions * E-score", fontsize=15)
     plt.plot(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score, linewidth=1, color="darkblue")
     plt.tight_layout(rect=[0, 0, 1, 0.98])
-    fig.savefig(os.path.join(Path(args.outpath), outgraph))
+    fig.savefig(os.path.join(Path(outpath), outgraph))
     return
 
 def main(args):
@@ -236,8 +236,12 @@ def main(args):
     bestn = int(mass._sections['Explorer']['best_n'])
     err = float(mass._sections['Parameters']['ppm_error'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
-    if not os.path.exists(Path(args.outpath)):
-        os.mkdir(Path(args.outpath))
+    if args.outpath:
+        outpath = args.outpath
+    else:
+        outpath = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results")
+    if not os.path.exists(Path(outpath)):
+        os.mkdir(Path(outpath))
     ## INPUT ##
     logging.info("Reading input table")
     seqtable = pd.read_csv(args.table, sep=",", float_precision='high', low_memory=False)
@@ -284,7 +288,7 @@ def main(args):
                                                                 mgf,
                                                                 min_dm,
                                                                 err,
-                                                                Path(args.outpath),
+                                                                Path(outpath),
                                                                 False,
                                                                 mass,
                                                                 False)
@@ -301,18 +305,18 @@ def main(args):
                                            mgf,
                                            min_dm,
                                            err,
-                                           Path(args.outpath),
+                                           Path(outpath),
                                            False,
                                            mass,
                                            True) if x.b_series and x.y_series else 0, axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
-        plotRT(subtquery)
+        plotRT(subtquery, outpath)
         exploredseqs.append(subtquery)
         
     logging.info("Writing output table")
     # outfile = os.path.join(os.path.split(Path(args.table))[0],
     #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-    outfile = os.path.join(args.outpath, str(subtquery.Raw.loc[0]) + "_EXPLORER.csv")
+    outfile = os.path.join(outpath, str(subtquery.Raw.loc[0]) + "_EXPLORER.csv")
     bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
     bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     return
@@ -337,8 +341,7 @@ if __name__ == '__main__':
     parser.add_argument('-t',  '--table', required=True, help='Table of sequences to compare')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
-    args = parser.parse_args()
-    parser.add_argument('-o', '--outpath', default=os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results"), help='Path to save results')
+    parser.add_argument('-o', '--outpath', default=False, help='Path to save results')
     args = parser.parse_args()
     
     # parse config
