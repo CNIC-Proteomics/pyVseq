@@ -80,6 +80,10 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     AAs = dict(mass._sections['Aminoacids'])
     MODs = dict(mass._sections['Fixed Modifications'])
     m_proton = mass.getfloat('Masses', 'm_proton')
@@ -149,6 +153,10 @@ def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     ## Y SERIES ##
@@ -187,6 +195,10 @@ def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_proton = mass.getfloat('Masses', 'm_proton')
     exp = pd.DataFrame(np.tile(pd.DataFrame(mz), (1, len(theo_spec.columns)))) 
     
@@ -223,6 +235,10 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalon
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_proton = mass.getfloat('Masses', 'm_proton')
     assign = pd.concat([frags.by, theo_spec.iloc[0]], axis=1)
     assign.columns = ['FRAGS', '+']
@@ -467,6 +483,10 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
@@ -620,6 +640,10 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
@@ -779,14 +803,18 @@ if __name__ == '__main__':
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-e', '--error', default=0, help='Maximum ppm error to consider')
-    parser.add_argument('-d', '--deltamass', default=0, help='Minimum deltamass to consider')
+    parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
+    parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     mass.read(args.config)
+    if args.error is not None:
+        mass.set('Parameters', 'ppm_error', str(args.error))
+    if args.deltamass is not None:
+        mass.set('Parameters', 'min_dm', str(args.deltamass))
     # if something is changed, write a copy of ini
     if mass.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/Vseq.ini', 'w') as newconfig:
