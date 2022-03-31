@@ -202,7 +202,7 @@ def getIons(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dogra
     if ppmfinal.any().any():
         b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
         y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
-    ions_matched = len(b_ions + len(y_ions))
+    ions_matched = len(b_ions) + len(y_ions)
     # spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
     # wdm_theo_spec = theoSpectrum(x.Sequence, len(ions), dm)
     # ions_exp = len(ions)
