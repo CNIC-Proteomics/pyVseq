@@ -277,10 +277,9 @@ def main(args):
     Main function
     '''
     ## PARAMETERS ##
-    ptol = float(mass._sections['Explorer']['precursor_tolerance'])
-    ftol = float(mass._sections['Explorer']['fragment_tolerance'])
-    bestn = int(mass._sections['Explorer']['best_n'])
-    err = float(mass._sections['Parameters']['ppm_error'])
+    ptol = float(mass._sections['Parameters']['precursor_tolerance'])
+    ftol = float(mass._sections['Parameters']['fragment_tolerance'])
+    bestn = int(mass._sections['Parameters']['best_n'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     if args.outpath:
         outpath = args.outpath
@@ -325,7 +324,7 @@ def main(args):
                                                                  tquery,
                                                                  mgf,
                                                                  min_dm,
-                                                                 err,
+                                                                 ftol,
                                                                  Path(outpath),
                                                                  False,
                                                                  mass,

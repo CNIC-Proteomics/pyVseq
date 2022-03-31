@@ -756,7 +756,7 @@ def main(args):
     Main function
     '''
     ## USER PARAMS TO ADD ##
-    err = float(mass._sections['Parameters']['ppm_error'])
+    err = float(mass._sections['Parameters']['fragment_tolerance'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     # try:
     #     arg_dm = float(args.deltamass)
