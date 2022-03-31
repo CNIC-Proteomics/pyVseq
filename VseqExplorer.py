@@ -316,6 +316,7 @@ def main(args):
     logging.info("Writing output table")
     # outfile = os.path.join(os.path.split(Path(args.table))[0],
     #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
+    subtquery = subtquery[subtquery.Charge != 0]
     outfile = os.path.join(outpath, str(subtquery.Raw.loc[0]) + "_EXPLORER.tsv")
     bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
     bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
