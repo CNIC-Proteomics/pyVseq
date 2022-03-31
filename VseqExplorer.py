@@ -26,9 +26,9 @@ import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
 from Vseq import doVseq
-
+# infile= r"C:\Users\alaguillog\GitHub\eca\Sadek_fr8.mgf"
 # table = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\vseqexplorer_input_data.csv'
-# config = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\Vseq.ini'
+# config = 'C:\\Users\\alaguillog\\GitHub\\CNICpyVseq\\Vseq.ini'
 
 def getTquery(fr_ns):
     squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
@@ -168,22 +168,68 @@ def eScore(ppmfinal, int2, err):
     escore = (qscore.INT/1000000).sum()
     return(escore)
 
-def getIons(mgf, x, dm_theo_spec, ftol):
-    spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
-    ions_exp = len(ions)
-    ions_matched = []
+def errorMatrix(mz, theo_spec):
+    '''
+    Prepare ppm-error and experimental mass matrices.
+    '''
+    m_proton = mass.getfloat('Masses', 'm_proton')
+    exp = pd.DataFrame(np.tile(pd.DataFrame(mz), (1, len(theo_spec.columns)))) 
+    
+    ## EXPERIMENTAL MASSES FOR CHARGE 2 ##
+    mzs2 = pd.DataFrame(mz)*2 - m_proton
+    mzs2 = pd.DataFrame(np.tile(pd.DataFrame(mzs2), (1, len(exp.columns)))) 
+    
+    ## EXPERIMENTAL MASSES FOR CHARGE 3 ##
+    mzs3 = pd.DataFrame(mz)*3 - m_proton*2 # WRONG
+    mzs3 = pd.DataFrame(np.tile(pd.DataFrame(mzs3), (1, len(exp.columns)))) 
+    
+    ## PPM ERRORS ##
+    terrors = (((exp - theo_spec)/theo_spec)*1000000).abs()
+    terrors2 =(((mzs2 - theo_spec)/theo_spec)*1000000).abs()
+    terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
+    return(terrors, terrors2, terrors3, exp)
+
+def getIons(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dograph):
+    ions_exp = []
     b_ions = []
     y_ions = []
-    for frag in ions.MZ:
-        terrors = (((frag - dm_theo_spec)/dm_theo_spec)*1000000).abs()
-        terrors[terrors<=ftol] = True
-        terrors[terrors>ftol] = False
-        #tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
-        if terrors.any():
-            ions_matched.append(frag)
-            b_ions = b_ions + [x for x in list(terrors[terrors==True].index.values) if "b" in x]
-            y_ions = y_ions + [x for x in list(terrors[terrors==True].index.values) if "y" in x]
-    return([len(ions_matched), ions_exp, b_ions, y_ions])
+    escore, ppmfinal, frags = doVseq(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dograph)
+    ppmfinal = ppmfinal.drop("minv", axis=1)
+    ppmfinal.columns = frags.by
+    ppmfinal[ppmfinal>ftol] = 0
+    ppmfinal = ppmfinal.astype('bool').T
+    ppmfinal = ppmfinal[(ppmfinal == True).any(axis=1)]
+    if ppmfinal.any().any():
+        b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
+        y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
+    ions_matched = len(b_ions + len(y_ions))
+    # spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
+    # wdm_theo_spec = theoSpectrum(x.Sequence, len(ions), dm)
+    # ions_exp = len(ions)
+    # ions_matched = []
+    # b_ions = []
+    # y_ions = []
+    # for frag in ions.MZ:
+    #     terrors, terrors2, terrors3, texp = errorMatrix(ions.MZ, wdm_theo_spec)
+    #     #terrors = (((frag - dm_theo_spec)/dm_theo_spec)*1000000).abs()
+    #     terrors[terrors>ftol] = 0
+    #     terrors = terrors.astype('bool')
+    #     terrors2[terrors2>ftol] = 0
+    #     terrors2 = terrors2.astype('bool')
+    #     terrors3[terrors3>ftol] = 0
+    #     terrors3 = terrors3.astype('bool')
+    #     terrors, terrors2, terrors3 = terrors.T, terrors2.T, terrors3.T
+    #     terrors.index, terrors2.index, terrors3.index = frags, frags, frags
+    #     #tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
+    #     if terrors.any().any():
+    #         ions_matched.append(frag)
+    #         b_ions = b_ions + [x for x in list(terrors[terrors==True].index.values) if "b" in x]
+    #         y_ions = y_ions + [x for x in list(terrors[terrors==True].index.values) if "y" in x]
+    #         b_ions = b_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "b" in x]
+    #         y_ions = y_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "y" in x]
+    #         b_ions = b_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "b" in x]
+    #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
+    return([ions_matched, ions_exp, b_ions, y_ions, escore])
 
 def plotRT(subtquery, outpath):
     outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(subtquery.Charge.loc[0]) + "_RT_plots.pdf"
@@ -274,7 +320,18 @@ def main(args):
         subtquery['Sequence'] = query.Sequence
         subtquery['ExpNeutralMass'] = query.ExpNeutralMass
         subtquery['DeltaMass'] = dm
-        subtquery['templist'] = subtquery.apply(lambda x: getIons(mgf, x, dm_theo_spec, ftol), axis = 1)
+        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
+        subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
+                                                                 tquery,
+                                                                 mgf,
+                                                                 min_dm,
+                                                                 err,
+                                                                 Path(outpath),
+                                                                 False,
+                                                                 mass,
+                                                                 False)
+                                                #if x.b_series and x.y_series else 0
+                                                , axis = 1)
         subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
         #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
         subtquery['ions_total'] = len(query.Sequence) * 2
@@ -282,18 +339,18 @@ def main(args):
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
         subtquery = subtquery.drop('templist', axis = 1)
         subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
-        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
-        subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
-                                                                tquery,
-                                                                mgf,
-                                                                min_dm,
-                                                                err,
-                                                                Path(outpath),
-                                                                False,
-                                                                mass,
-                                                                False)
-                                               #if x.b_series and x.y_series else 0
-                                               , axis = 1)
+        subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+        # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
+        #                                                         tquery,
+        #                                                         mgf,
+        #                                                         min_dm,
+        #                                                         err,
+        #                                                         Path(outpath),
+        #                                                         False,
+        #                                                         mass,
+        #                                                         False)
+        #                                        #if x.b_series and x.y_series else 0
+        #                                        , axis = 1)
         ## SORT BY ions_matched ##
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)

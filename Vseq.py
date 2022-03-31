@@ -221,12 +221,13 @@ def makeFrags(seq_len):
     Name all fragments.
     '''
     frags = pd.DataFrame(np.nan, index=list(range(0,seq_len*2)),
-                         columns=["by", "by2", "by3", "bydm", "bydm2"])
+                         columns=["by", "by2", "by3", "bydm", "bydm2", "bydm3"])
     frags.by = ["b" + str(i) for i in list(range(1,seq_len+1))] + ["y" + str(i) for i in list(range(1,seq_len+1))[::-1]]
     frags.by2 = frags.by + "++"
     frags.by3 = frags.by + "+++"
     frags.bydm = frags.by + "*"
     frags.bydm2 = frags.by + "*++"
+    frags.bydm3 = frags.by + "*+++"
     return(frags)
 
 def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalone):
@@ -746,7 +747,7 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
-        return(escore)
+        return(escore, ppmfinal, frags)
     else:
         return
 
