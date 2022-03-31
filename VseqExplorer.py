@@ -360,7 +360,7 @@ def main(args):
                                            tquery,
                                            mgf,
                                            min_dm,
-                                           err,
+                                           ftol,
                                            Path(outpath),
                                            False,
                                            mass,
