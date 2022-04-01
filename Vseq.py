@@ -137,7 +137,9 @@ def expSpectrum(fr_ns, scan):
     ions["NORM_REL_INT"] = (ions.INT - median_rel_int) / std_rel_int
     ions["P_REL_INT"] = scipy.stats.norm.cdf(ions.NORM_REL_INT) #, 0, 1)
     normspec = ions.loc[ions.P_REL_INT>0.81]
-    spec_correction = max(ions.INT)/statistics.mean(normspec.INT)
+    if len(ions) > 0 and len(normspec) > 0:
+        spec_correction = max(ions.INT)/statistics.mean(normspec.INT)
+    else: spec_correction = 0
     spec["CORR_INT"] = spec.REL_INT*spec_correction
     spec.loc[spec['CORR_INT'].idxmax()]['CORR_INT'] = max(spec.REL_INT)
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
