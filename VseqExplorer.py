@@ -319,7 +319,7 @@ def main(args):
         subtquery['Sequence'] = query.Sequence
         subtquery['ExpNeutralMass'] = query.ExpNeutralMass
         subtquery['DeltaMass'] = dm
-        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime', 'raw':'Raw'}, inplace=True)
+        subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
         subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
                                                                  tquery,
                                                                  mgf,
@@ -336,9 +336,9 @@ def main(args):
         subtquery['ions_total'] = len(query.Sequence) * 2
         subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
-        subtquery = subtquery.drop('templist', axis = 1)
-        subtquery['raw'] = os.path.split(Path(args.infile))[1][:-4]
+        subtquery['Raw'] = os.path.split(Path(args.infile))[1][:-4]
         subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+        subtquery = subtquery.drop('templist', axis = 1)
         # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
         #                                                         tquery,
         #                                                         mgf,
@@ -355,16 +355,17 @@ def main(args):
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
         subtquery.reset_index(drop=True, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
-        logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
-        f_subtquery.apply(lambda x: doVseq(x,
-                                           tquery,
-                                           mgf,
-                                           min_dm,
-                                           ftol,
-                                           Path(outpath),
-                                           False,
-                                           mass,
-                                           True) if x.b_series and x.y_series else 0, axis = 1)
+        if f_subtquery.shape[0] > 0:
+            logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+            f_subtquery.apply(lambda x: doVseq(x,
+                                               tquery,
+                                               mgf,
+                                               min_dm,
+                                               ftol,
+                                               Path(outpath),
+                                               False,
+                                               mass,
+                                               True) if x.b_series and x.y_series else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
         plotRT(subtquery, outpath)
         exploredseqs.append(subtquery)
@@ -372,9 +373,9 @@ def main(args):
     logging.info("Writing output table")
     # outfile = os.path.join(os.path.split(Path(args.table))[0],
     #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-    subtquery = subtquery[subtquery.Charge != 0]
-    outfile = os.path.join(outpath, str(subtquery.Raw.loc[0]) + "_EXPLORER.tsv")
+    outfile = os.path.join(outpath, str(os.path.split(Path(args.infile))[1][:-4]) + "_EXPLORER.tsv")
     bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
+    bigtable = bigtable[bigtable.Charge != 0]
     bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     return
     

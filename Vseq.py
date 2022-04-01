@@ -207,7 +207,7 @@ def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     mzs2 = pd.DataFrame(np.tile(pd.DataFrame(mzs2), (1, len(exp.columns)))) 
     
     ## EXPERIMENTAL MASSES FOR CHARGE 3 ##
-    mzs3 = pd.DataFrame(mz)*3 - m_proton*2 # WRONG
+    mzs3 = pd.DataFrame(mz)*3 - m_proton*2
     mzs3 = pd.DataFrame(np.tile(pd.DataFrame(mzs3), (1, len(exp.columns)))) 
     
     ## PPM ERRORS ##
@@ -266,7 +266,7 @@ def makeAblines(texp, minv, assign, ions):
     masses = pd.concat([texp[0], minv], axis = 1)
     matches = masses[(masses < 51).sum(axis=1) >= 0.001]
     matches.reset_index(inplace=True, drop=True)
-    if len(matches) == 0 or len(matches) == 2:
+    if len(matches) <= 2:
         matches = pd.DataFrame([[1,3],[2,4]])
     
     matches_ions = pd.DataFrame()
@@ -378,7 +378,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
     '''
     Calculate vScore.
     '''
-    
+    Kerr = 0
     ## SS1 ##
     if len(qscore) <= (len(sub.Sequence)*2)/4:
         SS1 = 1
@@ -530,8 +530,11 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     posmatrix = posmatrix.loc[list(fppm.T.index.values)]
     ax5 = fig.add_subplot(2,6,(3,6))
-    sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
-                cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    if dm >= min_dm:
+        sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
+                    cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    else:
+        sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     ax5.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
