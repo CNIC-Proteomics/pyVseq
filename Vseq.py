@@ -262,11 +262,11 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalon
     c_assign["CHARGE"] = c_assign.apply(lambda x: x.FRAGS.count('+'), axis=1).replace(0, 1)
     return(c_assign)
 
-def makeAblines(texp, minv, assign, ions):
+def makeAblines(texp, minv, assign, ions, min_match):
     masses = pd.concat([texp[0], minv], axis = 1)
     matches = masses[(masses < 51).sum(axis=1) >= 0.001]
     matches.reset_index(inplace=True, drop=True)
-    if len(matches) <= 2:
+    if len(matches) <= min_match:
         matches = pd.DataFrame([[1,3],[2,4]])
     
     matches_ions = pd.DataFrame()
@@ -637,7 +637,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.savefig(outplot)  
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dograph):
+def doVseq(sub, tquery, fr_ns, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
     logging.info("\t\t\tDM Operations...")
     if not standalone:
         mass = massconfig
@@ -698,7 +698,7 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     
     if dograph or standalone:
         ## ABLINES ##
-        proof = makeAblines(texp, minv, assign, ions)
+        proof = makeAblines(texp, minv, assign, ions, min_match)
         proof.INT = proof.INT * spec_correction
         proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
         proofb = proof[proof.FRAGS.str.contains("b")]
@@ -761,6 +761,7 @@ def main(args):
     ## USER PARAMS TO ADD ##
     err = float(mass._sections['Parameters']['fragment_tolerance'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
+    min_match = int(mass._sections['Parameters']['min_ions_matched'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -786,7 +787,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict["out"], True, False, True)
+                doVseq(sub, tquery, fr_ns, min_dm, min_match, err, pathdict["out"], True, False, True)
                 
             
 

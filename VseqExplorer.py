@@ -281,6 +281,7 @@ def main(args):
     ftol = float(mass._sections['Parameters']['fragment_tolerance'])
     bestn = int(mass._sections['Parameters']['best_n'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
+    min_match = int(mass._sections['Parameters']['min_ions_matched'])
     if args.outpath:
         outpath = args.outpath
     else:
@@ -324,6 +325,7 @@ def main(args):
                                                                  tquery,
                                                                  mgf,
                                                                  min_dm,
+                                                                 min_match,
                                                                  ftol,
                                                                  Path(outpath),
                                                                  False,
@@ -343,6 +345,7 @@ def main(args):
         #                                                         tquery,
         #                                                         mgf,
         #                                                         min_dm,
+        #                                                         min_match,
         #                                                         err,
         #                                                         Path(outpath),
         #                                                         False,
@@ -361,6 +364,7 @@ def main(args):
                                                tquery,
                                                mgf,
                                                min_dm,
+                                               min_match,
                                                ftol,
                                                Path(outpath),
                                                False,
