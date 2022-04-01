@@ -14,8 +14,10 @@ import os
 import sys
 import argparse
 #from colour import Color
+import concurrent.futures
 import configparser
 import itertools
+from itertools import repeat
 import logging
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
@@ -106,14 +108,19 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, scan):
+def expSpectrum(fr_ns, scan, index2):
     '''
     Prepare experimental spectrum.
     '''
-    index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
-    index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
+    # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
+    # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
     
-    ions = fr_ns.iloc[index1:index2,:]
+    index1 = fr_ns.to_numpy() == 'SCANS='+str(scan)
+    index1 = np.where(index1)[0][0]
+    index3 = np.where(index2)[0]
+    index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+    
+    ions = fr_ns.iloc[index1+1:index3,:]
     ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
     ions = ions.drop(ions.columns[0], axis=1)
     ions = ions.apply(pd.to_numeric)
@@ -639,7 +646,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     fig.savefig(outplot)  
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
+def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
     logging.info("\t\t\tDM Operations...")
     if not standalone:
         mass = massconfig
@@ -656,7 +663,9 @@ def doVseq(sub, tquery, fr_ns, min_dm, min_match, err, outpath, standalone, mass
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2)
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
+    #     a
     theo_spec = theoSpectrum(sub.Sequence, len(ions), 0, massconfig, standalone)
     terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec, massconfig, standalone)
     
@@ -781,6 +790,7 @@ def main(args):
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         logging.info("\tReading mgf file")
         fr_ns = pd.read_csv(mgf, header=None)
+        index2 = fr_ns.to_numpy() == 'END IONS'
         tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
@@ -789,7 +799,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, min_match, err, pathdict["out"], True, False, True)
+                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
                 
             
 
