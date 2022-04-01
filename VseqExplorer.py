@@ -15,6 +15,7 @@ import itertools
 import logging
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import numpy as np
 import pandas as pd
 from pathlib import Path
 import random
@@ -22,7 +23,6 @@ import re
 import seaborn as sns
 import scipy.stats
 import statistics
-import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
 from Vseq import doVseq
@@ -189,11 +189,11 @@ def errorMatrix(mz, theo_spec):
     terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
     return(terrors, terrors2, terrors3, exp)
 
-def getIons(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dograph):
+def getIons(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph):
     ions_exp = []
     b_ions = []
     y_ions = []
-    escore, ppmfinal, frags = doVseq(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dograph)
+    escore, ppmfinal, frags = doVseq(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -231,8 +231,8 @@ def getIons(x, tquery, mgf, min_dm, ftol, outpath, standalone, massconfig, dogra
     #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
     return([ions_matched, ions_exp, b_ions, y_ions, escore])
 
-def plotRT(subtquery, outpath):
-    outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(subtquery.Charge.loc[0]) + "_RT_plots.pdf"
+def plotRT(subtquery, outpath, charge):
+    outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.reset_index(drop=True, inplace=True)
@@ -313,10 +313,13 @@ def main(args):
         upper = query.MZ + ptol
         lower = query.MZ - ptol
         ## OPERATIONS ##
-        subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
+        # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
+        subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
         logging.info("\t" + str(subtquery.shape[0]) + " scans found within ±"
                      + str(ptol) + " Th")
-        logging.info("Comparing...")
+        if subtquery.shape[0] == 0:
+            continue
+        logging.info("\tComparing...")
         subtquery['Sequence'] = query.Sequence
         subtquery['ExpNeutralMass'] = query.ExpNeutralMass
         subtquery['DeltaMass'] = dm
@@ -371,7 +374,7 @@ def main(args):
                                                mass,
                                                True) if x.b_series and x.y_series else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
-        plotRT(subtquery, outpath)
+        plotRT(subtquery, outpath, query.Charge)
         exploredseqs.append(subtquery)
         
     logging.info("Writing output table")
