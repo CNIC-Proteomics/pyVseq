@@ -742,7 +742,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     
     if dograph or standalone:
         pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
-        specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
+        specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
         
         BDAGmax, YDAGmax = asBY(deltaplot, sub)
         
