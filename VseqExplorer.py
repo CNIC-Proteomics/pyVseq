@@ -436,8 +436,9 @@ if __name__ == '__main__':
     parser.add_argument('-i',  '--infile', required=True, help='MGF file')
     parser.add_argument('-t',  '--table', required=True, help='Table of sequences to compare')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     parser.add_argument('-o', '--outpath', default=False, help='Path to save results')
+    parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
+    parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
     # parse config
