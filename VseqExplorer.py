@@ -194,6 +194,7 @@ def getIons(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massco
     b_ions = []
     y_ions = []
     escore, ppmfinal, frags = doVseq(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
+    escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -293,6 +294,7 @@ def main(args):
     seqtable = pd.read_csv(args.table, sep=",", float_precision='high', low_memory=False)
     logging.info("Reading input file")
     mgf = pd.read_csv(args.infile, header=None)
+    index2 = mgf.to_numpy() == 'END IONS'
     tquery = getTquery(mgf)
     ## COMPARE EACH SEQUENCE ##
     exploredseqs = []
@@ -327,6 +329,7 @@ def main(args):
         subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
                                                                  tquery,
                                                                  mgf,
+                                                                 index2,
                                                                  min_dm,
                                                                  min_match,
                                                                  ftol,
@@ -366,6 +369,7 @@ def main(args):
             f_subtquery.apply(lambda x: doVseq(x,
                                                tquery,
                                                mgf,
+                                               index2,
                                                min_dm,
                                                min_match,
                                                ftol,
