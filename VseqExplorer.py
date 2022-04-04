@@ -340,6 +340,8 @@ def main(args):
                                                                  False,
                                                                  mass,
                                                                  False)
+        subtquery["RawCharge"] = subtquery.Charge
+        subtquery.Charge = query.Charge
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
         subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
