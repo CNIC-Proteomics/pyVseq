@@ -189,7 +189,7 @@ def errorMatrix(mz, theo_spec):
     terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
     return(terrors, terrors2, terrors3, exp)
 
-def getIons(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph):
+def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph):
     ions_exp = []
     b_ions = []
     y_ions = []
