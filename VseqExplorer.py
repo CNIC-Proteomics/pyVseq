@@ -193,7 +193,6 @@ def getIons(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massco
     ions_exp = []
     b_ions = []
     y_ions = []
-    escore, ppmfinal, frags = doVseq(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
     escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
@@ -232,10 +231,11 @@ def getIons(x, tquery, mgf, min_dm, min_match, ftol, outpath, standalone, massco
     #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
     return([ions_matched, ions_exp, b_ions, y_ions, escore])
 
-def plotRT(subtquery, outpath, charge):
+def plotRT(subtquery, outpath, charge, startRT, endRT):
     outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
+    subtquery.RetentionTime = subtquery.RetentionTime / 60
     subtquery.reset_index(drop=True, inplace=True)
     for index, row in subtquery.iterrows():
         before = pd.Series([0]*row.shape[0], index=row.index)
@@ -256,17 +256,20 @@ def plotRT(subtquery, outpath, charge):
     fig.suptitle(str(subtquery.Sequence.loc[0]) + '+' + str(round(subtquery.DeltaMass.loc[0],6)), fontsize=30)
     ## RT vs E-SCORE ##
     ax1 = fig.add_subplot(3,1,1)
-    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.xlim(startRT, endRT)
+    plt.xlabel("Retention Time (minutes)", fontsize=15)
     plt.ylabel("E-score", fontsize=15)
     plt.plot(subtquery.RetentionTime, subtquery.e_score, linewidth=1, color="darkblue")
     ## RT vs MATCHED IONS ##
     ax2 = fig.add_subplot(3,1,2)
-    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.xlim(startRT, endRT)
+    plt.xlabel("Retention Time (minutes)", fontsize=15)
     plt.ylabel("Matched Ions", fontsize=15)
     plt.plot(subtquery.RetentionTime, subtquery.ions_matched, linewidth=1, color="darkblue")
     ## RT vs MATCHED IONS * E-SCORE ##
     ax3 = fig.add_subplot(3,1,3)
-    plt.xlabel("Retention Time (seconds)", fontsize=15)
+    plt.xlim(startRT, endRT)
+    plt.xlabel("Retention Time (minutes)", fontsize=15)
     plt.ylabel("Matched Ions * E-score", fontsize=15)
     plt.plot(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score, linewidth=1, color="darkblue")
     plt.tight_layout(rect=[0, 0, 1, 0.98])
@@ -378,7 +381,7 @@ def main(args):
                                                mass,
                                                True) if x.b_series and x.y_series else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
-        plotRT(subtquery, outpath, query.Charge)
+        plotRT(subtquery, outpath, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
         exploredseqs.append(subtquery)
         
     logging.info("Writing output table")
