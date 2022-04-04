@@ -232,7 +232,9 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone
     return([ions_matched, ions_exp, b_ions, y_ions, escore])
 
 def plotRT(subtquery, outpath, charge, startRT, endRT):
-    outgraph = str(subtquery.Raw.loc[0]) + "_" + str(subtquery.Sequence.loc[0]) + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
+    titleseq = str(subtquery.Sequence.loc[0])
+    titledm = str(round(subtquery.DeltaMass.loc[0],6))
+    outgraph = str(subtquery.Raw.loc[0]) + "_" + titleseq + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.RetentionTime = subtquery.RetentionTime / 60
@@ -253,7 +255,7 @@ def plotRT(subtquery, outpath, charge, startRT, endRT):
     ## PLOTS ##
     fig = plt.figure()
     fig.set_size_inches(15, 20)
-    fig.suptitle(str(subtquery.Sequence.loc[0]) + '+' + str(round(subtquery.DeltaMass.loc[0],6)), fontsize=30)
+    fig.suptitle(titleseq + '+' + titledm, fontsize=30)
     ## RT vs E-SCORE ##
     ax1 = fig.add_subplot(3,1,1)
     plt.xlim(startRT, endRT)
@@ -287,7 +289,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     if args.outpath:
-        outpath = args.outpath
+        outpath = Path(args.outpath)
     else:
         outpath = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results")
     if not os.path.exists(Path(outpath)):
@@ -299,6 +301,7 @@ def main(args):
     mgf = pd.read_csv(args.infile, header=None)
     index2 = mgf.to_numpy() == 'END IONS'
     tquery = getTquery(mgf)
+    tquery = tquery.drop_duplicates(subset=['SCANS'])
     ## COMPARE EACH SEQUENCE ##
     exploredseqs = []
     for index, query in seqtable.iterrows():
@@ -369,6 +372,8 @@ def main(args):
         subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
         subtquery.reset_index(drop=True, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
+        f_subtquery.reset_index(drop=True, inplace=True)
+        f_subtquery["outpath"] = outpath + "/" + f_subtquery.Raw.astype(str) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
         if f_subtquery.shape[0] > 0:
             logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
             f_subtquery.apply(lambda x: doVseq(x,
@@ -378,11 +383,15 @@ def main(args):
                                                min_dm,
                                                min_match,
                                                ftol,
-                                               Path(outpath),
+                                               Path(x.outpath),
                                                False,
                                                mass,
                                                True) if x.b_series and x.y_series else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
+        subtquery.loc[len(subtquery)] = 0
+        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
+        subtquery.loc[len(subtquery)] = 0
+        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
         plotRT(subtquery, outpath, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
         exploredseqs.append(subtquery)
         

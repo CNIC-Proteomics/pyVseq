@@ -490,6 +490,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   outpath, massconfig, standalone):
     if not standalone:
         mass = massconfig
+        outplot = outpath
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
@@ -497,12 +498,12 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
             mass.set('Parameters', 'ppm_error', str(args.error))
         if args.deltamass is not None:
             mass.set('Parameters', 'min_dm', str(args.deltamass))
+        outplot = os.path.join(outpath, str(sub.Raw) +
+                               "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                               + "_ch" + str(sub.Charge) + ".pdf")
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
-    outplot = os.path.join(outpath, str(sub.Raw) +
-                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
-                           + "_ch" + str(sub.Charge) + ".pdf")
     
     frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
