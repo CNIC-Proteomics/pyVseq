@@ -648,10 +648,10 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     return
 
 def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
-    logging.info("\t\t\tDM Operations...")
     if not standalone:
         mass = massconfig
     else:
+        logging.info("\t\t\tDM Operations...")
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
         if args.error is not None:

@@ -10,19 +10,17 @@ import os
 import sys
 import argparse
 #from colour import Color
+import concurrent.futures
 import configparser
 import itertools
 import logging
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as path_effects
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import random
-import re
-import seaborn as sns
 import scipy.stats
 import statistics
+from tqdm import tqdm
 pd.options.mode.chained_assignment = None  # default='warn'
 
 from Vseq import doVseq
@@ -189,6 +187,10 @@ def errorMatrix(mz, theo_spec):
     terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
     return(terrors, terrors2, terrors3, exp)
 
+def _parallelGetIons(x, parlist):
+    relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5], parlist[6], parlist[7], parlist[8], parlist[9])
+    return(relist)
+
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph):
     ions_exp = []
     b_ions = []
@@ -334,19 +336,30 @@ def main(args):
         subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
         subtquery["RawCharge"] = subtquery.Charge
         subtquery.Charge = query.Charge
-        subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
-                                                                 tquery,
-                                                                 mgf,
-                                                                 index2,
-                                                                 min_dm,
-                                                                 min_match,
-                                                                 ftol,
-                                                                 Path(outpath),
-                                                                 False,
-                                                                 mass,
-                                                                 False)
-                                                #if x.b_series and x.y_series else 0
-                                                , axis = 1)
+        parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath), False, mass, False]
+        indices, rowSeries = zip(*subtquery.iterrows())
+        rowSeries = list(rowSeries)
+        tqdm.pandas(position=0, leave=True)
+        chunks = 100
+        if len(rowSeries) <= 500:
+            chunks = 50
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+            vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
+                              total=len(rowSeries)))
+        subtquery['templist'] = vseqs
+        # subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
+        #                                                          tquery,
+        #                                                          mgf,
+        #                                                          index2,
+        #                                                          min_dm,
+        #                                                          min_match,
+        #                                                          ftol,
+        #                                                          Path(outpath),
+        #                                                          False,
+        #                                                          mass,
+        #                                                          False)
+        #                                         #if x.b_series and x.y_series else 0
+        #                                         , axis = 1)
         subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
         #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
         subtquery['ions_total'] = len(query.Sequence) * 2
