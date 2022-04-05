@@ -386,7 +386,7 @@ def main(args):
         subtquery.reset_index(drop=True, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
         f_subtquery.reset_index(drop=True, inplace=True)
-        f_subtquery["outpath"] = outpath + "/" + f_subtquery.Raw.astype(str) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
+        f_subtquery["outpath"] = str(outpath) + "/" + f_subtquery.Raw.astype(str) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
         if f_subtquery.shape[0] > 0:
             logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
             f_subtquery.apply(lambda x: doVseq(x,
