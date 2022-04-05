@@ -40,6 +40,7 @@
             </div>
             <h3 class="w3-bar-item">Menu</h3>
             <button class="w3-bar-item w3-button" onclick="showMode('home')"><i class="fa fa-home"></i> Home</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('mass')"><i class="fa fa-home"></i> Mass List</button>
             <button class="w3-bar-item w3-button" onclick="showMode('viewer')"><i class="fa fa-bar-chart"></i> Vseq Viewer</button>
             <button class="w3-bar-item w3-button" onclick="showMode('explorer')"><i class="fa fa-search"></i> Vseq Explorer</button>
             <button class="w3-bar-item w3-button" onclick="showMode('help')"><i class="fa fa-question-circle"></i> Help</button>
@@ -57,16 +58,70 @@
                 Enrique Calvo Alcocer</p>
         </div>
 
+        <div class="w3-container mode" id="mass" style="display:none">
+            <div class="row">
+            <div class="column" style="width:50%">
+                <h1 style="color:whitesmoke;">Aminoacids</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td><b>A</b></td><td>Alanine</td><td><div contenteditable>71.037114</div></td></tr>
+                    <tr style="color:black;"><td><b>R</b></td><td>Arginine</td><td><div contenteditable>156.101111</div></td></tr>
+                    <tr style="color:black;"><td><b>N</b></td><td>Asparagine</td><td><div contenteditable>114.042927</div></td></tr>
+                    <tr style="color:black;"><td><b>D</b></td><td>Aspartic Acid</td><td><div contenteditable>115.026943</div></td></tr>
+                    <tr style="color:black;"><td><b>C</b></td><td>Cysteine</td><td><div contenteditable>103.009185</div></td></tr>
+                    <tr style="color:black;"><td><b>Q</b></td><td>Glutamine</td><td><div contenteditable>128.058578</div></td></tr>
+                    <tr style="color:black;"><td><b>E</b></td><td>Glutamic Acid</td><td><div contenteditable>129.042593</div></td></tr>
+                    <tr style="color:black;"><td><b>G</b></td><td>Glycine</td><td><div contenteditable>57.021464</div></td></tr>
+                    <tr style="color:black;"><td><b>H</b></td><td>Histidine</td><td><div contenteditable>137.058912</div></td></tr>
+                    <tr style="color:black;"><td><b>I</b></td><td>Isoleucine</td><td><div contenteditable>113.084064</div></td></tr>
+                    <tr style="color:black;"><td><b>L</b></td><td>Leucine</td><td><div contenteditable>113.084064</div></td></tr>
+                    <tr style="color:black;"><td><b>K</b></td><td>Lysine</td><td><div contenteditable>128.094963</div></td></tr>
+                    <tr style="color:black;"><td><b>M</b></td><td>Methionine</td><td><div contenteditable>131.040485</div></td></tr>
+                    <tr style="color:black;"><td><b>F</b></td><td>Phenilalanine</td><td><div contenteditable>147.068414</div></td></tr>
+                    <tr style="color:black;"><td><b>P</b></td><td>Proline</td><td><div contenteditable>97.052764</div></td></tr>
+                    <tr style="color:black;"><td><b>S</b></td><td>Serine</td><td><div contenteditable>87.032028</div></td></tr>
+                    <tr style="color:black;"><td><b>T</b></td><td>Threonine</td><td><div contenteditable>101.047679</div></td></tr>
+                    <tr style="color:black;"><td><b>W</b></td><td>Tryptophan</td><td><div contenteditable>186.079313</div></td></tr>
+                    <tr style="color:black;"><td><b>Y</b></td><td>Tyrosine</td><td><div contenteditable>163.063329</div></td></tr>
+                    <tr style="color:black;"><td><b>V</b></td><td>Valine</td><td><div contenteditable>99.068414</div></td></tr>
+                </table>  
+                </div>
+                <h1 style="color:whitesmoke;">Custom Aminoacids</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td><b><div contenteditable>U</div></b></td><td>Custom AA</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b><div contenteditable>O</div></b></td><td>Custom AA</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b><div contenteditable>Z</div></b></td><td>Custom AA</td><td><div contenteditable>0.000000</div></td></tr>
+                </table>  
+                </div>
+            </div>
+            <div class="column" style="width:50%">
+                <h1 style="color:whitesmoke;">Other Masses</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td>Proton</td><td><div contenteditable>1.007276</div></td></tr>
+                    <tr style="color:black;"><td>Hydrogen</td><td><div contenteditable>1.007825</div></td></tr>
+                    <tr style="color:black;"><td>Oxygen</td><td><div contenteditable>15.994915</div></td></tr>
+                </table>  
+                </div>
+                <h1 style="color:whitesmoke;">Fixed Modifications</h1>
+                <div class="w3-panel w3-blue-grey">
+                    A
+                </div>
+                </div>
+            </div>
+        </div>
+
         <div class="w3-container mode" id="viewer" style="display:none">
             <h1 style="color:whitesmoke;">Vseq Viewer</h1>
             <p style="color:whitesmoke;">This is some text.</p>
             <div class="row">
                 <div class="w3-panel w3-blue-grey column" style="height:215px">
-                    <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
+                    <label class="w3-text-white"><b>Minimum Δmass (Dalton): <p class="w3-tooltip" style="position:absolute;left:0;bottom:18px"><i class="fa fa-question-circle w3-text-indigo"></i><span class="w3-text w3-tag w3-small">Deltamass</span></p></b></label>
                     <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
-                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
+                    <label class="w3-text-white"><b>Minimum number of matched ions: <i class="fa fa-question-circle w3-text-indigo"></i></b></label>
                     <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
-                    <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
+                    <label class="w3-text-white"><b>Fragment tolerance (ppm): <i class="fa fa-question-circle w3-text-indigo"></i></b></label>
                     <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
                 </div> 
                 <div class="w3-panel w3-blue-grey column" style="height:215px">
