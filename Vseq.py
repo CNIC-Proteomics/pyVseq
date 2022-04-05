@@ -277,7 +277,8 @@ def makeAblines(texp, minv, assign, ions, min_match):
     matches.reset_index(inplace=True, drop=True)
     if len(matches) <= min_match:
         matches = pd.DataFrame([[1,3],[2,4]])
-    
+        proof = pd.DataFrame([0])
+        return(proof, False)    
     matches_ions = pd.DataFrame()
     for mi in list(range(0,len(matches))):
         for ci in list(range(0, len(assign))):
@@ -291,7 +292,7 @@ def makeAblines(texp, minv, assign, ions, min_match):
     if len(proof)==0:
         mzcycle = itertools.cycle([ions.MZ.iloc[0], ions.MZ.iloc[1]])
         proof = pd.concat([matches_ions, pd.Series([next(mzcycle) for count in range(len(matches_ions))], name="INT")], axis=1)
-    return(proof)
+    return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
@@ -714,7 +715,10 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     
     if dograph or standalone:
         ## ABLINES ##
-        proof = makeAblines(texp, minv, assign, ions, min_match)
+        proof, ok = makeAblines(texp, minv, assign, ions, min_match)
+        if not ok:
+            logging.info("\t\tSkipping one candidate with not enough ions matched...")
+            return
         proof.INT = proof.INT * spec_correction
         proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
         proofb = proof[proof.FRAGS.str.contains("b")]

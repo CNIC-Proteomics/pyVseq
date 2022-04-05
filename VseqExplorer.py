@@ -399,7 +399,7 @@ def main(args):
                                                Path(x.outpath),
                                                False,
                                                mass,
-                                               True) if x.b_series and x.y_series else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
+                                               True) if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series..."), axis = 1)
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
         subtquery.loc[len(subtquery)] = 0
         subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
