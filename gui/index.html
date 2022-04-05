@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <link rel="stylesheet" href="w3.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <title>pyVseq</title>
+      <style>
+          .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+            }
+          .column {
+            float: left;
+            width: 50%;
+            padding: 10px;
+            }
+            /* Clear floats after the columns */
+          .row:after {
+            content: "";
+            display: table;
+            clear: both;
+            }
+          #myDIV {
+            width: 100%;
+            padding: 50px 0;
+            text-align: left;
+            background-color: lightsteelblue;
+            margin-top: 10px;
+            }
+      </style>
+    </head>
+    <body style="background-color:rgb(41, 42, 45);">
+        <!-- Sidebar -->
+        <div class="w3-sidebar w3-bar-block" style="width:25%" id="mode">
+            <div class="w3-container w3-blue-grey w3-padding-16">
+                <img src="img/pyVseq_logo.png" alt="pyVseq logo" style="width:100%" class="center">
+            </div>
+            <h3 class="w3-bar-item">Menu</h3>
+            <button class="w3-bar-item w3-button" onclick="showMode('home')"><i class="fa fa-home"></i> Home</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('viewer')"><i class="fa fa-bar-chart"></i> Vseq Viewer</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('explorer')"><i class="fa fa-search"></i> Vseq Explorer</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('help')"><i class="fa fa-question-circle"></i> Help</button>
+        </div>
+
+        <!-- Page Content -->
+        <div style="margin-left:25%">
+
+        <div class="w3-container mode" id="home">
+            <img src="img/pyVseq_logo.png" alt="pyVseq logo" style="width:500px" class="center">
+            <h1 style="color:whitesmoke;">This is the pyVseq GUI</h1>
+            <p style="color:whitesmoke; text-align: center;">CNIC (Spanish National Center for Cardiovascular Research)<br>
+                Cardiovascular Proteomics<br>
+                Andrea Laguillo Gómez<br>
+                Enrique Calvo Alcocer</p>
+        </div>
+
+        <div class="w3-container mode" id="viewer" style="display:none">
+            <h1 style="color:whitesmoke;">Vseq Viewer</h1>
+            <p style="color:whitesmoke;">This is some text.</p>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="height:215px">
+                    <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
+                    <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
+                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
+                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
+                    <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                </div> 
+                <div class="w3-panel w3-blue-grey column" style="height:215px">
+                    <label class="w3-text-white"><b>Sequence table:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                    <label class="w3-text-white"><b>Mass file:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                </div> 
+            </div>
+            <p><button class="w3-btn w3-blue center" style="width:20%">Run</button></p>
+        </div>
+
+        <div class="w3-container mode" id="explorer" style="display:none">
+            <h1 style="color:whitesmoke;">Vseq Explorer</h1>
+            <p style="color:whitesmoke;">This is some text.</p>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="height:345px">
+                    <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
+                    <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
+                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
+                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Precursor tolerance (Thomson):</b></label>
+                    <input class="w3-input w3-border" type="number" value="0.3" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
+                    <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Number of best candidates to plot:</b></label>
+                    <input class="w3-input w3-border" type="number" value="1" min="0" style="width:50%">
+                </div> 
+                <div class="w3-panel w3-blue-grey column" style="height:345px">
+                    <label class="w3-text-white"><b>Sequence table:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                    <label class="w3-text-white"><b>Raw file (MGF):</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                    <label class="w3-text-white"><b>Mass file:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                </div> 
+            </div>
+            <p><button class="w3-btn w3-blue center" style="width:20%">Run</button></p>
+        </div>
+
+        <div class="w3-container mode" id="help" style="display:none">
+            <ul class="w3-ul w3-border" style="color:whitesmoke;">
+                <li><h2>Vseq Viewer Parameters:</h2></li>
+                <li>Sequence Table: CSV format</li>
+            </ul>
+            <ul class="w3-ul w3-border" style="color:whitesmoke;">
+                <li><h2>Vseq Explorer Parameters:</h2></li>
+                <li>Raw File: MGF format, containing m/z and intensity values.</li>
+                <li>Sequence Table: CSV format, containing a column with the sequence, a column with the experimental neutral mass and a column with the charge.</li>
+                <li>Best N: Number of cadidates to make Vseq plots for (sorted by number of ions matched)</li>
+            </ul>
+        </div>
+
+        <script>
+            function showMode(modeName) {
+                var i;
+                var x = document.getElementsByClassName("mode");
+                for (i = 0; i < x.length; i++) {
+                    x[i].style.display = "none";
+                }
+                document.getElementById(modeName).style.display = "block"; 
+            }
+            </script>
+        </div>
+    </body>
+  </html>
