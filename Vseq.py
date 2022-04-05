@@ -115,7 +115,7 @@ def expSpectrum(fr_ns, scan, index2):
     # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
     # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
     
-    index1 = fr_ns.to_numpy() == 'SCANS='+str(scan)
+    index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
     index1 = np.where(index1)[0][0]
     index3 = np.where(index2)[0]
     index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
@@ -277,7 +277,8 @@ def makeAblines(texp, minv, assign, ions, min_match):
     matches.reset_index(inplace=True, drop=True)
     if len(matches) <= min_match:
         matches = pd.DataFrame([[1,3],[2,4]])
-        proof = pd.DataFrame([0])
+        proof = pd.DataFrame([[0,0,0,0]])
+        proof.columns = ["MZ","FRAGS","PPM","INT"]
         return(proof, False)    
     matches_ions = pd.DataFrame()
     for mi in list(range(0,len(matches))):
@@ -340,6 +341,12 @@ def asBY(deltaplot, sub):
             asB = pd.concat([asB, deltaplot.iloc[i]], axis=1)
         if deltaplot.deltav2[i] > len(sub.Sequence)-1:
             asY = pd.concat([asY, deltaplot.iloc[i]], axis=1)
+    if asB.empty:
+        asB = pd.DataFrame([[0],[0],[0]])
+        asB.index = ["row","deltav2","deltav1"]
+    if asY.empty:
+        asY = pd.DataFrame([[0],[0],[0]])
+        asY.index = ["row","deltav2","deltav1"]
     asB = asB.T.drop("row", axis=1)
     #asB = asB.iloc[::-1]
     asB.columns = ["row","col"]
@@ -717,12 +724,13 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
         ## ABLINES ##
         proof, ok = makeAblines(texp, minv, assign, ions, min_match)
         if not ok:
-            logging.info("\t\tSkipping one candidate with not enough ions matched...")
-            return
-        proof.INT = proof.INT * spec_correction
-        proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
-        proofb = proof[proof.FRAGS.str.contains("b")]
-        proofy = proof[proof.FRAGS.str.contains("y")]
+            proofb = proof
+            proofy = proof
+        else:
+            proof.INT = proof.INT * spec_correction
+            proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
+            proofb = proof[proof.FRAGS.str.contains("b")]
+            proofy = proof[proof.FRAGS.str.contains("y")]
         
         ## SELECT MAXIMUM PPM ERROR TO CONSIDER ## #TODO: Make this a parameter
         fppm[fppm>50] = 50 #TODO: this does not match Rvseq values - too many columns
@@ -809,9 +817,7 @@ def main(args):
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
-                
             
-
 if __name__ == '__main__':
 
     # multiprocessing.freeze_support()
