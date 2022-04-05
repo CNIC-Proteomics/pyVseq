@@ -59,6 +59,7 @@
         </div>
 
         <div class="w3-container mode" id="mass" style="display:none">
+            <p><button class="w3-btn w3-blue center" style="width:20%">Save Changes</button></p>
             <div class="row">
             <div class="column" style="width:50%">
                 <h1 style="color:whitesmoke;">Aminoacids</h1>
@@ -106,7 +107,31 @@
                 </div>
                 <h1 style="color:whitesmoke;">Fixed Modifications</h1>
                 <div class="w3-panel w3-blue-grey">
-                    A
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td><b>isolab</b></td><td>Isobaric Label</td><td><div contenteditable>229.162932</div></td></tr>
+                    <tr style="color:black;"><td><b>nt</b></td><td>N-terminal</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>ct</b></td><td>C-terminal</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>A</b></td><td>Alanine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>R</b></td><td>Arginine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>N</b></td><td>Asparagine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>D</b></td><td>Aspartic Acid</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>C</b></td><td>Cysteine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>Q</b></td><td>Glutamine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>E</b></td><td>Glutamic Acid</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>G</b></td><td>Glycine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>H</b></td><td>Histidine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>I</b></td><td>Isoleucine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>L</b></td><td>Leucine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>K</b></td><td>Lysine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>M</b></td><td>Methionine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>F</b></td><td>Phenilalanine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>P</b></td><td>Proline</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>S</b></td><td>Serine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>T</b></td><td>Threonine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>W</b></td><td>Tryptophan</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>Y</b></td><td>Tyrosine</td><td><div contenteditable>0.000000</div></td></tr>
+                    <tr style="color:black;"><td><b>V</b></td><td>Valine</td><td><div contenteditable>0.000000</div></td></tr>
+                </table> 
                 </div>
                 </div>
             </div>
@@ -136,27 +161,32 @@
 
         <div class="w3-container mode" id="explorer" style="display:none">
             <h1 style="color:whitesmoke;">Vseq Explorer</h1>
-            <p style="color:whitesmoke;">This is some text.</p>
             <div class="row">
-                <div class="w3-panel w3-blue-grey column" style="height:345px">
+                <div class="w3-panel w3-blue-grey column" style="height:220px">
                     <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
                     <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
-                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
-                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Precursor tolerance (Thomson):</b></label>
-                    <input class="w3-input w3-border" type="number" value="0.3" min="0" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="0.3" step="0.05" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
                     <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                </div> 
+                <div class="w3-panel w3-blue-grey column" style="height:220px">
+                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
+                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Number of best candidates to plot:</b></label>
                     <input class="w3-input w3-border" type="number" value="1" min="0" style="width:50%">
-                </div> 
-                <div class="w3-panel w3-blue-grey column" style="height:345px">
-                    <label class="w3-text-white"><b>Sequence table:</b></label>
-                    <input class="w3-input w3-border" type="file" style="width:100%">
                     <label class="w3-text-white"><b>Raw file (MGF):</b></label>
                     <input class="w3-input w3-border" type="file" style="width:100%">
-                    <label class="w3-text-white"><b>Mass file:</b></label>
-                    <input class="w3-input w3-border" type="file" style="width:100%">
+                </div> 
+            </div>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="width:100%">
+                    <table class="w3-table-all w3-hoverable" id="seqtable">
+                        <tr class="w3-blue-grey"><th>Sequence</th><th>Charge</th><th>Experimental Neutral Mass</th></tr>
+                        <tr style="color:black;"><td><div contenteditable>SAMPLER</div></td><td><div contenteditable>0</div></td><td><div contenteditable>0.00</div></td></tr>
+                    </table>
+                    <button class="w3-btn w3-blue" style="width:10%" onclick="newRow()">Add Row</button>
+                    <button class="w3-btn w3-blue" style="width:15%" onclick="rmRow()">Delete Row</button>
                 </div> 
             </div>
             <p><button class="w3-btn w3-blue center" style="width:20%">Run</button></p>
@@ -184,7 +214,21 @@
                 }
                 document.getElementById(modeName).style.display = "block"; 
             }
-            </script>
+            function newRow() {
+                var table = document.getElementById("seqtable");
+                var row = table.insertRow(-1);
+                row.style.color = "black";
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                cell1.setAttribute('contentEditable', 'true');
+                cell2.setAttribute('contentEditable', 'true');
+                cell3.setAttribute('contentEditable', 'true');
+            }
+            function rmRow() {
+                document.getElementById("seqtable").deleteRow(-1);
+            }
+        </script>
         </div>
     </body>
   </html>
