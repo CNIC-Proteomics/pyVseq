@@ -653,6 +653,8 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     plt.tight_layout()
     #plt.show()
     fig.savefig(outplot)  
+    fig.clear()
+    plt.close(fig)
     return
 
 def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph):

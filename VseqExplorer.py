@@ -12,12 +12,14 @@ import argparse
 #from colour import Color
 import concurrent.futures
 import configparser
+from io import FileIO
 import itertools
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from PyPDF2 import PdfFileMerger
 import scipy.stats
 import statistics
 from tqdm import tqdm
@@ -278,6 +280,8 @@ def plotRT(subtquery, outpath, charge, startRT, endRT):
     plt.plot(subtquery.RetentionTime, subtquery.ions_matched*subtquery.e_score, linewidth=1, color="darkblue")
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     fig.savefig(os.path.join(Path(outpath), outgraph))
+    fig.clear()
+    plt.close(fig)
     return
 
 def main(args):
@@ -400,6 +404,15 @@ def main(args):
                                                False,
                                                mass,
                                                True), axis = 1)
+        pagelist = list(map(Path, list(f_subtquery["outpath"])))
+        merger = PdfFileMerger()
+        for page in pagelist:
+            merger.append(FileIO(page,"rb"))
+        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_best" + str(bestn) + ".pdf")
+        with open(outmerge, 'wb') as f:
+            merger.write(outmerge)
+        for page in pagelist:
+            os.remove(page)
             #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
         subtquery.loc[len(subtquery)] = 0
