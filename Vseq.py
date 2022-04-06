@@ -396,6 +396,7 @@ def vScore(qscore, sub, proofb, proofy, assign):
     Calculate vScore.
     '''
     Kerr = 0
+    Kv = 0.1
     ## SS1 ##
     if len(qscore) <= (len(sub.Sequence)*2)/4:
         SS1 = 1
