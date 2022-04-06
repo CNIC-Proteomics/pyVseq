@@ -294,6 +294,7 @@ def main(args):
     bestn = int(mass._sections['Parameters']['best_n'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
+    fsort_by = int(mass._sections['Parameters']['sort_by'])
     if args.outpath:
         outpath = Path(args.outpath)
     else:
@@ -386,7 +387,7 @@ def main(args):
         #                                        , axis = 1)
         ## SORT BY ions_matched ##
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
-        subtquery.sort_values(by=['ions_matched'], inplace=True, ascending=False)
+        subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
         subtquery.reset_index(drop=True, inplace=True)
         f_subtquery = subtquery.iloc[0:bestn]
         f_subtquery.reset_index(drop=True, inplace=True)
