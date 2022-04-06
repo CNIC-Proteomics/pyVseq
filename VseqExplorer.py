@@ -303,7 +303,7 @@ def main(args):
         os.mkdir(Path(outpath))
     ## INPUT ##
     logging.info("Reading input table")
-    seqtable = pd.read_csv(args.table, sep=",", float_precision='high', low_memory=False)
+    seqtable = pd.read_csv(args.table, float_precision='high', low_memory=False)
     logging.info("Reading input file")
     mgf = pd.read_csv(args.infile, header=None)
     index2 = mgf.to_numpy() == 'END IONS'
