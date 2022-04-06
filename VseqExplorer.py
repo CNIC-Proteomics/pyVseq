@@ -294,7 +294,7 @@ def main(args):
     bestn = int(mass._sections['Parameters']['best_n'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
-    fsort_by = int(mass._sections['Parameters']['sort_by'])
+    fsort_by = str(mass._sections['Parameters']['sort_by'])
     if args.outpath:
         outpath = Path(args.outpath)
     else:
