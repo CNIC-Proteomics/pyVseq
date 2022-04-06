@@ -14,8 +14,10 @@ import os
 import sys
 import argparse
 #from colour import Color
+import concurrent.futures
 import configparser
 import itertools
+from itertools import repeat
 import logging
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
@@ -80,6 +82,10 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     AAs = dict(mass._sections['Aminoacids'])
     MODs = dict(mass._sections['Fixed Modifications'])
     m_proton = mass.getfloat('Masses', 'm_proton')
@@ -102,14 +108,19 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, scan):
+def expSpectrum(fr_ns, scan, index2):
     '''
     Prepare experimental spectrum.
     '''
-    index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
-    index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
+    # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
+    # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
     
-    ions = fr_ns.iloc[index1:index2,:]
+    index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
+    index1 = np.where(index1)[0][0]
+    index3 = np.where(index2)[0]
+    index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+    
+    ions = fr_ns.iloc[index1+1:index3,:]
     ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
     ions = ions.drop(ions.columns[0], axis=1)
     ions = ions.apply(pd.to_numeric)
@@ -133,7 +144,9 @@ def expSpectrum(fr_ns, scan):
     ions["NORM_REL_INT"] = (ions.INT - median_rel_int) / std_rel_int
     ions["P_REL_INT"] = scipy.stats.norm.cdf(ions.NORM_REL_INT) #, 0, 1)
     normspec = ions.loc[ions.P_REL_INT>0.81]
-    spec_correction = max(ions.INT)/statistics.mean(normspec.INT)
+    if len(ions) > 0 and len(normspec) > 0:
+        spec_correction = max(ions.INT)/statistics.mean(normspec.INT)
+    else: spec_correction = 0
     spec["CORR_INT"] = spec.REL_INT*spec_correction
     spec.loc[spec['CORR_INT'].idxmax()]['CORR_INT'] = max(spec.REL_INT)
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
@@ -149,6 +162,10 @@ def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     ## Y SERIES ##
@@ -187,6 +204,10 @@ def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_proton = mass.getfloat('Masses', 'm_proton')
     exp = pd.DataFrame(np.tile(pd.DataFrame(mz), (1, len(theo_spec.columns)))) 
     
@@ -195,7 +216,7 @@ def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
     mzs2 = pd.DataFrame(np.tile(pd.DataFrame(mzs2), (1, len(exp.columns)))) 
     
     ## EXPERIMENTAL MASSES FOR CHARGE 3 ##
-    mzs3 = pd.DataFrame(mz)*3 - m_proton*2 # WRONG
+    mzs3 = pd.DataFrame(mz)*3 - m_proton*2
     mzs3 = pd.DataFrame(np.tile(pd.DataFrame(mzs3), (1, len(exp.columns)))) 
     
     ## PPM ERRORS ##
@@ -209,12 +230,13 @@ def makeFrags(seq_len):
     Name all fragments.
     '''
     frags = pd.DataFrame(np.nan, index=list(range(0,seq_len*2)),
-                         columns=["by", "by2", "by3", "bydm", "bydm2"])
+                         columns=["by", "by2", "by3", "bydm", "bydm2", "bydm3"])
     frags.by = ["b" + str(i) for i in list(range(1,seq_len+1))] + ["y" + str(i) for i in list(range(1,seq_len+1))[::-1]]
     frags.by2 = frags.by + "++"
     frags.by3 = frags.by + "+++"
     frags.bydm = frags.by + "*"
     frags.bydm2 = frags.by + "*++"
+    frags.bydm3 = frags.by + "*+++"
     return(frags)
 
 def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalone):
@@ -223,6 +245,10 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalon
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     m_proton = mass.getfloat('Masses', 'm_proton')
     assign = pd.concat([frags.by, theo_spec.iloc[0]], axis=1)
     assign.columns = ['FRAGS', '+']
@@ -245,13 +271,15 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalon
     c_assign["CHARGE"] = c_assign.apply(lambda x: x.FRAGS.count('+'), axis=1).replace(0, 1)
     return(c_assign)
 
-def makeAblines(texp, minv, assign, ions):
+def makeAblines(texp, minv, assign, ions, min_match):
     masses = pd.concat([texp[0], minv], axis = 1)
     matches = masses[(masses < 51).sum(axis=1) >= 0.001]
     matches.reset_index(inplace=True, drop=True)
-    if len(matches) == 0 or len(matches) == 2:
+    if len(matches) <= min_match:
         matches = pd.DataFrame([[1,3],[2,4]])
-    
+        proof = pd.DataFrame([[0,0,0,0]])
+        proof.columns = ["MZ","FRAGS","PPM","INT"]
+        return(proof, False)    
     matches_ions = pd.DataFrame()
     for mi in list(range(0,len(matches))):
         for ci in list(range(0, len(assign))):
@@ -265,7 +293,7 @@ def makeAblines(texp, minv, assign, ions):
     if len(proof)==0:
         mzcycle = itertools.cycle([ions.MZ.iloc[0], ions.MZ.iloc[1]])
         proof = pd.concat([matches_ions, pd.Series([next(mzcycle) for count in range(len(matches_ions))], name="INT")], axis=1)
-    return(proof)
+    return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
@@ -313,6 +341,12 @@ def asBY(deltaplot, sub):
             asB = pd.concat([asB, deltaplot.iloc[i]], axis=1)
         if deltaplot.deltav2[i] > len(sub.Sequence)-1:
             asY = pd.concat([asY, deltaplot.iloc[i]], axis=1)
+    if asB.empty:
+        asB = pd.DataFrame([[0],[0],[0]])
+        asB.index = ["row","deltav2","deltav1"]
+    if asY.empty:
+        asY = pd.DataFrame([[0],[0],[0]])
+        asY.index = ["row","deltav2","deltav1"]
     asB = asB.T.drop("row", axis=1)
     #asB = asB.iloc[::-1]
     asB.columns = ["row","col"]
@@ -361,7 +395,8 @@ def vScore(qscore, sub, proofb, proofy, assign):
     '''
     Calculate vScore.
     '''
-    
+    Kerr = 0
+    Kv = 0.1
     ## SS1 ##
     if len(qscore) <= (len(sub.Sequence)*2)/4:
         SS1 = 1
@@ -464,15 +499,20 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   outpath, massconfig, standalone):
     if not standalone:
         mass = massconfig
+        outplot = outpath
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
+        outplot = os.path.join(outpath, str(sub.Raw) +
+                               "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                               + "_ch" + str(sub.Charge) + ".pdf")
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     z  = max(fppm.max())
-    outplot = os.path.join(outpath, str(sub.Raw) +
-                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
-                           + ".pdf")
     
     frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
@@ -509,8 +549,11 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     posmatrix = posmatrix.loc[list(fppm.T.index.values)]
     ax5 = fig.add_subplot(2,6,(3,6))
-    sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
-                cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    if dm >= min_dm:
+        sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
+                    cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
+    else:
+        sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     ax5.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
@@ -611,22 +654,30 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
     plt.tight_layout()
     #plt.show()
     fig.savefig(outplot)  
+    fig.clear()
+    plt.close(fig)
     return
 
-def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dograph):
+def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
     if not standalone:
-        logging.info("\t\t\tDM Operations...")
         mass = massconfig
     else:
+        logging.info("\t\t\tDM Operations...")
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2)
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
+    #     a
     theo_spec = theoSpectrum(sub.Sequence, len(ions), 0, massconfig, standalone)
     terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec, massconfig, standalone)
     
@@ -654,12 +705,16 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2]).min(0))
         parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, dmterrors, dmterrors2]).min(0))
+    elif sub.Charge < 2:
+        ppmfinal = pd.DataFrame(np.array([terrors]).min(0))
+        parcial = ppmfinal
+        if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, dmterrors]).min(0))
     elif sub.Charge >= 3:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3]).min(0))
         parcial = ppmfinal
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
     else:
-        sys.exit('ERROR: Charge is not 2 or 3')
+        sys.exit('ERROR: Invalid charge value!')
     ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
     zoom = ppmfinal.apply(lambda x: random.randint(50, 90) if x.minv > 50 else x.minv , axis = 1)
     minv = ppmfinal["minv"]
@@ -670,11 +725,15 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     
     if dograph or standalone:
         ## ABLINES ##
-        proof = makeAblines(texp, minv, assign, ions)
-        proof.INT = proof.INT * spec_correction
-        proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
-        proofb = proof[proof.FRAGS.str.contains("b")]
-        proofy = proof[proof.FRAGS.str.contains("y")]
+        proof, ok = makeAblines(texp, minv, assign, ions, min_match)
+        if not ok:
+            proofb = proof
+            proofy = proof
+        else:
+            proof.INT = proof.INT * spec_correction
+            proof.INT[proof.INT > max(exp_spec.REL_INT)] = max(exp_spec.REL_INT) - 3
+            proofb = proof[proof.FRAGS.str.contains("b")]
+            proofy = proof[proof.FRAGS.str.contains("y")]
         
         ## SELECT MAXIMUM PPM ERROR TO CONSIDER ## #TODO: Make this a parameter
         fppm[fppm>50] = 50 #TODO: this does not match Rvseq values - too many columns
@@ -699,7 +758,7 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     
     if dograph or standalone:
         pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
-        specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(pepmass.CHARGE)) + "+"
+        specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
         
         BDAGmax, YDAGmax = asBY(deltaplot, sub)
         
@@ -722,7 +781,7 @@ def doVseq(sub, tquery, fr_ns, min_dm, err, outpath, standalone, massconfig, dog
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
-        return(escore)
+        return(escore, ppmfinal, frags)
     else:
         return
 
@@ -731,15 +790,17 @@ def main(args):
     Main function
     '''
     ## USER PARAMS TO ADD ##
-    err = float(mass._sections['Parameters']['ppm_error'])
+    err = float(mass._sections['Parameters']['fragment_tolerance'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
+    min_match = int(mass._sections['Parameters']['min_ions_matched'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
     #     sys.exit("Minimum deltamass (-d) must be a number!")
     # Set variables from input file
     logging.info("Reading input file")
-    scan_info = pd.read_csv(args.infile, sep=",", float_precision='high', low_memory=False)
+    scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
+    scan_info = scan_info[scan_info.Sequence.notna()]
     exps = list(scan_info.Raw.unique())
     for exp in exps:
         logging.info("Experiment: " + str(exp))
@@ -750,6 +811,7 @@ def main(args):
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         logging.info("\tReading mgf file")
         fr_ns = pd.read_csv(mgf, header=None)
+        index2 = fr_ns.to_numpy() == 'END IONS'
         tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
@@ -758,10 +820,8 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, min_dm, err, pathdict["out"], True, False, True)
-                
+                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
             
-
 if __name__ == '__main__':
 
     # multiprocessing.freeze_support()
@@ -779,14 +839,18 @@ if __name__ == '__main__':
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-e', '--error', default=0, help='Maximum ppm error to consider')
-    parser.add_argument('-d', '--deltamass', default=0, help='Minimum deltamass to consider')
+    parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
+    parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     mass.read(args.config)
+    if args.error is not None:
+        mass.set('Parameters', 'ppm_error', str(args.error))
+    if args.deltamass is not None:
+        mass.set('Parameters', 'min_dm', str(args.deltamass))
     # if something is changed, write a copy of ini
     if mass.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/Vseq.ini', 'w') as newconfig:

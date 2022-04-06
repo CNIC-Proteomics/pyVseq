@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <link rel="stylesheet" href="w3.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <title>pyVseq</title>
+      <style>
+          .noscrollbar::-webkit-scrollbar {
+            display: none;
+            }
+          .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+            }
+          .column {
+            float: left;
+            width: 50%;
+            padding: 10px;
+            }
+            /* Clear floats after the columns */
+          .row:after {
+            content: "";
+            display: table;
+            clear: both;
+            }
+          #myDIV {
+            width: 100%;
+            padding: 50px 0;
+            text-align: left;
+            background-color: lightsteelblue;
+            margin-top: 10px;
+            }
+      </style>
+    </head>
+    <body style="background-color:rgb(41, 42, 45);" class="noscrollbar">
+        <!-- Sidebar -->
+        <div class="w3-sidebar w3-bar-block" style="width:25%" id="mode">
+            <div class="w3-container w3-blue-grey w3-padding-16">
+                <img src="img/pyVseq_logo.png" alt="pyVseq logo" style="width:100%" class="center">
+            </div>
+            <h3 class="w3-bar-item">Menu</h3>
+            <button class="w3-bar-item w3-button" onclick="showMode('home')"><i class="fa fa-home"></i> Home</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('mass')"><i class="fa fa-th-list"></i> Mass List</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('viewer')"><i class="fa fa-bar-chart"></i> Vseq Viewer</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('explorer')"><i class="fa fa-search"></i> Vseq Explorer</button>
+            <button class="w3-bar-item w3-button" onclick="showMode('help')"><i class="fa fa-question-circle"></i> Help</button>
+        </div>
+
+        <!-- Page Content -->
+        <div style="margin-left:25%">
+
+        <div class="w3-container mode" id="home">
+            <img src="img/pyVseq_logo.png" alt="pyVseq logo" style="width:500px" class="center">
+            <p style="color:whitesmoke; text-align: center;"><b>CNIC (Spanish National Center for Cardiovascular Research)</b><br>
+                <b>Cardiovascular Proteomics Lab</b><br>
+                Andrea Laguillo Gómez<br>
+                Enrique Calvo Alcocer</p>
+            <h1 style="color:whitesmoke;">This is the pyVseq GUI</h1>
+        </div>
+
+        <form class="w3-container mode" id="mass" style="display:none;text-align:center;">
+            <button class="w3-btn w3-blue" type="submit" style="width:20%" display="inline-block">Save Changes</button>
+            <button class="w3-btn w3-blue" type="reset" style="width:20%" display="inline-block">Reset to Default</button>
+            <div class="row">
+            <div class="column" style="width:50%">
+                <h1 style="color:whitesmoke;">Aminoacids</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td><b>A</b></td><td>Alanine</td><td><input type="number" value="71.037114"></td></tr>
+                    <tr style="color:black;"><td><b>R</b></td><td>Arginine</td><td><input type="number" value="156.101111"></td></tr>
+                    <tr style="color:black;"><td><b>N</b></td><td>Asparagine</td><td><input type="number" value="114.042927"></td></tr>
+                    <tr style="color:black;"><td><b>D</b></td><td>Aspartic Acid</td><td><input type="number" value="115.026943"></td></tr>
+                    <tr style="color:black;"><td><b>C</b></td><td>Cysteine</td><td><input type="number" value="103.009185"></td></tr>
+                    <tr style="color:black;"><td><b>Q</b></td><td>Glutamine</td><td><input type="number" value="128.058578"></td></tr>
+                    <tr style="color:black;"><td><b>E</b></td><td>Glutamic Acid</td><td><input type="number" value="129.042593"></td></tr>
+                    <tr style="color:black;"><td><b>G</b></td><td>Glycine</td><td><input type="number" value="57.021464"></td></tr>
+                    <tr style="color:black;"><td><b>H</b></td><td>Histidine</td><td><input type="number" value="137.058912"></td></tr>
+                    <tr style="color:black;"><td><b>I</b></td><td>Isoleucine</td><td><input type="number" value="113.084064"></td></tr>
+                    <tr style="color:black;"><td><b>L</b></td><td>Leucine</td><td><input type="number" value="113.084064"></td></tr>
+                    <tr style="color:black;"><td><b>K</b></td><td>Lysine</td><td><input type="number" value="128.094963"></td></tr>
+                    <tr style="color:black;"><td><b>M</b></td><td>Methionine</td><td><input type="number" value="131.040485"></td></tr>
+                    <tr style="color:black;"><td><b>F</b></td><td>Phenylalanine</td><td><input type="number" value="147.068414"></td></tr>
+                    <tr style="color:black;"><td><b>P</b></td><td>Proline</td><td><input type="number" value="97.052764"></td></tr>
+                    <tr style="color:black;"><td><b>S</b></td><td>Serine</td><td><input type="number" value="87.032028"></td></tr>
+                    <tr style="color:black;"><td><b>T</b></td><td>Threonine</td><td><input type="number" value="101.047679"></td></tr>
+                    <tr style="color:black;"><td><b>W</b></td><td>Tryptophan</td><td><input type="number" value="186.079313"></td></tr>
+                    <tr style="color:black;"><td><b>Y</b></td><td>Tyrosine</td><td><input type="number" value="163.063329"></td></tr>
+                    <tr style="color:black;"><td><b>V</b></td><td>Valine</td><td><input type="number" value="99.068414"></td></tr>
+                </table>  
+                </div>
+                <h1 style="color:whitesmoke;">Custom Aminoacids</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable" id="aatable">
+                    <tr style="color:black;"><td><input type="text" maxlength="1" value="U" style="width:25px;font-weight:bold"></td><td>Custom AA</td><td><input type="number" value="0.000000"></div></td></tr>
+                    <tr style="color:black;"><td><input type="text" maxlength="1" value="X" style="width:25px;font-weight:bold"></td><td>Custom AA</td><td><input type="number" value="0.000000"></div></td></tr>
+                    <tr style="color:black;"><td><input type="text" maxlength="1" value="Z" style="width:25px;font-weight:bold"></td><td>Custom AA</td><td><input type="number" value="0.000000"></div></td></tr>
+                </table>  
+                <button type="button" class="w3-btn w3-blue" style="width:30%" onclick="newRow('aatable')"><i class="fa fa-plus-circle"></i> Add Row</button>
+                <button type="button" class="w3-btn w3-blue" style="width:35%" onclick="rmRow('aatable')"><i class="fa fa-minus-circle"></i> Delete Row</button>
+                </div>
+            </div>
+            <div class="column" style="width:50%">
+                <h1 style="color:whitesmoke;">Other Masses</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td>Proton</td><td><input type="number" value="1.007276"></td></tr>
+                    <tr style="color:black;"><td>Hydrogen</td><td><input type="number" value="1.007825"></td></tr>
+                    <tr style="color:black;"><td>Oxygen</td><td><input type="number" value="15.994915"></td></tr>
+                </table>  
+                </div>
+                <h1 style="color:whitesmoke;">Fixed Modifications</h1>
+                <div class="w3-panel w3-blue-grey">
+                <table class="w3-table-all w3-hoverable">
+                    <tr style="color:black;"><td><b>isolab</b></td><td>Isobaric Label</td><td><input type="number" value="229.162932" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>nt</b></td><td>N-terminal</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>ct</b></td><td>C-terminal</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>A</b></td><td>Alanine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>R</b></td><td>Arginine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>N</b></td><td>Asparagine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>D</b></td><td>Aspartic Acid</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>C</b></td><td>Cysteine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>Q</b></td><td>Glutamine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>E</b></td><td>Glutamic Acid</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>G</b></td><td>Glycine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>H</b></td><td>Histidine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>I</b></td><td>Isoleucine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>L</b></td><td>Leucine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>K</b></td><td>Lysine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>M</b></td><td>Methionine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>F</b></td><td>Phenilalanine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>P</b></td><td>Proline</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>S</b></td><td>Serine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>T</b></td><td>Threonine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>W</b></td><td>Tryptophan</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>Y</b></td><td>Tyrosine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                    <tr style="color:black;"><td><b>V</b></td><td>Valine</td><td><input type="number" value="0.000000" style="width:150px"></td></tr>
+                </table> 
+                </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="w3-container mode" id="viewer" style="display:none">
+            <h1 style="color:whitesmoke;">Vseq Viewer</h1>
+            <p style="color:whitesmoke;">This is some text.</p>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="height:215px">
+                    <label class="w3-text-white"><b>Minimum Δmass (Dalton): <p class="w3-tooltip" style="position:absolute;left:570px;bottom:481px"><i class="fa fa-question-circle w3-text-indigo"></i><span class="w3-text w3-tag w3-small">Deltamass</span></p></b></label>
+                    <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
+                    <label class="w3-text-white"><b>Minimum number of matched ions: <i class="fa fa-question-circle w3-text-indigo"></i></b></label>
+                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Fragment tolerance (ppm): <i class="fa fa-question-circle w3-text-indigo"></i></b></label>
+                    <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                </div> 
+                <div class="w3-panel w3-blue-grey column" style="height:215px">
+                    <label class="w3-text-white"><b>Sequence table:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                    <label class="w3-text-white"><b>Mass file:</b></label>
+                    <input class="w3-input w3-border" type="file" style="width:100%">
+                </div> 
+            </div>
+            <p><button class="w3-btn w3-blue center" style="width:20%">Run</button></p>
+        </div>
+
+        <form class="w3-container mode" id="explorer" style="display:none">
+            <h1 style="color:whitesmoke;">Vseq Explorer</h1>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="height:275px">
+                    <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
+                    min_dm: <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
+                    <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
+                    min_ions: <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Precursor tolerance (Thomson):</b></label>
+                    ptol: <input class="w3-input w3-border" type="number" value="0.3" step="0.05" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
+                    ftol: <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                </div> 
+                <div class="w3-panel w3-blue-grey column" style="height:275px">
+                    <label class="w3-text-white"><b>Number of best candidates to plot:</b></label>
+                    best_n: <input class="w3-input w3-border" type="number" value="5" min="0" style="width:50%">
+                    <label class="w3-text-white"><b>Sort candidates by:</b></label><br>
+                    <select class="w3-select" name="option" style="width:60%">
+                        <option value="1">Matched ions</option>
+                        <option value="2">E-score</option>
+                    </select><br>
+                    <label class="w3-text-white"><b>Raw file (MGF):</b></label>
+                    raw: <input class="w3-input w3-border" type="file" style="width:100%"><br>
+                    <button class="w3-btn w3-light-blue" type="reset" style="width:60%" display="inline-block">Reset Parameters to Default</button>
+                </div> 
+            </div>
+            <div class="row">
+                <div class="w3-panel w3-blue-grey column" style="width:100%">
+                    <table class="w3-table-all w3-hoverable" id="seqtable">
+                        <tr class="w3-blue-grey"><th>Sequence</th><th>Charge</th><th>Experimental Neutral Mass (Dalton)</th></tr>
+                        <tr style="color:black;"><td><div contenteditable>SAMPLER</div></td><td><div contenteditable>0</div></td><td><div contenteditable>0.00</div></td></tr>
+                    </table>
+                    <button type="button" class="w3-btn w3-blue" style="width:15%" onclick="newRow('seqtable')"><i class="fa fa-plus-circle"></i> Add Row</button>
+                    <button type="button" class="w3-btn w3-blue" style="width:18%" onclick="rmRow('seqtable')"><i class="fa fa-minus-circle"></i> Delete Row</button>
+                </div> 
+            </div>
+            <p><button class="w3-btn w3-blue center" style="width:20%" onclick="runExplorer(min_dm, ptol, ftol, min_ions, best_n, raw)">Run</button></p>
+        </form>
+
+        <div class="w3-container mode" id="help" style="display:none">
+            <ul class="w3-ul w3-border" style="color:whitesmoke;">
+                <li><h2>Vseq Viewer Parameters:</h2></li>
+                <li>Sequence Table: CSV format</li>
+            </ul>
+            <ul class="w3-ul w3-border" style="color:whitesmoke;">
+                <li><h2>Vseq Explorer Parameters:</h2></li>
+                <li>Raw File: MGF format, containing m/z and intensity values.</li>
+                <li>Sequence Table: CSV format, containing a column with the sequence, a column with the experimental neutral mass and a column with the charge.</li>
+                <li>Best N: Number of cadidates to make Vseq plots for (sorted by number of ions matched)</li>
+            </ul>
+        </div>
+
+        <script>
+            function showMode(modeName) {
+                var i;
+                var x = document.getElementsByClassName("mode");
+                for (i = 0; i < x.length; i++) {
+                    x[i].style.display = "none";
+                }
+                document.getElementById(modeName).style.display = "block"; 
+            }
+            function newRow(id) {
+                var table = document.getElementById(id);
+                if (id == "seqtable") {
+                var row = table.insertRow(-1);
+                row.style.color = "black";
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                cell1.setAttribute('contentEditable', 'true');
+                cell2.setAttribute('contentEditable', 'true');
+                cell3.setAttribute('contentEditable', 'true');
+                }
+                else if (id == "aatable") {
+                var row = table.insertRow(-1);
+                row.style.color = "black";
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                cell1.innerHTML = '<input type="text" maxlength="1" style="width:25px;font-weight:bold">';
+                cell2.innerHTML = "Custom AA";
+                cell3.innerHTML = '<input type="number" value="0.000000">';
+                /*cell1.setAttribute('contentEditable', 'true');*/
+                /*cell1.style.fontWeight = "bold";*/
+                /* obj.innerHTML = '<b>' + obj.innerHTML + '</b>'; */
+                /*cell3.setAttribute('contentEditable', 'true');*/
+                }
+            }
+            function rmRow(id) {
+                document.getElementById(id).deleteRow(-1);
+            }
+            function runExplorer(min_dm, ptol, ftol, min_ions, best_n, raw) {
+                var sum = ptol + ftol;
+                console.log(sum)
+                var pyshell =  require('python-shell');
+                pyshell.run('VseqExplorer.py',  function  (err)  {
+                if  (err)  throw err;
+                console.log('VseqExplorer finished.');
+                });
+            }
+        </script>
+        </div>
+    </body>
+  </html>

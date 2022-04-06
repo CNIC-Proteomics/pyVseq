@@ -1,0 +1,24 @@
+{
+  "name": "cnicpyvseq",
+  "version": "0.1.0",
+  "description": "Vseq rebuilt in Python",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CNIC-Proteomics/pyVseq.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CNIC-Proteomics/pyVseq/issues"
+  },
+  "homepage": "https://github.com/CNIC-Proteomics/pyVseq#readme",
+  "dependencies": {
+    "python-shell": "^3.0.1"
+  }
+}
