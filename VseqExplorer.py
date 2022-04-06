@@ -408,9 +408,9 @@ def main(args):
         merger = PdfFileMerger()
         for page in pagelist:
             merger.append(FileIO(page,"rb"))
-        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_best" + str(bestn) + ".pdf")
+        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_" + str(query.Charge) + "_" + str(round(query.ExpNeutralMass,2)) + "_best" + str(bestn) + ".pdf")
         with open(outmerge, 'wb') as f:
-            merger.write(outmerge)
+            merger.write(f)
         for page in pagelist:
             os.remove(page)
             #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
