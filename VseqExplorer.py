@@ -408,7 +408,7 @@ def main(args):
         merger = PdfFileMerger()
         for page in pagelist:
             merger.append(FileIO(page,"rb"))
-        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_" + str(query.Charge) + "_" + str(round(query.ExpNeutralMass,2)) + "_best" + str(bestn) + ".pdf")
+        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.ExpNeutralMass,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
         with open(outmerge, 'wb') as f:
             merger.write(f)
         for page in pagelist:
