@@ -373,6 +373,7 @@ def main(args):
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
         subtquery['Raw'] = os.path.split(Path(args.infile))[1][:-4]
         subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+        subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
         subtquery = subtquery.drop('templist', axis = 1)
         # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
         #                                                         tquery,
