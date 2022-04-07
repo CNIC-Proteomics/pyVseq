@@ -308,7 +308,7 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
             if deltamplot.iloc[ki,kj] == 3:
                 rplot.append(deltamplot.index.values[ki]) 
                 cplot.append(deltamplot.columns.values[kj]) 
-    deltaplot = pd.DataFrame([pd.Series(rplot), pd.Series(cplot)]).T
+    deltaplot = pd.DataFrame([pd.Series(rplot,dtype='int'), pd.Series(cplot,dtype='str')]).T
     if deltaplot.shape[0] != 0:
         deltaplot.columns = ["row", "deltav2"]
         deltaplot["deltav1"] = deltamplot.shape[0] - deltaplot.row
