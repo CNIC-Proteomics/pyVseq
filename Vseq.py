@@ -490,9 +490,12 @@ def vScore(qscore, sub, proofb, proofy, assign):
             Kv = 1.8
     if SS4b > 7 and SS4y > 7 and SS5b >= 8 and SS5y >= 8:
         Kv = 2.7
-        
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
-    return(vscore)
+    SSdf = pd.DataFrame([[vscore,SS1,SS2,SS3,SS4b,SS4y,SS4,SS5b,SS5y,SS5,SS6b,SS6y,SS6,Kv,Kerr]],
+            columns=["v-score", "SS1","SS2","SS3","SS4b","SS4y","SS4",
+                     "SS5b","SS5y","SS5","SS6b","SS6y","SS6",
+                     "Kv","Kerr"])
+    return(SSdf)
 
 def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
@@ -766,24 +769,26 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
         # TODO: dta files required
         
         ## V-SCORE ##
-        vscore = vScore(qscore, sub, proofb, proofy, assign)
+        vscoredf = vScore(qscore, sub, proofb, proofy, assign)
     
     ## PLOTS ##
-    if standalone:
-        logging.info("\t\t\tPlotting...")
-    if dograph:
-        plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                      proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                      outpath, massconfig, standalone)
-    if standalone:
-        logging.info("\t\t\tDone.")
-        return
-    elif dograph and not standalone:
-        return
-    elif not dograph and not standalone:
-        return(escore, ppmfinal, frags)
-    else:
-        return
+    # if standalone:
+    #     logging.info("\t\t\tPlotting...")
+    # if dograph:
+    #     plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+    #                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+    #                   outpath, massconfig, standalone)
+    # if standalone:
+    #     logging.info("\t\t\tDone.")
+    #     return
+    # elif dograph and not standalone:
+    #     return
+    # elif not dograph and not standalone:
+    #     return(escore, ppmfinal, frags)
+    # else:
+    #     return
+    vscoredf["e-score"] = escore
+    return(vscoredf)
 
 def main(args):
     '''
@@ -801,12 +806,18 @@ def main(args):
     logging.info("Reading input file")
     scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
     scan_info = scan_info[scan_info.Sequence.notna()]
+    #scan_info['index'] = scan_info.index
+    # scan_info = pd.concat([scan_info, pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]*len(scan_info),
+    #                                   columns=["v-score", "SS1","SS2","SS3","SS4b","SS4y","SS4",
+    #                                            "SS5b","SS5y","SS5","SS6b","SS6y","SS6","Kv","Kerr"])]
+    #                      ,axis=1)
+    vscorefdlist = []
     exps = list(scan_info.Raw.unique())
     for exp in exps:
         logging.info("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
-        data_type = sql.type[0]
+        #data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         logging.info("\tReading mgf file")
@@ -820,7 +831,11 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
+                vscoredf = doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
+                vscorefdlist.append(vscoredf)
+    vscoredf = pd.concat(vscorefdlist)
+    scan_info = pd.concat([scan_info, vscoredf])
+    scan_info.to_csv(Path(args.infile[:-4] + 'Vseq_table.txt'))
             
 if __name__ == '__main__':
 
