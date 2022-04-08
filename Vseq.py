@@ -512,7 +512,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                                + "_ch" + str(sub.Charge) + ".pdf")
     fppm.index = list(frags.by)
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
-    z  = max(fppm.max())
+    #z  = max(fppm.max())
     
     frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
@@ -747,7 +747,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     
         deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
         if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
-        z = max(fppm.max())
+        #z = max(fppm.max())
     
     ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
     #frv2 = ions.INT
@@ -806,7 +806,7 @@ def main(args):
         logging.info("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
-        data_type = sql.type[0]
+        #data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         logging.info("\tReading mgf file")
@@ -819,7 +819,7 @@ def main(args):
             subs = sql.loc[sql.FirstScan==scan]
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
-                seq2 = sub.Sequence[::-1]
+                #seq2 = sub.Sequence[::-1]
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
             
 if __name__ == '__main__':
