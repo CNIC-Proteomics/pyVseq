@@ -812,7 +812,7 @@ def main(args):
     logging.info("Reading input file")
     scan_info = pd.read_csv(args.infile, sep='\t', engine="python")
     scan_info = scan_info[scan_info.Sequence.notna()]
-    #scan_info['index'] = scan_info.index
+    scan_info['temp_index'] = scan_info.index
     # scan_info = pd.concat([scan_info, pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]*len(scan_info),
     #                                   columns=["v-score", "SS1","SS2","SS3","SS4b","SS4y","SS4",
     #                                            "SS5b","SS5y","SS5","SS6b","SS6y","SS6","Kv","Kerr"])]
@@ -823,6 +823,7 @@ def main(args):
         #logging.info("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
+        sql.reset_index(inplace=True, drop=True)
         #data_type = sql.type[0]
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
@@ -838,10 +839,13 @@ def main(args):
                 #logging.info(sub.Sequence)
                 seq2 = sub.Sequence[::-1]
                 vscoredf = doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
+                vscoredf["temp_index"] = sub.temp_index
                 vscorefdlist.append(vscoredf)
-    vscoredf = pd.concat(vscorefdlist)
-    scan_info = pd.concat([scan_info, vscoredf])
-    scan_info.to_csv(Path(args.infile[:-4] + 'Vseq_table.txt'))
+    finalvscoredf = pd.concat(vscorefdlist)
+    finalvscoredf.sort_values(by=['temp_index'], ascending=False)
+    finalvscoredf.reset_index(inplace=True, drop=True)
+    scan_info = pd.concat([scan_info, finalvscoredf], axis=1, ignore_index=True)
+    scan_info.to_csv(Path(args.infile[:-4] + '_Vseq_table.csv'))
             
 if __name__ == '__main__':
 
