@@ -67,7 +67,10 @@ def getTquery(fr_ns):
                         mquery.rename('PEPMASS'),
                         cquery.rename('CHARGE')],
                        axis=1)
-    tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+    try:
+        tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+    except ValueError:
+        tquery['MZ'] = tquery.PEPMASS
     tquery['CHARGE'] = tquery.CHARGE.str[:-1]
     tquery = tquery.drop("PEPMASS", axis=1)
     tquery = tquery.apply(pd.to_numeric)
@@ -119,11 +122,16 @@ def expSpectrum(fr_ns, scan, index2):
     index1 = np.where(index1)[0][0]
     index3 = np.where(index2)[0]
     index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-    
-    ions = fr_ns.iloc[index1+1:index3,:]
-    ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-    ions = ions.drop(ions.columns[0], axis=1)
-    ions = ions.apply(pd.to_numeric)
+    try:
+        ions = fr_ns.iloc[index1+1:index3,:]
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
+    except ValueError:
+        ions = fr_ns.iloc[index1+4:index3,:]
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
@@ -317,6 +325,7 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot.columns = ["row"]
         deltaplot["deltav2"] = 0
         deltaplot["deltav1"] = 0
+    deltaplot = deltaplot.apply(pd.to_numeric)
     return(deltamplot, deltaplot)
 
 def qeScore(ppmfinal, int2, err):
@@ -814,7 +823,7 @@ def main(args):
     vscorefdlist = []
     exps = list(scan_info.Raw.unique())
     for exp in exps:
-        logging.info("Experiment: " + str(exp))
+        #logging.info("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
         #data_type = sql.type[0]
