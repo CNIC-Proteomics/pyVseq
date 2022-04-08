@@ -804,7 +804,7 @@ def main(args):
     #     sys.exit("Minimum deltamass (-d) must be a number!")
     # Set variables from input file
     logging.info("Reading input file")
-    scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
+    scan_info = pd.read_csv(args.infile, sep='\t', engine="python")
     scan_info = scan_info[scan_info.Sequence.notna()]
     #scan_info['index'] = scan_info.index
     # scan_info = pd.concat([scan_info, pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]*len(scan_info),
