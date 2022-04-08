@@ -321,10 +321,7 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot.columns = ["row", "deltav2"]
         deltaplot["deltav1"] = deltamplot.shape[0] - deltaplot.row
     else:
-        deltaplot = pd.concat([deltaplot, pd.Series([0])],axis=0)
-        deltaplot.columns = ["row"]
-        deltaplot["deltav2"] = 0
-        deltaplot["deltav1"] = 0
+        deltaplot = pd.DataFrame([[0,0,0]], columns=["row","deltav2","deltav1"])
     deltaplot = deltaplot.apply(pd.to_numeric)
     return(deltamplot, deltaplot)
 
