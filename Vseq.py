@@ -680,7 +680,10 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
             mass.set('Parameters', 'min_dm', str(args.deltamass))
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
     mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
-    dm = mim - parental
+    if args.recom:
+        dm = float(sub.RECOMfiltered_DM)
+    else:
+        dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
@@ -867,6 +870,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
     parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
+    parser.add_argument('-r', '--recom', default=3, help='Use recom deltamass')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
