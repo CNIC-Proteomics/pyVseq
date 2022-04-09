@@ -715,15 +715,15 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     ## PPM ERRORS ##
     if sub.Charge == 2:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, dmterrors, dmterrors2]).min(0))
     elif sub.Charge < 2:
         ppmfinal = pd.DataFrame(np.array([terrors]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, dmterrors]).min(0))
     elif sub.Charge >= 3:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
     else:
         sys.exit('ERROR: Invalid charge value!')
