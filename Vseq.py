@@ -844,8 +844,9 @@ def main(args):
     finalvscoredf = pd.concat(vscorefdlist)
     finalvscoredf.sort_values(by=['temp_index'], ascending=False)
     finalvscoredf.reset_index(inplace=True, drop=True)
-    scan_info = pd.concat([scan_info, finalvscoredf], axis=1, ignore_index=True)
-    scan_info.to_csv(Path(args.infile[:-4] + '_Vseq_table.csv'))
+    final_scan_info = pd.concat([scan_info, finalvscoredf], axis=1, ignore_index=True)
+    final_scan_info.columns = list(scan_info.columns) + list(finalvscoredf.columns)
+    final_scan_info.to_csv(Path(args.infile[:-4] + '_Vseq_table.csv'))
             
 if __name__ == '__main__':
 
