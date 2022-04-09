@@ -849,7 +849,7 @@ def main(args):
                 vscoredf["temp_index"] = sub.temp_index
                 vscorefdlist.append(vscoredf)
     finalvscoredf = pd.concat(vscorefdlist)
-    finalvscoredf.sort_values(by=['temp_index'], ascending=False)
+    finalvscoredf = finalvscoredf.sort_values(by=['temp_index'])
     finalvscoredf.reset_index(inplace=True, drop=True)
     final_scan_info = pd.concat([scan_info, finalvscoredf], axis=1, ignore_index=True)
     final_scan_info.columns = list(scan_info.columns) + list(finalvscoredf.columns)
