@@ -296,24 +296,24 @@ def makeAblines(texp, minv, assign, ions, min_match):
     return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
-    parcialdm = pd.DataFrame(parcialdm)
-    parcial = pd.DataFrame(parcial)
-    ppmfinal = pd.DataFrame(ppmfinal)
-    awidth = 1
-    newdf_list = []
-    for df in [parcialdm, parcial, ppmfinal]:
-        if len(df.shape) > 1:
-            if df.shape[1] > 1:
-                awidth = df.shape[1]
-    for df in [parcialdm, parcial, ppmfinal]:
-        if len(df.shape) <= 1:
-            df = pd.DataFrame(0, index=np.arange(len(df)), columns=list(range(0,awidth)))
-        elif df.shape[1] <= 1:
-            df = df.reindex(columns=list(range(0,awidth)), fill_value=0)
-        newdf_list.append(df)
-    parcialdm = newdf_list[0]
-    parcial = newdf_list[1]
-    ppmfinal = newdf_list[2]
+    # parcialdm = pd.DataFrame(parcialdm)
+    # parcial = pd.DataFrame(parcial)
+    # ppmfinal = pd.DataFrame(ppmfinal)
+    # awidth = 1
+    # newdf_list = []
+    # for df in [parcialdm, parcial, ppmfinal]:
+    #     if len(df.shape) > 1:
+    #         if df.shape[1] > 1:
+    #             awidth = df.shape[1]
+    # for df in [parcialdm, parcial, ppmfinal]:
+    #     if len(df.shape) <= 1:
+    #         df = pd.DataFrame(0, index=np.arange(len(df)), columns=list(range(0,awidth)))
+    #     elif df.shape[1] <= 1:
+    #         df = df.reindex(columns=list(range(0,awidth)), fill_value=0)
+    #     newdf_list.append(df)
+    # parcialdm = newdf_list[0]
+    # parcial = newdf_list[1]
+    # ppmfinal = newdf_list[2]
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
     deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
     if deltamplot.empty:
@@ -719,15 +719,15 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     ## PPM ERRORS ##
     if sub.Charge == 2:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, dmterrors, dmterrors2]).min(0))
     elif sub.Charge < 2:
         ppmfinal = pd.DataFrame(np.array([terrors]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, dmterrors]).min(0))
     elif sub.Charge >= 3:
         ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3]).min(0))
-        parcial = ppmfinal
+        parcial = ppmfinal.copy()
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
     else:
         sys.exit('ERROR: Invalid charge value!')
