@@ -296,6 +296,24 @@ def makeAblines(texp, minv, assign, ions, min_match):
     return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
+    parcialdm = pd.DataFrame(parcialdm)
+    parcial = pd.DataFrame(parcial)
+    ppmfinal = pd.DataFrame(ppmfinal)
+    awidth = 1
+    newdf_list = []
+    for df in [parcialdm, parcial, ppmfinal]:
+        if len(df.shape) > 1:
+            if df.shape[1] > 1:
+                awidth = df.shape[1]
+    for df in [parcialdm, parcial, ppmfinal]:
+        if len(df.shape) <= 1:
+            df = pd.DataFrame(0, index=np.arange(len(df)), columns=list(range(0,awidth)))
+        elif df.shape[1] <= 1:
+            df = df.reindex(columns=list(range(0,awidth)), fill_value=0)
+        newdf_list.append(df)
+    parcialdm = newdf_list[0]
+    parcial = newdf_list[1]
+    ppmfinal = newdf_list[2]
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
     deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
     if deltamplot.empty:
@@ -313,10 +331,8 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
         deltaplot.columns = ["row", "deltav2"]
         deltaplot["deltav1"] = deltamplot.shape[0] - deltaplot.row
     else:
-        deltaplot = pd.concat([deltaplot, pd.Series([0])],axis=0)
-        deltaplot.columns = ["row"]
-        deltaplot["deltav2"] = 0
-        deltaplot["deltav1"] = 0
+        deltaplot = pd.DataFrame([[0,0,0]], columns=["row","deltav2","deltav1"])
+    deltaplot = deltaplot.apply(pd.to_numeric)
     return(deltamplot, deltaplot)
 
 def qeScore(ppmfinal, int2, err):
