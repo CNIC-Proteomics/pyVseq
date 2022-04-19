@@ -816,6 +816,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     # else:
     #     return
     vscoredf["e-score"] = escore
+    vscoredf["vseq_dm"] = dm
     return(vscoredf)
 
 def main(args):
