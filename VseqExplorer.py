@@ -238,7 +238,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone
 def plotRT(subtquery, outpath, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
     titledm = str(round(subtquery.DeltaMass.loc[0],6))
-    outgraph = str(subtquery.Raw.loc[0]) + "_" + titleseq + "_M" + str(subtquery.ExpNeutralMass.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
+    outgraph = str(subtquery.Raw.loc[0]) + "_" + titleseq + "_M" + str(subtquery.MH.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.RetentionTime = subtquery.RetentionTime / 60
@@ -314,13 +314,13 @@ def main(args):
     exploredseqs = []
     for index, query in seqtable.iterrows():
         logging.info("\tExploring sequence " + str(query.Sequence) + ", "
-                     + str(query.ExpNeutralMass) + " Th, Charge "
+                     + str(query.MH) + " Th, Charge "
                      + str(query.Charge))
         ## MZ and MH ##
         query['MZ'] = getTheoMZH(query.Charge, query.Sequence, True, True)[0]
         query['MH'] = getTheoMZH(query.Charge, query.Sequence, True, True)[1]
         ## DM ##
-        mim = query.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
+        mim = query.MH
         dm = mim - query.MH
         dm_theo_spec = theoSpectrum(query.Sequence, len(query.Sequence), dm).loc[0]
         frags = ["b" + str(i) for i in list(range(1,len(query.Sequence)+1))] + ["y" + str(i) for i in list(range(1,len(query.Sequence)+1))[::-1]]
@@ -337,7 +337,7 @@ def main(args):
             continue
         logging.info("\tComparing...")
         subtquery['Sequence'] = query.Sequence
-        subtquery['ExpNeutralMass'] = query.ExpNeutralMass
+        subtquery['MH'] = query.MH
         subtquery['DeltaMass'] = dm
         subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
         subtquery["RawCharge"] = subtquery.Charge
@@ -411,7 +411,7 @@ def main(args):
         merger = PdfFileMerger()
         for page in pagelist:
             merger.append(FileIO(page,"rb"))
-        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.ExpNeutralMass,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
+        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.MH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
         with open(outmerge, 'wb') as f:
             merger.write(f)
         for page in pagelist:

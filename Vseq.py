@@ -629,7 +629,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
         plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
     ## INFO TABLE ##
     PTMprob = list(sub.Sequence)
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')), str(escore), str(vscore)],
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), str(sub.MH), str(escore), str(vscore)],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "M.Mass", "Escore", "Vscore"])
     ax2 = fig.add_subplot(2,6,(10,11))
     ax2.axis('off')
@@ -710,7 +710,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
         if args.deltamass is not None:
             mass.set('Parameters', 'min_dm', str(args.deltamass))
     parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
-    mim = sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton')
+    mim = sub.MH
     dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
