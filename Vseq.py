@@ -401,6 +401,20 @@ def asBY(deltaplot, sub):
     YDAGmax = YDAGmax.row - len(sub.Sequence)
     return(BDAGmax, YDAGmax)
 
+def sortFrags(proofby_df):
+    proofby_df["FRAGS0"] = proofby_df.FRAGS.str.extract(r'([a-zA-Z])', expand=True)
+    proofby_df["FRAGS1"] = proofby_df.FRAGS.str.extract(r'([0-9]+)', expand=True)
+    proofby_df["FRAGS2"] = proofby_df.FRAGS.str.extract(r'(\++)', expand=True).fillna('')
+    proofby_df["FRAGS1"] = pd.to_numeric(proofby_df["FRAGS1"])
+    proofby_df.sort_values(by="FRAGS1", inplace=True)
+    chargegroups = proofby_df.groupby("FRAGS2")
+    results = []
+    for chargestate in chargegroups:
+        group_index = chargestate[1].index.values
+        results.append(proofby_df.loc[group_index])
+    results = pd.concat(results)
+    return(results)
+
 def vScore(qscore, sub, proofb, proofy, assign):
     '''
     Calculate vScore.
@@ -447,7 +461,8 @@ def vScore(qscore, sub, proofb, proofy, assign):
     for proofby_vscore, SS4 in [[proofb_vscore, SS4b], [proofy_vscore, SS4y]]:
         if len(proofby_vscore) > 1:
             proofby_vscore = pd.concat([proofby_vscore, pd.merge(proofby_vscore, assign, on="FRAGS")[["ION", "CHARGE"]]], axis=1)
-            proofby_vscore = proofby_vscore.sort_values(by="CHARGE")
+            #proofby_vscore = proofby_vscore.sort_values(by="CHARGE")
+            proofby_vscore = sortFrags(proofby_vscore)
             proofby_vscore["ION_DIFF"] = -pd.to_numeric(proofby_vscore.ION).diff(periods=-1)
             SS4 = len(proofby_vscore[proofby_vscore.ION_DIFF == 1])
             temp.append([proofby_vscore, SS4])
