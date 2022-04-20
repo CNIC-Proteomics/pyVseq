@@ -76,7 +76,7 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
-def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
+def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     '''    
     Calculate theoretical MH using the PSM sequence.
     '''
@@ -101,13 +101,15 @@ def getTheoMH(charge, sequence, nt, ct, massconfig, standalone):
         total_aas += float(MODs['nt'])
     if ct:
         total_aas += float(MODs['ct'])
-    for aa in sequence:
+    for i, aa in enumerate(sequence):
         if aa.lower() in AAs:
             total_aas += float(AAs[aa.lower()])
         if aa.lower() in MODs:
             total_aas += float(MODs[aa.lower()])
-        if aa.islower():
-            total_aas += float(MODs['isolab'])
+        # if aa.islower():
+        #     total_aas += float(MODs['isolab'])
+        if i in pos:
+            total_aas += float(mods[pos.index(i)])
     MH = total_aas - (charge-1)*m_proton
     return MH
 
@@ -161,7 +163,7 @@ def expSpectrum(fr_ns, scan, index2):
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
     return(spec, ions, spec_correction)
 
-def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
+def theoSpectrum(seq, mods, pos, len_ions, dm, massconfig, standalone):
     '''
     Prepare theoretical fragment matrix.
 
@@ -184,7 +186,7 @@ def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMH(0,yn,nt,True, massconfig, standalone) + dm
+        fragy = getTheoMH(0,yn,mods,pos,nt,True, massconfig, standalone) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
@@ -193,7 +195,7 @@ def theoSpectrum(seq, len_ions, dm, massconfig, standalone):
         bn = list(seq[::-1][i:])
         if i > 0: ct = False
         else: ct = True
-        fragb = getTheoMH(0,bn,True,ct, massconfig, standalone) - 2*m_hydrogen - m_oxygen + dm
+        fragb = getTheoMH(0,bn,mods,pos,True,ct, massconfig, standalone) - 2*m_hydrogen - m_oxygen + dm
         outb[i:] = fragb
     
     ## FRAGMENT MATRIX ##
@@ -358,13 +360,13 @@ def qeScore(ppmfinal, int2, err):
     escore = (qscore.INT/1000000).sum()
     return(qscore, escore)
 
-def asBY(deltaplot, sub):
+def asBY(deltaplot, sub, sublen):
     asB = pd.DataFrame()
     asY = pd.DataFrame()
     for i in list(range(0,deltaplot.shape[0])):
-        if deltaplot.deltav2[i] <= len(sub.Sequence)-1:
+        if deltaplot.deltav2[i] <= sublen-1:
             asB = pd.concat([asB, deltaplot.iloc[i]], axis=1)
-        if deltaplot.deltav2[i] > len(sub.Sequence)-1:
+        if deltaplot.deltav2[i] > sublen-1:
             asY = pd.concat([asY, deltaplot.iloc[i]], axis=1)
     if asB.empty:
         asB = pd.DataFrame([[0],[0],[0]])
@@ -413,7 +415,7 @@ def asBY(deltaplot, sub):
     if len(BDAG) == 1:
         BDAGmax.row = 0
     YDAGmax = YDAG[YDAG.value == YDAG.value.max()]
-    YDAGmax = YDAGmax.row - len(sub.Sequence)
+    YDAGmax = YDAGmax.row - sublen
     return(BDAGmax, YDAGmax)
 
 def sortFrags(proofby_df):
@@ -430,20 +432,20 @@ def sortFrags(proofby_df):
     results = pd.concat(results)
     return(results)
 
-def vScore(qscore, sub, proofb, proofy, assign):
+def vScore(qscore, sub, sublen, proofb, proofy, assign):
     '''
     Calculate vScore.
     '''
     Kerr = 0
     Kv = 0.1
     ## SS1 ##
-    if len(qscore) <= (len(sub.Sequence)*2)/4:
+    if len(qscore) <= (sublen*2)/4:
         SS1 = 1
-    if len(qscore) > (len(sub.Sequence)*2)/4:
+    if len(qscore) > (sublen*2)/4:
         SS1 = 2
-    if len(qscore) > (len(sub.Sequence)*2)/3:
+    if len(qscore) > (sublen*2)/3:
         SS1 = 3
-    if len(qscore) > (len(sub.Sequence)*2)/2:
+    if len(qscore) > (sublen*2)/2:
         SS1 = 4
     
     ## SS2 ##
@@ -453,9 +455,9 @@ def vScore(qscore, sub, proofb, proofy, assign):
         SS2 = 0
     if len(proofb_vscore) != 0:
         SS2 = SS1 * 1.5
-    if len(proofb_vscore) > len(sub.Sequence)/3:
+    if len(proofb_vscore) > sublen/3:
         SS2 = SS1 * 2.5
-    if len(proofb_vscore) > (len(sub.Sequence)*2)/3:
+    if len(proofb_vscore) > (sublen*2)/3:
         SS2 = SS1 * 3.5
     
     ## SS3 ##
@@ -465,9 +467,9 @@ def vScore(qscore, sub, proofb, proofy, assign):
         SS3 = 0
     if len(proofy_vscore) != 0:
         SS3 = SS1 * 3
-    if len(proofy_vscore) > len(sub.Sequence)/3:
+    if len(proofy_vscore) > sublen/3:
         SS3 = SS1 * 5
-    if len(proofy_vscore) > (len(sub.Sequence)*2)/3:
+    if len(proofy_vscore) > (sublen*2)/3:
         SS3 = SS1 * 7
 
     ## SS4 ##
@@ -531,10 +533,10 @@ def vScore(qscore, sub, proofb, proofy, assign):
     if SS4b > 7 and SS4y > 7 and SS5b >= 8 and SS5y >= 8:
         Kv = 2.7
         
-    vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / len(sub.Sequence)
+    vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / sublen
     return(vscore)
 
-def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                   outpath, massconfig, standalone):
     if not standalone:
@@ -628,7 +630,7 @@ def plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
         ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
         plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
     ## INFO TABLE ##
-    PTMprob = list(sub.Sequence)
+    PTMprob = list(plainseq)
     datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), str(sub.MH), str(escore), str(vscore)],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "M.Mass", "Escore", "Vscore"])
     ax2 = fig.add_subplot(2,6,(10,11))
@@ -709,7 +711,13 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
             mass.set('Parameters', 'ppm_error', str(args.error))
         if args.deltamass is not None:
             mass.set('Parameters', 'min_dm', str(args.deltamass))
-    parental = getTheoMH(sub.Charge, sub.Sequence, True, True, massconfig, standalone)
+    ## SEQUENCE ##
+    sub.Sequence = str(sub.Sequence).upper()
+    plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
+    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
+    pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
+    ## DM ##
+    parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
     mim = sub.MH
     dm = mim - parental
     parentaldm = parental + dm
@@ -718,21 +726,21 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
-    theo_spec = theoSpectrum(sub.Sequence, len(ions), 0, massconfig, standalone)
+    theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)
     terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec, massconfig, standalone)
     
     ## DM OPERATIONS ##
-    dm_theo_spec = theoSpectrum(sub.Sequence, len(ions), dm, massconfig, standalone)
+    dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), dm, massconfig, standalone)
     dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec, massconfig, standalone)
     dmterrorsmin = pd.DataFrame(np.array([dmterrors, dmterrors2, dmterrors3]).min(0)) # Parallel minima
     parcialdm = dmterrorsmin
     dmfppm = dmterrorsmin[(dmterrorsmin < 300).sum(axis=1) >= 0.01*len(dmterrorsmin.columns)]
-    dmfppm_fake = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+    dmfppm_fake = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
     if dmfppm.empty: dmfppm = dmfppm_fake 
     dmfppm = dmfppm.where(dmfppm < 50, 50) # No values greater than 50
     
     ## FRAGMENT NAMES ##
-    frags = makeFrags(len(sub.Sequence))
+    frags = makeFrags(len(plainseq))
     dmterrors.columns = frags.by
     dmterrors2.columns = frags.by2
     dmterrors3.columns = frags.by3
@@ -761,7 +769,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     ppmfinal = ppmfinal.drop("minv", axis=1)
     fppm = ppmfinal[(ppmfinal < 50).sum(axis=1) >= 0.001] 
     fppm = fppm.T
-    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
     
     if dograph or standalone:
         ## ABLINES ##
@@ -786,7 +794,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
         pppmfinal[pppmfinal>300] = 0
     
         deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
-        if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(sub.Sequence)*2)), columns=list(range(0,len(sub.Sequence)*2)))
+        if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
         #z = max(fppm.max())
     
     ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
@@ -800,19 +808,19 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
         pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
         specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
         
-        BDAGmax, YDAGmax = asBY(deltaplot, sub)
+        BDAGmax, YDAGmax = asBY(deltaplot, sub, len(plainseq))
         
         ## SURVEY SCAN INFORMATION ##
         # TODO: dta files required
         
         ## V-SCORE ##
-        vscore = vScore(qscore, sub, proofb, proofy, assign)
+        vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
     
     ## PLOTS ##
     if standalone:
         logging.info("\t\t\tPlotting...")
     if dograph:
-        plotPpmMatrix(sub, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+        plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                       proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                       outpath, massconfig, standalone)
     if standalone:
