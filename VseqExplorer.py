@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from PyPDF2 import PdfFileMerger
+import re
 import scipy.stats
 import statistics
 from tqdm import tqdm
@@ -316,6 +317,12 @@ def main(args):
         logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                      + str(query.MH) + " Th, Charge "
                      + str(query.Charge))
+        ## SEQUENCE ##
+        query.Sequence = str(query.Sequence).upper()
+        #nummod = query.Sequence.count("[")
+        plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
+        mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", query.Sequence) if i]
+        pos = [j-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
         ## MZ and MH ##
         query['MZ'] = getTheoMZH(query.Charge, query.Sequence, True, True)[0]
         query['MH'] = getTheoMZH(query.Charge, query.Sequence, True, True)[1]
