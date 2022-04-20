@@ -55,7 +55,7 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
-def getTheoMZH(charge, sequence, nt, ct):
+def getTheoMZH(charge, sequence, mods, pos, nt, ct):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
@@ -70,13 +70,15 @@ def getTheoMZH(charge, sequence, nt, ct):
         total_aas += float(MODs['nt'])
     if ct:
         total_aas += float(MODs['ct'])
-    for aa in sequence:
+    for i, aa in enumerate(sequence):
         if aa.lower() in AAs:
             total_aas += float(AAs[aa.lower()])
         if aa.lower() in MODs:
             total_aas += float(MODs[aa.lower()])
-        if aa.islower():
-            total_aas += float(MODs['isolab'])
+        # if aa.islower():
+        #     total_aas += float(MODs['isolab'])
+        if i in pos:
+            total_aas += float(mods[pos.index(i)])
     MH = total_aas - (charge-1)*m_proton
     #MZ = (total_aas + int(charge)*m_proton) / int(charge)
     if charge > 0:
@@ -122,7 +124,7 @@ def expSpectrum(fr_ns, scan):
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
     return(spec, ions, spec_correction)
 
-def theoSpectrum(seq, len_ions, dm):
+def theoSpectrum(seq, mods, pos, len_ions, dm):
     '''
     Prepare theoretical fragment matrix.
 
@@ -136,7 +138,7 @@ def theoSpectrum(seq, len_ions, dm):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMZH(0,yn,nt,True) + dm
+        fragy = getTheoMZH(0,yn,mods,pos,nt,True) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
@@ -145,7 +147,7 @@ def theoSpectrum(seq, len_ions, dm):
         bn = list(seq[::-1][i:])
         if i > 0: ct = False
         else: ct = True
-        fragb = getTheoMZH(0,bn,True,ct) - 2*m_hydrogen - m_oxygen + dm
+        fragb = getTheoMZH(0,bn,mods,pos,True,ct) - 2*m_hydrogen - m_oxygen + dm
         outb[i:] = fragb
     
     ## FRAGMENT MATRIX ##
@@ -319,18 +321,17 @@ def main(args):
                      + str(query.Charge))
         ## SEQUENCE ##
         query.Sequence = str(query.Sequence).upper()
-        #nummod = query.Sequence.count("[")
         plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
         mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", query.Sequence) if i]
-        pos = [j-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
+        pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
         ## MZ and MH ##
-        query['MZ'] = getTheoMZH(query.Charge, query.Sequence, True, True)[0]
-        query['MH'] = getTheoMZH(query.Charge, query.Sequence, True, True)[1]
+        query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[0]
+        query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[1]
         ## DM ##
         mim = query.MH
         dm = mim - query.MH
-        dm_theo_spec = theoSpectrum(query.Sequence, len(query.Sequence), dm).loc[0]
-        frags = ["b" + str(i) for i in list(range(1,len(query.Sequence)+1))] + ["y" + str(i) for i in list(range(1,len(query.Sequence)+1))[::-1]]
+        dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm).loc[0]
+        frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
         dm_theo_spec.index = frags
         ## TOLERANCE ##
         upper = query.MZ + ptol
@@ -375,7 +376,7 @@ def main(args):
         #                                         , axis = 1)
         subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
         #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
-        subtquery['ions_total'] = len(query.Sequence) * 2
+        subtquery['ions_total'] = len(plainseq) * 2
         subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
         subtquery['Raw'] = os.path.split(Path(args.infile))[1][:-4]
