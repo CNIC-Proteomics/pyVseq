@@ -632,7 +632,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     ## INFO TABLE ##
     PTMprob = list(plainseq)
     datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), str(sub.MH), str(escore), str(vscore)],
-                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "M.Mass", "Escore", "Vscore"])
+                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "MH", "Escore", "Vscore"])
     ax2 = fig.add_subplot(2,6,(10,11))
     ax2.axis('off')
     ax2.axis('tight')
@@ -718,7 +718,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
     ## DM ##
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
-    mim = sub.MH
+    mim = sub.MH - mass.getfloat('Masses', 'm_proton')
     dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
