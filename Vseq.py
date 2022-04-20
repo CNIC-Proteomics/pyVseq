@@ -851,10 +851,11 @@ def main(args):
     scan_info = scan_info[scan_info.Sequence.notna()]
     exps = list(scan_info.Raw.unique())
     for exp in exps:
-        logging.info("Experiment: " + str(exp))
+        #logging.info("Experiment: " + str(exp))
         exp = str(exp).replace(".txt","").replace(".raw","").replace(".mgf","")
         sql = scan_info.loc[scan_info.Raw == exp]
         #data_type = sql.type[0]
+        sql.reset_index(inplace=True, drop=True)
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         logging.info("\tReading mgf file")
