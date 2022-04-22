@@ -444,8 +444,14 @@ def main(config):
         on='p'
     )
 
+
+    #
     # WRITE OUTPUT
-    
+    #
+
+    # combine equal pdm with different modification Title
+    p2mod = p2mod.groupby(['p', 'mres', 'site', 'n', 'mono_mass', 'mh', 'pdm', 'q', 'nmod', 'charge', 'misscleavages']).agg(list).reset_index()
+
     logging.info('Writing output files')
     p2mod = list(
         p2mod.rename(
