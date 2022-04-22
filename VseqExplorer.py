@@ -31,6 +31,20 @@ from Vseq import doVseq
 # table = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\vseqexplorer_input_data.csv'
 # config = 'C:\\Users\\alaguillog\\GitHub\\CNICpyVseq\\Vseq.ini'
 
+def checkMGFs(mgfs, mgflist):
+    checklist = list(mgfs.groups.keys())
+    checklist = [i + ".mgf" for i in checklist]
+    stock = [os.path.basename(j) for j in mgflist]
+    missing = 0
+    for i in checklist:
+        if i not in stock:
+            logging.info("Missing path for file: " + str(i))
+            missing += 1
+    if missing == 0:
+        return(True)
+    else:
+        return(False)
+
 def getTquery(fr_ns):
     squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
     squery = squery[0].str.replace("SCANS=","")
