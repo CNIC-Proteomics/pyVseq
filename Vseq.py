@@ -299,6 +299,10 @@ def makeAblines(texp, minv, assign, ions, min_match):
                 matches_ions = pd.concat([matches_ions, asign], ignore_index=True, axis=1)
                 #matches.iloc[2,1]
     matches_ions = matches_ions.T
+    if matches_ions.empty:
+        proof = pd.DataFrame([[0,0,0,0]])
+        proof.columns = ["MZ","FRAGS","PPM","INT"]
+        return(proof, False) 
     matches_ions.columns = ["MZ","FRAGS","PPM"]
     proof = pd.merge(matches_ions, ions[['MZ','INT']], how="left", on="MZ")
     if len(proof)==0:
