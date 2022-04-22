@@ -14,6 +14,7 @@ import pandas as pd
 import requests
 import re
 import sys
+import unicodedata
 
 
 
@@ -238,6 +239,27 @@ def combinations(mmod, upi2p, MODNUMBER):
 
     return mmod
 
+
+def slugify(value, allow_unicode=False):
+    """
+    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '-', value)
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
+
+
+def writedf(df, OUTFILE_PATH):
+    df[1].to_csv(os.path.join(OUTFILE_PATH, slugify(df[0])+'.tsv'), sep='\t', index=False),
+
 #
 # Main
 #
@@ -398,7 +420,7 @@ def main(config):
 
 
     #
-    # CALCULATE CHARGE
+    # CALCULATE CHARGE AND MC NUMBER
     #
 
     logging.info('Calculating charge')
@@ -421,9 +443,26 @@ def main(config):
         how='left',
         on='p'
     )
+
+    # WRITE OUTPUT
     
-    logging.info('Writing output file')
-    p2mod.to_csv(params['outfile_path'], sep="\t", index=False)
+    logging.info('Writing output files')
+    p2mod = list(
+        p2mod.rename(
+            columns={
+                'mh': 'MH',
+                'pdm':'Sequence',
+                'Title': 'DeltaMass',
+                'charge':'Charge',
+                'misscleavages': 'MissCleavages'
+            }
+        ).groupby('q')
+    )
+
+    pool = multiprocessing.Pool(int(params['nproc']))
+    _ = pool.starmap(writedf, zip(p2mod, itertools.repeat(params['outfile_path'])))
+    pool.close()
+    pool.join()
 
 
 if __name__ == '__main__':
