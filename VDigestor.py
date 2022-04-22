@@ -400,12 +400,20 @@ def main(config):
     #
     # CALCULATE CHARGE
     #
+
     logging.info('Calculating charge')
-    ch = list(zip(*[(i,1+i.count('H')+i.count('R')+i.count('K')) for i in list(set(p2mod['p'].tolist()))]))
-    ch = pd.DataFrame({
-        'p': ch[0],
-        'charge': ch[1]
-    })
+
+    ch = pd.DataFrame(        
+        [
+            (
+                i,
+                1+i.count('H')+i.count('R')+i.count('K'),
+                len(re.findall(r'[KR](?!P)(?!$)', i))
+            ) 
+            for i in list(set(p2mod['p'].tolist()))
+        ],
+        columns=['p', 'charge', 'misscleavages']
+    )
 
     p2mod = pd.merge(
         p2mod,
@@ -415,7 +423,7 @@ def main(config):
     )
     
     logging.info('Writing output file')
-    p2mod.loc[:, ['q','p','pdm','Title','mh', 'site', 'nmod', 'mono_mass','charge']].to_csv(params['outfile_path'], sep="\t", index=False)
+    p2mod.to_csv(params['outfile_path'], sep="\t", index=False)
 
 
 if __name__ == '__main__':
