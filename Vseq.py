@@ -700,7 +700,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph):
+def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph, min_vscore):
     if not standalone:
         mass = massconfig
     else:
@@ -819,7 +819,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     ## PLOTS ##
     if standalone:
         logging.info("\t\t\tPlotting...")
-    if dograph:
+    if dograph and vscore >= min_vscore:
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                       proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                       outpath, massconfig, standalone)
@@ -841,6 +841,7 @@ def main(args):
     err = float(mass._sections['Parameters']['fragment_tolerance'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
+    min_vscore = 0
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -869,7 +870,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True)
+                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True, min_vscore)
             
 if __name__ == '__main__':
 

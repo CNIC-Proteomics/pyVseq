@@ -298,6 +298,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     fsort_by = str(mass._sections['Parameters']['sort_by'])
+    min_vscore = float(mass._sections['Parameters']['min_vscore'])
     if args.outpath:
         outpath = Path(args.outpath)
     else:
@@ -351,7 +352,7 @@ def main(args):
         subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
         subtquery["RawCharge"] = subtquery.Charge
         subtquery.Charge = query.Charge
-        parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath), False, mass, False]
+        parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath), False, mass, False, min_vscore]
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
         tqdm.pandas(position=0, leave=True)
@@ -416,7 +417,11 @@ def main(args):
                                                False,
                                                mass,
                                                True), axis = 1)
-        pagelist = list(map(Path, list(f_subtquery["outpath"])))
+        allpagelist = list(map(Path, list(f_subtquery["outpath"])))
+        pagelist = []
+        for f in allpagelist:
+            if os.path.isfile(f):
+                pagelist.append(f)
         merger = PdfFileMerger()
         for page in pagelist:
             merger.append(FileIO(page,"rb"))
