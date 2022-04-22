@@ -193,14 +193,14 @@ def errorMatrix(mz, theo_spec):
     return(terrors, terrors2, terrors3, exp)
 
 def _parallelGetIons(x, parlist):
-    relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5], parlist[6], parlist[7], parlist[8], parlist[9])
+    relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5], parlist[6], parlist[7], parlist[8], parlist[9], parlist[10])
     return(relist)
 
-def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph):
+def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore):
     ions_exp = []
     b_ions = []
     y_ions = []
-    escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph)
+    escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -416,7 +416,8 @@ def main(args):
                                                Path(x.outpath),
                                                False,
                                                mass,
-                                               True), axis = 1)
+                                               True,
+                                               min_vscore), axis = 1)
         allpagelist = list(map(Path, list(f_subtquery["outpath"])))
         pagelist = []
         for f in allpagelist:
