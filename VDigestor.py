@@ -452,7 +452,7 @@ def main(config):
             columns={
                 'mh': 'MH',
                 'pdm':'Sequence',
-                'Title': 'DeltaMass',
+                'Title': 'DeltaMassLabel',
                 'charge':'Charge',
                 'misscleavages': 'MissCleavages'
             }
