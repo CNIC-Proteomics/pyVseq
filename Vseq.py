@@ -852,7 +852,8 @@ def main(args):
     #     sys.exit("Minimum deltamass (-d) must be a number!")
     # Set variables from input file
     logging.info("Reading input file")
-    scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
+    #scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
+    scan_info = pd.read_csv(args.infile, sep='\t', engine="python")
     scan_info = scan_info[scan_info.Sequence.notna()]
     exps = list(scan_info.Raw.unique())
     for exp in exps:
