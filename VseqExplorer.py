@@ -329,7 +329,7 @@ def main(args):
         query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[0]
         query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[1]
         ## DM ##
-        mim = query.expMH - mass.getfloat('Masses', 'm_proton')
+        mim = query.expMH
         dm = mim - query.MH
         dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm).loc[0]
         frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]

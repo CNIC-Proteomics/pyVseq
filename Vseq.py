@@ -718,7 +718,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
     ## DM ##
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
-    mim = sub.MH - mass.getfloat('Masses', 'm_proton')
+    mim = sub.MH
     dm = mim - parental
     parentaldm = parental + dm
     dmdm = mim - parentaldm
