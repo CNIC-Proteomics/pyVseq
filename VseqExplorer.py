@@ -348,6 +348,7 @@ def main(args):
         logging.info("\tComparing...")
         subtquery['Sequence'] = query.Sequence
         subtquery['MH'] = query.expMH
+        subtquery['DeltaMassLabel'] = query.DeltaMassLabel
         subtquery['DeltaMass'] = dm
         subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
         subtquery["RawCharge"] = subtquery.Charge
