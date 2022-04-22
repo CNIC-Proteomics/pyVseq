@@ -200,7 +200,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone
     ions_exp = []
     b_ions = []
     y_ions = []
-    escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore)
+    vscore, escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -236,7 +236,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone
     #         y_ions = y_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "y" in x]
     #         b_ions = b_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "b" in x]
     #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
-    return([ions_matched, ions_exp, b_ions, y_ions, escore])
+    return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore])
 
 def plotRT(subtquery, outpath, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
@@ -383,7 +383,8 @@ def main(args):
         subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
         subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
         subtquery['Raw'] = os.path.split(Path(args.infile))[1][:-4]
-        subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+        subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+        subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
         subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
         subtquery = subtquery.drop('templist', axis = 1)
         # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
