@@ -635,6 +635,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
     ## INFO TABLE ##
     PTMprob = list(plainseq)
+    if not hasattr(sub, 'DeltaMassLabel'):
+        sub.DeltaMassLabel = "'N/A'"
     datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(escore), str(vscore)],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
     ax2 = fig.add_subplot(2,6,(10,11))
