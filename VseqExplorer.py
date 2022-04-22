@@ -426,18 +426,20 @@ def main(args):
         merger = PdfFileMerger()
         for page in pagelist:
             merger.append(FileIO(page,"rb"))
-        outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
-        with open(outmerge, 'wb') as f:
-            merger.write(f)
-        for page in pagelist:
-            os.remove(page)
+        logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
+        if len(pagelist) > 0:
+            outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
+            with open(outmerge, 'wb') as f:
+                merger.write(f)
+            for page in pagelist:
+                os.remove(page)
             #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
-        ## PLOT RT vs E-SCORE and MATCHED IONS ##
-        subtquery.loc[len(subtquery)] = 0
-        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
-        subtquery.loc[len(subtquery)] = 0
-        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
-        plotRT(subtquery, outpath, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+            ## PLOT RT vs E-SCORE and MATCHED IONS ##
+            subtquery.loc[len(subtquery)] = 0
+            subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
+            subtquery.loc[len(subtquery)] = 0
+            subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
+            plotRT(subtquery, outpath, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
         exploredseqs.append(subtquery)
         
     logging.info("Writing output table")
