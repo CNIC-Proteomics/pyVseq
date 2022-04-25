@@ -73,7 +73,7 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
-def getTheoMZH(charge, sequence, mods, pos, nt, ct):
+def getTheoMZH(charge, sequence, mods, pos, nt, ct, mass):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
@@ -149,7 +149,7 @@ def expSpectrum(fr_ns, scan):
     spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
     return(spec, ions, spec_correction)
 
-def theoSpectrum(seq, mods, pos, len_ions, dm):
+def theoSpectrum(seq, mods, pos, len_ions, dm, mass):
     '''
     Prepare theoretical fragment matrix.
 
@@ -163,7 +163,7 @@ def theoSpectrum(seq, mods, pos, len_ions, dm):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMZH(0,yn,mods,pos,nt,True) + dm
+        fragy = getTheoMZH(0,yn,mods,pos,nt,True,mass) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
@@ -172,7 +172,7 @@ def theoSpectrum(seq, mods, pos, len_ions, dm):
         bn = list(seq[::-1][i:])
         if i > 0: ct = False
         else: ct = True
-        fragb = getTheoMZH(0,bn,mods,pos,True,ct) - 2*m_hydrogen - m_oxygen + dm
+        fragb = getTheoMZH(0,bn,mods,pos,True,ct,mass) - 2*m_hydrogen - m_oxygen + dm
         outb[i:] = fragb
     
     ## FRAGMENT MATRIX ##
@@ -313,7 +313,8 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     return
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
-                      prot, mgf, index2, min_dm, min_match, min_vscore, outpath3):
+                    prot, mgf, index2, min_dm, min_match, min_vscore, outpath3,
+                    mass, n_workers):
     logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                  + str(query.MH) + " Th, Charge "
                  + str(query.Charge))
@@ -324,12 +325,12 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
     ## MZ and MH ##
     query['expMH'] = query.MH
-    query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[0]
-    query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True)[1]
+    query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
+    query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
     ## DM ##
     mim = query.expMH
     dm = mim - query.MH
-    dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm).loc[0]
+    dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
     dm_theo_spec.index = frags
     ## TOLERANCE ##
@@ -358,7 +359,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     chunks = 100
     if len(rowSeries) <= 500:
         chunks = 50
-    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
         vseqs = executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks)
     subtquery['templist'] = vseqs
     # subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
@@ -449,7 +450,7 @@ def _parallelSeqTable(x, parlist):
     result = processSeqTable(x, parlist[0], parlist[1], parlist[2], parlist[3],
                              parlist[4], parlist[5], parlist[6], parlist[7],
                              parlist[8], parlist[9], parlist[10], parlist[11],
-                             parlist[12], parlist[13])
+                             parlist[12], parlist[13], parlist[14], parlist[15])
     return(result)
 
 def main(args):
@@ -513,7 +514,8 @@ def main(args):
             rowSeqs = list(rowSeqs)
             tqdm.pandas(position=0, leave=True)
             parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
-                       mgf, index2, min_dm, min_match, min_vscore, outpath3]
+                       mgf, index2, min_dm, min_match, min_vscore, outpath3,
+                       mass, args.n_workers]
             chunks = 100
             if len(rowSeqs) <= 500:
                 chunks = 50
@@ -542,7 +544,7 @@ def main(args):
                 ## DM ##
                 mim = query.expMH
                 dm = mim - query.MH
-                dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm).loc[0]
+                dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
                 frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
                 dm_theo_spec.index = frags
                 ## TOLERANCE ##
