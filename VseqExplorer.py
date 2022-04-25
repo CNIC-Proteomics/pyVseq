@@ -63,7 +63,10 @@ def getTquery(fr_ns):
                         cquery.rename('CHARGE'),
                         rquery.rename('RT')],
                        axis=1)
-    tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+    try:
+        tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+    except ValueError:
+        tquery['MZ'] = tquery.PEPMASS
     tquery['CHARGE'] = tquery.CHARGE.str[:-1]
     tquery = tquery.drop("PEPMASS", axis=1)
     tquery = tquery.apply(pd.to_numeric)
@@ -107,11 +110,18 @@ def expSpectrum(fr_ns, scan):
     '''
     index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
     index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
-    
-    ions = fr_ns.iloc[index1:index2,:]
-    ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-    ions = ions.drop(ions.columns[0], axis=1)
-    ions = ions.apply(pd.to_numeric)
+    index3 = np.where(index2)[0]
+    index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+    try:
+        ions = fr_ns.iloc[index1+1:index3,:]
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
+    except ValueError:
+        ions = fr_ns.iloc[index1+4:index3,:]
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
