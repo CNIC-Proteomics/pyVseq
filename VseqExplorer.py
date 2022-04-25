@@ -262,10 +262,10 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone
     #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
     return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore])
 
-def plotRT(subtquery, outpath, charge, startRT, endRT):
+def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
     titledm = str(round(subtquery.DeltaMass.loc[0],6))
-    outgraph = str(subtquery.Raw.loc[0]) + "_" + titleseq + "_M" + str(subtquery.MH.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
+    outgraph = str(prot) + "_" + titleseq + "_M" + str(subtquery.MH.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.RetentionTime = subtquery.RetentionTime / 60
@@ -355,6 +355,7 @@ def main(args):
         prots = rawtable.groupby("q")
         exploredseqs = []
         for prot, seqtable in prots:
+            #protID = 
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw), str(prot))
             if not os.path.exists(Path(outpath3)):
@@ -390,6 +391,7 @@ def main(args):
                 if subtquery.shape[0] == 0:
                     continue
                 logging.info("\tComparing...")
+                subtquery['Protein'] = prot
                 subtquery['Sequence'] = query.Sequence
                 subtquery['MH'] = query.expMH
                 subtquery['DeltaMassLabel'] = query.DeltaMassLabel
@@ -478,7 +480,7 @@ def main(args):
                     merger.append(FileIO(page,"rb"))
                 logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
                 if len(pagelist) > 0:
-                    outmerge = os.path.join(Path(outpath3), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
+                    outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                     with open(outmerge, 'wb') as f:
                         merger.write(f)
                     for page in pagelist:
@@ -489,14 +491,14 @@ def main(args):
                     subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
                     subtquery.loc[len(subtquery)] = 0
                     subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
-                    plotRT(subtquery, outpath3, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+                    plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
                 exploredseqs.append(subtquery)
                 
         if exploredseqs:    
             logging.info("Writing output table")
             # outfile = os.path.join(os.path.split(Path(args.table))[0],
             #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-            outfile = os.path.join(outpath2, str(raw) + "_-_" + str(prot) + "_EXPLORER.tsv")
+            outfile = os.path.join(outpath2, str(raw) + "_EXPLORER.tsv")
             bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
             bigtable = bigtable[bigtable.Charge != 0]
             bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
