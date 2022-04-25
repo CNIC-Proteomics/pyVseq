@@ -341,6 +341,9 @@ def main(args):
     if not checkMGFs(raws, list(mgftable[0])):
         sys.exit()
     for raw, rawtable in raws:
+        outpath2 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw))
+        if not os.path.exists(Path(outpath2)):
+            os.mkdir(Path(outpath2))
         mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
         mgf.reset_index(drop=True, inplace=True)
         mgf = Path(mgf.iloc[0][0])
@@ -350,10 +353,13 @@ def main(args):
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
         prots = rawtable.groupby("q")
+        exploredseqs = []
         for prot, seqtable in prots:
             logging.info("\tPROTEIN: " + str(prot))
+            outpath3 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw), str(prot))
+            if not os.path.exists(Path(outpath3)):
+                os.mkdir(Path(outpath3))
             ## COMPARE EACH SEQUENCE ##
-            exploredseqs = []
             for index, query in seqtable.iterrows():
                 logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                              + str(query.MH) + " Th, Charge "
@@ -391,7 +397,7 @@ def main(args):
                 subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
                 subtquery["RawCharge"] = subtquery.Charge
                 subtquery.Charge = query.Charge
-                parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath), False, mass, False, min_vscore]
+                parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_vscore]
                 indices, rowSeries = zip(*subtquery.iterrows())
                 rowSeries = list(rowSeries)
                 tqdm.pandas(position=0, leave=True)
@@ -447,7 +453,7 @@ def main(args):
                 subtquery.reset_index(drop=True, inplace=True)
                 f_subtquery = subtquery.iloc[0:bestn]
                 f_subtquery.reset_index(drop=True, inplace=True)
-                f_subtquery["outpath"] = str(outpath) + "/" + f_subtquery.Raw.astype(str) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
+                f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                 if f_subtquery.shape[0] > 0:
                     logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
                     f_subtquery.apply(lambda x: doVseq(x,
@@ -472,7 +478,7 @@ def main(args):
                     merger.append(FileIO(page,"rb"))
                 logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
                 if len(pagelist) > 0:
-                    outmerge = os.path.join(Path(outpath), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
+                    outmerge = os.path.join(Path(outpath3), os.path.split(Path(args.infile))[1][:-4] + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                     with open(outmerge, 'wb') as f:
                         merger.write(f)
                     for page in pagelist:
@@ -483,17 +489,17 @@ def main(args):
                     subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
                     subtquery.loc[len(subtquery)] = 0
                     subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
-                    plotRT(subtquery, outpath, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+                    plotRT(subtquery, outpath3, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
                 exploredseqs.append(subtquery)
                 
-            if exploredseqs:    
-                logging.info("Writing output table")
-                # outfile = os.path.join(os.path.split(Path(args.table))[0],
-                #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-                outfile = os.path.join(outpath, str(os.path.split(Path(args.infile))[1][:-4]) + "_RAW_" + str(raw) + "_PROT_" + str(prot) + "_EXPLORER.tsv")
-                bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
-                bigtable = bigtable[bigtable.Charge != 0]
-                bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        if exploredseqs:    
+            logging.info("Writing output table")
+            # outfile = os.path.join(os.path.split(Path(args.table))[0],
+            #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
+            outfile = os.path.join(outpath2, str(raw) + "_-_" + str(prot) + "_EXPLORER.tsv")
+            bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
+            bigtable = bigtable[bigtable.Charge != 0]
+            bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     return
     
 
