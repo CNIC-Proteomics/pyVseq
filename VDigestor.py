@@ -93,6 +93,7 @@ def readUnimod(unimod_path):
     unim['site'] = unim['site'].apply(ast.literal_eval)
 
     unim = unim.explode('site').drop_duplicates()
+    unim = unim.groupby(['mono_mass', 'site']).agg(lambda x: ' // '.join(x)).reset_index()
 
     return full_unim, unim
 
@@ -450,7 +451,7 @@ def main(config):
     #
 
     # combine equal pdm with different modification Title
-    p2mod = p2mod.groupby(['p', 'mres', 'site', 'n', 'mono_mass', 'mh', 'pdm', 'q', 'nmod', 'charge', 'misscleavages']).agg(list).reset_index()
+    # p2mod = p2mod.groupby(['p', 'mres', 'site', 'n', 'mono_mass', 'mh', 'pdm', 'q', 'nmod', 'charge', 'misscleavages']).agg(list).reset_index()
 
     logging.info('Writing output files')
     p2mod = list(
