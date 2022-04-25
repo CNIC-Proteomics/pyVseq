@@ -24,6 +24,7 @@ import re
 import scipy.stats
 import statistics
 from tqdm import tqdm
+import warnings
 pd.options.mode.chained_assignment = None  # default='warn'
 
 from Vseq import doVseq
@@ -333,26 +334,29 @@ def main(args):
     logging.info("Reading input table")
     seqtable = pd.read_csv(args.table, sep='\t')
     seqtable = seqtable[seqtable.Sequence.notna()]
-    raws = seqtable.groupby("Raw")
+    #raws = seqtable.groupby("Raw")
     logging.info("Reading input file")
     mgftable = pd.read_csv(args.infile, header=None)
+    raws = mgftable.groupby(0)
     #mgflist = list(mgflist[0])
     #mgftable = pd.DataFrame(mgflist) # [Path(i) for i in mgflist]
-    if not checkMGFs(raws, list(mgftable[0])):
-        sys.exit()
+    # if not checkMGFs(raws, list(mgftable[0])):
+    #     sys.exit()
     for raw, rawtable in raws:
+        mgf = Path(raw)
+        raw = Path(raw).stem
         outpath2 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw))
         if not os.path.exists(Path(outpath2)):
             os.mkdir(Path(outpath2))
-        mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
-        mgf.reset_index(drop=True, inplace=True)
-        mgf = Path(mgf.iloc[0][0])
+        # mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
+        # mgf.reset_index(drop=True, inplace=True)
+        # mgf = Path(mgf.iloc[0][0])
         logging.info("RAW: " + str(mgf))
         mgf = pd.read_csv(mgf, header=None)
         index2 = mgf.to_numpy() == 'END IONS'
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
-        prots = rawtable.groupby("q")
+        prots = seqtable.groupby("q")
         exploredseqs = []
         for fullprot, seqtable in prots:
             try:
@@ -431,7 +435,7 @@ def main(args):
                 subtquery['ions_total'] = len(plainseq) * 2
                 subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
                 subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
-                subtquery['Raw'] = os.path.split(Path(args.infile))[1][:-4]
+                subtquery['Raw'] = str(raw)
                 subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
                 subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
                 subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
@@ -501,7 +505,7 @@ def main(args):
             logging.info("Writing output table")
             # outfile = os.path.join(os.path.split(Path(args.table))[0],
             #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-            outfile = os.path.join(outpath2, str(raw) + "_EXPLORER.tsv")
+            outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
             bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
             bigtable = bigtable[bigtable.Charge != 0]
             bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
@@ -530,6 +534,9 @@ if __name__ == '__main__':
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
+    
+    if not args.verbose:
+        warnings.filterwarnings('ignore')
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
