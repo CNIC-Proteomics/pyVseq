@@ -360,7 +360,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     if len(rowSeries) <= 500:
         chunks = 50
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
-        vseqs = executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks)
+        vseqs = list(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks))
     subtquery['templist'] = vseqs
     # subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
     #                                                          tquery,
