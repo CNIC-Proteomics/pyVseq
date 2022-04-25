@@ -593,9 +593,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     posmatrix[posmatrix=='False'] = ''
     posmatrix[posmatrix=='True'] = '⬤'
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
-    posmatrix = posmatrix.loc[list(fppm.T.index.values)]
+    if not (fppm == 50).all().all():
+        posmatrix = posmatrix.loc[list(fppm.T.index.values)]
     ax5 = fig.add_subplot(2,6,(3,6))
-    if dm >= min_dm:
+    if dm >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     else:
@@ -775,9 +776,11 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     ppmfinal = ppmfinal.drop("minv", axis=1)
     fppm = ppmfinal[(ppmfinal < 50).sum(axis=1) >= 0.001] 
     fppm = fppm.T
-    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
+    if fppm.empty:
+        fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
+        fppm = fppm.T
     
-    #♦if dograph or standalone:
+    # if dograph or standalone:
     ## ABLINES ##
     proof, ok = makeAblines(texp, minv, assign, ions, min_match)
     if not ok:
@@ -800,7 +803,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     pppmfinal[pppmfinal>300] = 0
 
     deltamplot, deltaplot = deltaPlot(parcialdm, parcial, pppmfinal)
-    if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
+    #if fppm.empty: fppm = pd.DataFrame(50, index=list(range(0,len(plainseq)*2)), columns=list(range(0,len(plainseq)*2)))
     #z = max(fppm.max())
     
     ## EXPERIMENTAL INTENSITIES MATRIX (TARGET) ##
