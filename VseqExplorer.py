@@ -354,8 +354,11 @@ def main(args):
         tquery = tquery.drop_duplicates(subset=['SCANS'])
         prots = rawtable.groupby("q")
         exploredseqs = []
-        for prot, seqtable in prots:
-            #protID = 
+        for fullprot, seqtable in prots:
+            try:
+                prot = re.search(r'(?<=\|)[a-zA-Z0-9]+(?=\|)', fullprot).group(0)
+            except AttributeError:
+                prot = fullprot
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw), str(prot))
             if not os.path.exists(Path(outpath3)):
@@ -391,7 +394,7 @@ def main(args):
                 if subtquery.shape[0] == 0:
                     continue
                 logging.info("\tComparing...")
-                subtquery['Protein'] = prot
+                subtquery['Protein'] = fullprot
                 subtquery['Sequence'] = query.Sequence
                 subtquery['MH'] = query.expMH
                 subtquery['DeltaMassLabel'] = query.DeltaMassLabel
