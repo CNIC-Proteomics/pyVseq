@@ -356,7 +356,7 @@ def main(args):
         exploredseqs = []
         for fullprot, seqtable in prots:
             try:
-                prot = re.search(r'(?<=\|)[a-zA-Z0-9]+(?=\|)', fullprot).group(0)
+                prot = re.search(r'(?<=\|)[a-zA-Z0-9-_]+(?=\|)', fullprot).group(0)
             except AttributeError:
                 prot = fullprot
             logging.info("\tPROTEIN: " + str(prot))
