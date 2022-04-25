@@ -560,12 +560,13 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     mainT = sub.Sequence + "+" + str(round(dm,6)) 
     #z  = max(fppm.max())
     
-    frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
+    full_frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
                     "#2ED000", "#1AE400", "#05F900", "#00EF0F", "#00DA24", "#00C539", "#00B04E", "#009C62", "#008777", "#00728C",
                     "#005DA1", "#0048B6", "#0034CA", "#001FDF", "#000AF4", "#0A06F4", "#1F14DF", "#3421CA", "#482FB6", "#5D3CA1",
                     "#724A8C", "#875777", "#9C6562", "#B0724E", "#C57F39", "#DA8D24", "#EF9A0F", "#FDA503", "#F8A713", "#F3A922",
                     "#EDAB32", "#E8AD41", "#E3AF51", "#DDB160", "#D8B370", "#D3B57F", "#CDB78F", "#C8B99E", "#C3BBAE", "#BEBEBE"]
     
+    frag_palette = [full_frag_palette[i] for i in range(len(full_frag_palette)) if i % 2 != 0]
     fig = plt.figure()
     fig.set_size_inches(22, 15)
     #fig.suptitle('VSeq', fontsize=20)
