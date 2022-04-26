@@ -50,7 +50,7 @@ def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry.append("RTINSECONDS=" + str(i))
     mgfentry.append("PEPMASS=" + str(pepmass))
     mgfentry.append("CHARGE=" + str(charge) +  "+")
-    #mgfentry.append() mzs dataframe
+    mgfentry = mgfentry + list(mzs.apply(lambda x: '\t'.join([str(x.MZ), str(x.INT)]), axis=1))
     mgfentry.append("END IONS")
     return(mgfentry)
 
