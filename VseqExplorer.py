@@ -473,7 +473,7 @@ def main(args):
     min_vscore = float(mass._sections['Parameters']['min_vscore'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
     if args.outpath:
-        outpath = Path(args.outpath)
+        outpath = os.path.join(os.path.dirname(Path(args.outpath)),"Vseq_Results")
     else:
         outpath = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results")
     if not os.path.exists(Path(outpath)):
@@ -493,7 +493,7 @@ def main(args):
     for raw, rawtable in raws:
         mgf = Path(raw)
         raw = Path(raw).stem
-        outpath2 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw))
+        outpath2 = os.path.join(outpath, str(raw))
         if not os.path.exists(Path(outpath2)):
             os.mkdir(Path(outpath2))
         # mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
@@ -512,7 +512,7 @@ def main(args):
             except AttributeError:
                 prot = fullprot
             logging.info("\tPROTEIN: " + str(prot))
-            outpath3 = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results", str(raw), str(prot))
+            outpath3 = os.path.join(outpath, str(raw), str(prot))
             if not os.path.exists(Path(outpath3)):
                 os.mkdir(Path(outpath3))
                 
