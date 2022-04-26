@@ -102,12 +102,13 @@ def main(args):
     # TODO: add random noise
     frags = makeFrags(sequence)
     frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
-    frags["INT"] = 1
     pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
     
     for combo in combos:
         subset = frags[frags.region.isin(combo)]
-        mgfdata += makeMGFentry(subset, combos.index(combo), pepmass, 2)
+        for inten in intensities:
+            subset["INT"] = 1
+            mgfdata += makeMGFentry(subset, combos.index(combo), pepmass, 2)
     return
 
 if __name__ == '__main__':
