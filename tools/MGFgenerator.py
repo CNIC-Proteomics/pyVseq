@@ -7,22 +7,23 @@ Created on Tue Apr 26 10:55:08 2022
 
 import argparse
 import logging
+import itertools
 import numpy as np
 import pandas as pd
 import sys
 
-def getTheoMZ(AAs, charge, sequence, pos, nt, ct, mass):
+def getTheoMZ(AAs, charge, sequence):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
-    m_proton = mass.getfloat('Masses', 'm_proton')
-    m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
-    m_oxygen = mass.getfloat('Masses', 'm_oxygen')
+    m_proton = 1.007276
+    m_hydrogen = 1.007825
+    m_oxygen = 15.994915
     total_aas = 2*m_hydrogen + m_oxygen
     total_aas += charge*m_proton
     for i, aa in enumerate(sequence):
-        if aa.lower() in AAs:
-            total_aas += float(AAs[aa.lower()])
+        if aa.upper() in AAs:
+            total_aas += float(AAs[aa.upper()])
     MH = total_aas - (charge-1)*m_proton
     #MZ = (total_aas + int(charge)*m_proton) / int(charge)
     if charge > 0:
@@ -60,14 +61,14 @@ def makeFrags(seq):
             rrregions.append(counter)
     frags["region"] = rrregions
       ## SEQUENCES ##
-    frags["AAs"] = None
+    frags["seq"] = None
     for index, row in frags.iterrows():
         series = row.by[0]
         num = int(row.by[1])
         if series == "b":
-            frags.AAs.iloc[index] = seq[0:num]
+            frags.seq.iloc[index] = seq[0:num]
         if series == "y":
-            frags.AAs.iloc[index] = seq[len(seq)-num:len(seq)]
+            frags.seq.iloc[index] = seq[len(seq)-num:len(seq)]
     return(frags)
     
 def makeMGFentry(mzs, i, pepmass, charge):
@@ -89,11 +90,21 @@ def main(args):
            "M":131.040485, "F":147.068414, "P":97.052764, "S":87.032028,
            "T":101.047679, "U":150.953630, "W":186.079313, "Y":163.063329,
            "V":99.068414, "O":132.089878, "Z":129.042594}
+    combos = []
+    for i in range(1,9):
+        combo = itertools.combinations(range(1,9), i)
+        for c in combo:
+            combos.append(c)
+    mgfdata = []
     sequence = str(args.sequence)
     intensities = [1, 10, 100, 1000]
     ppmerrors = [0, 10, 40]
     # TODO: add random noise
     frags = makeFrags(sequence)
+    frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
+    frags["INT"] = 1
+    pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
+    mgfdata +=makeMGFentry(frags, i, pepmass, 2)
     return
 
 if __name__ == '__main__':
