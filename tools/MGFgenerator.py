@@ -7,33 +7,22 @@ Created on Tue Apr 26 10:55:08 2022
 
 import argparse
 import logging
+import numpy as np
 import pandas as pd
 import sys
 
-def getTheoMZ(charge, sequence, mods, pos, nt, ct, mass):
+def getTheoMZ(AAs, charge, sequence, pos, nt, ct, mass):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
-    AAs = dict(mass._sections['Aminoacids'])
-    MODs = dict(mass._sections['Fixed Modifications'])
     m_proton = mass.getfloat('Masses', 'm_proton')
     m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     total_aas = 2*m_hydrogen + m_oxygen
     total_aas += charge*m_proton
-    if nt:
-        total_aas += float(MODs['nt'])
-    if ct:
-        total_aas += float(MODs['ct'])
     for i, aa in enumerate(sequence):
         if aa.lower() in AAs:
             total_aas += float(AAs[aa.lower()])
-        if aa.lower() in MODs:
-            total_aas += float(MODs[aa.lower()])
-        # if aa.islower():
-        #     total_aas += float(MODs['isolab'])
-        if i in pos:
-            total_aas += float(mods[pos.index(i)])
     MH = total_aas - (charge-1)*m_proton
     #MZ = (total_aas + int(charge)*m_proton) / int(charge)
     if charge > 0:
@@ -41,6 +30,20 @@ def getTheoMZ(charge, sequence, mods, pos, nt, ct, mass):
         return MZ, MH
     else:
         return MH
+
+def makeFrags(seq_len):
+    '''
+    Name all fragments.
+    '''
+    frags = pd.DataFrame(np.nan, index=list(range(0,seq_len*2)),
+                         columns=["by", "by2", "by3", "bydm", "bydm2", "bydm3"])
+    frags.by = ["b" + str(i) for i in list(range(1,seq_len+1))] + ["y" + str(i) for i in list(range(1,seq_len+1))[::-1]]
+    frags.by2 = frags.by + "++"
+    frags.by3 = frags.by + "+++"
+    frags.bydm = frags.by + "*"
+    frags.bydm2 = frags.by + "*++"
+    frags.bydm3 = frags.by + "*+++"
+    return(frags)
     
 def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry = []
@@ -55,7 +58,14 @@ def makeMGFentry(mzs, i, pepmass, charge):
     return(mgfentry)
 
 def main(args):
+    AAs = {"A":71.037114, "R":156.101111, "N":114.042927, "D":115.026943,
+           "C":103.009185, "E":129.042593, "Q":128.058578, "G":57.021464,
+           "H":137.058912, "I":113.084064, "L":113.084064, "K":128.094963,
+           "M":131.040485, "F":147.068414, "P":97.052764, "S":87.032028,
+           "T":101.047679, "U":150.953630, "W":186.079313, "Y":163.063329,
+           "V":99.068414, "O":132.089878, "Z":129.042594}
     sequence = str(args.sequence)
+    frags = makeFrags(len(sequence))
     return
 
 if __name__ == '__main__':
