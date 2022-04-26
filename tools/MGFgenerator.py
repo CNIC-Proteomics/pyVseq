@@ -54,6 +54,14 @@ def makeFrags(seq_len):
         if regions[regions.index(r)]<regions[-1]:
             rregions.append(range(r,regions[regions.index(r)+1],1))
     rregions.append(range(regions[-1],regions[-1]+rsize,1))
+    rrregions = []
+    counter = 0
+    for i in rregions:
+        counter += 1
+        for j in i:
+            rrregions.append(counter)
+    frags["region"] = rrregions
+       
     return(frags)
     
 def makeMGFentry(mzs, i, pepmass, charge):
@@ -80,7 +88,6 @@ def main(args):
     ppmerrors = [0, 10, 40]
     # TODO: add random noise
     frags = makeFrags(len(sequence))
-    frags["region"] = frags.index.values +1
     frags.region = frags.region.apply(lambda x: , axis=1)
     return
 
