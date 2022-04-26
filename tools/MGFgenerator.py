@@ -75,7 +75,7 @@ def makeFrags(seq):
 def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry = []
     mgfentry.append("BEGIN IONS\n")
-    mgfentry.append("TITLE=\n") # TODO put case description here
+    mgfentry.append("TITLE=") # TODO put case description here
     mgfentry.append("SCANS=" + str(i) + "\n")
     mgfentry.append("RTINSECONDS=" + str(i) + "\n")
     mgfentry.append("PEPMASS=" + str(pepmass) + "\n")
@@ -98,7 +98,7 @@ def main(args):
             combos.append(c)
     sequence = str(args.sequence)
     intensities = [1, 10, 100, 1000]
-    ppmerrors = [0, 10, 40] # TODO: add ppm error
+    ppmerrors = [0, 10, 40]
     # TODO: add random noise (with random intensity or same as theor. peaks?)
     frags = makeFrags(sequence)
     frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
@@ -112,7 +112,9 @@ def main(args):
             subset["INT"] = inten
             for error in ppmerrors:
                 # TODO: add ppm to mz
-                mgfdata += makeMGFentry(subset, scan_number, pepmass, 2)
+                mgfentry = makeMGFentry(subset, scan_number, pepmass, 2)
+                mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
+                mgfdata += mgfentry
                 scan_number += 1
     with open(Path(args.outfile), 'a') as f:
         for line in mgfdata:
