@@ -41,8 +41,11 @@ def makeFrags(seq):
     ## REGIONS ##
     rsize = int(round(len(seq)/4,0))
     regions = [i+1 for i in range(0,len(seq),rsize)]
-    regions += [i+len(seq) for i in range(0,len(seq),rsize)][::-1]
-    regions[-1] = regions[-1] + 1
+    if len(seq) % 2 == 0:
+        regions += [i+len(seq)+1 for i in range(0,len(seq),rsize)][::-1]
+    else:
+        regions += [i+len(seq) for i in range(0,len(seq),rsize)][::-1]
+        regions[-1] = regions[-1] + 1
     regions.sort()
     rregions = []
     for r in regions:
