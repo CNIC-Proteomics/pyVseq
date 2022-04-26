@@ -43,6 +43,17 @@ def makeFrags(seq_len):
     frags.bydm = frags.by + "*"
     frags.bydm2 = frags.by + "*++"
     frags.bydm3 = frags.by + "*+++"
+    
+    rsize = int(round(seq_len/4,0))
+    regions = [i+1 for i in range(0,seq_len,rsize)]
+    regions += [i+len(sequence) for i in range(0,seq_len,rsize)][::-1]
+    regions[-1] = regions[-1] + 1
+    regions.sort()
+    rregions = []
+    for r in regions:
+        if regions[regions.index(r)]<regions[-1]:
+            rregions.append(range(r,regions[regions.index(r)+1],1))
+    rregions.append(range(regions[-1],regions[-1]+rsize,1))
     return(frags)
     
 def makeMGFentry(mzs, i, pepmass, charge):
@@ -65,7 +76,12 @@ def main(args):
            "T":101.047679, "U":150.953630, "W":186.079313, "Y":163.063329,
            "V":99.068414, "O":132.089878, "Z":129.042594}
     sequence = str(args.sequence)
+    intensities = [1, 10, 100, 1000]
+    ppmerrors = [0, 10, 40]
+    # TODO: add random noise
     frags = makeFrags(len(sequence))
+    frags["region"] = frags.index.values +1
+    frags.region = frags.region.apply(lambda x: , axis=1)
     return
 
 if __name__ == '__main__':
