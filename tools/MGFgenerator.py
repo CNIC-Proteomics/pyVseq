@@ -9,9 +9,11 @@ import argparse
 import logging
 import itertools
 import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 import sys
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def getTheoMZ(AAs, charge, sequence):
     '''    
@@ -89,6 +91,8 @@ def makeMGFentry(mzs, i, pepmass, charge):
     return(mgfentry)
 
 def main(args):
+    if not os.path.exists(Path(args.outpath)):
+        os.mkdir(Path(args.outpath))
     AAs = {"A":71.037114, "R":156.101111, "N":114.042927, "D":115.026943,
            "C":103.009185, "E":129.042593, "Q":128.058578, "G":57.021464,
            "H":137.058912, "I":113.084064, "L":113.084064, "K":128.094963,
@@ -100,30 +104,38 @@ def main(args):
         combo = itertools.combinations(range(1,9), i)
         for c in combo:
             combos.append(c)
-    sequence = str(args.sequence)
+    sequences = pd.read_csv(args.sequence, header=None)
     intensities = [1, 10, 100, 1000]
     ppmerrors = [0, 10, 40]
+    logging.info("Combinations of 8 regions: " + str(len(combos)))
+    logging.info("Intensities: " + str(intensities))
+    logging.info("PPM errors: " + str(ppmerrors))
     # TODO: add random noise (with random intensity or same as theor. peaks?)
-    frags = makeFrags(sequence)
-    frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
-    pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
-    
-    mgfdata = []
-    scan_number = 1
-    for combo in combos:
-        subset = frags[frags.region.isin(combo)]
-        for inten in intensities:
-            subset["INT"] = inten
-            for error in ppmerrors:
-                errorset = subset.copy()
-                errorset = errorize(errorset, error)
-                mgfentry = makeMGFentry(errorset, scan_number, pepmass, 2)
-                mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
-                mgfdata += mgfentry
-                scan_number += 1
-    with open(Path(args.outfile), 'a') as f:
-        for line in mgfdata:
-            f.write(line)
+    for index, sequence in sequences.iterrows():
+        sequence = str(sequence[0])
+        logging.info("Generating combinations for sequence: " + sequence)
+        frags = makeFrags(sequence)
+        frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
+        pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
+        
+        mgfdata = []
+        scan_number = 1
+        for combo in combos:
+            subset = frags[frags.region.isin(combo)]
+            for inten in intensities:
+                subset["INT"] = inten
+                for error in ppmerrors:
+                    errorset = subset.copy()
+                    errorset = errorize(errorset, error)
+                    mgfentry = makeMGFentry(errorset, scan_number, pepmass, 2)
+                    mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
+                    mgfdata += mgfentry
+                    scan_number += 1
+        outfile = os.path.join(Path(args.outpath), sequence + ".mgf")
+        logging.info("Writing " + str(outfile))
+        with open(outfile, 'a') as f:
+            for line in mgfdata:
+                f.write(line)
     return
 
 if __name__ == '__main__':
@@ -138,8 +150,8 @@ if __name__ == '__main__':
             python VseqExplorer.py
 
         ''')
-    parser.add_argument('-s',  '--sequence', required=True, help='Aminoacid sequence')
-    parser.add_argument('-o',  '--outfile', required=True, help='Path to save MGF file')
+    parser.add_argument('-s',  '--sequence', required=True, help='List of aminoacid sequences')
+    parser.add_argument('-o',  '--outpath', required=True, help='Path to save MGF files')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
