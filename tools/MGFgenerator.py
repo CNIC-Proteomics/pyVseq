@@ -98,7 +98,7 @@ def main(args):
     mgfdata = []
     sequence = str(args.sequence)
     intensities = [1, 10, 100, 1000]
-    ppmerrors = [0, 10, 40]
+    ppmerrors = [0, 10, 40] # TODO: add ppm error
     # TODO: add random noise
     frags = makeFrags(sequence)
     frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
@@ -107,7 +107,7 @@ def main(args):
     for combo in combos:
         subset = frags[frags.region.isin(combo)]
         for inten in intensities:
-            subset["INT"] = 1
+            subset["INT"] = inten
             mgfdata += makeMGFentry(subset, combos.index(combo), pepmass, 2)
     return
 
