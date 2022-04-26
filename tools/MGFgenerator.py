@@ -31,22 +31,17 @@ def getTheoMZ(AAs, charge, sequence, pos, nt, ct, mass):
     else:
         return MH
 
-def makeFrags(seq_len):
+def makeFrags(seq):
     '''
     Name all fragments.
     '''
-    frags = pd.DataFrame(np.nan, index=list(range(0,seq_len*2)),
-                         columns=["by", "by2", "by3", "bydm", "bydm2", "bydm3"])
-    frags.by = ["b" + str(i) for i in list(range(1,seq_len+1))] + ["y" + str(i) for i in list(range(1,seq_len+1))[::-1]]
-    frags.by2 = frags.by + "++"
-    frags.by3 = frags.by + "+++"
-    frags.bydm = frags.by + "*"
-    frags.bydm2 = frags.by + "*++"
-    frags.bydm3 = frags.by + "*+++"
-    
-    rsize = int(round(seq_len/4,0))
-    regions = [i+1 for i in range(0,seq_len,rsize)]
-    regions += [i+len(sequence) for i in range(0,seq_len,rsize)][::-1]
+    frags = pd.DataFrame(np.nan, index=list(range(0,len(seq)*2)),
+                         columns=["by"])
+    frags.by = ["b" + str(i) for i in list(range(1,len(seq)+1))] + ["y" + str(i) for i in list(range(1,len(seq)+1))[::-1]]
+    ## REGIONS ##
+    rsize = int(round(len(seq)/4,0))
+    regions = [i+1 for i in range(0,len(seq),rsize)]
+    regions += [i+len(seq) for i in range(0,len(seq),rsize)][::-1]
     regions[-1] = regions[-1] + 1
     regions.sort()
     rregions = []
@@ -61,7 +56,15 @@ def makeFrags(seq_len):
         for j in i:
             rrregions.append(counter)
     frags["region"] = rrregions
-       
+      ## SEQUENCES ##
+    frags["AAs"] = None
+    for index, row in frags.iterrows():
+        series = row.by[0]
+        num = int(row.by[1])
+        if series == "b":
+            frags.AAs.iloc[index] = seq[0:num]
+        if series == "y":
+            frags.AAs.iloc[index] = seq[len(seq)-num:len(seq)]
     return(frags)
     
 def makeMGFentry(mzs, i, pepmass, charge):
@@ -87,8 +90,7 @@ def main(args):
     intensities = [1, 10, 100, 1000]
     ppmerrors = [0, 10, 40]
     # TODO: add random noise
-    frags = makeFrags(len(sequence))
-    frags.region = frags.region.apply(lambda x: , axis=1)
+    frags = makeFrags(sequence)
     return
 
 if __name__ == '__main__':
