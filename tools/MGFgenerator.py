@@ -104,7 +104,10 @@ def main(args):
     frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
     frags["INT"] = 1
     pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
-    mgfdata +=makeMGFentry(frags, i, pepmass, 2)
+    
+    for combo in combos:
+        subset = frags[frags.region.isin(combo)]
+        mgfdata += makeMGFentry(subset, combos.index(combo), pepmass, 2)
     return
 
 if __name__ == '__main__':
