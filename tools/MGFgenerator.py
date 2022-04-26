@@ -71,6 +71,10 @@ def makeFrags(seq):
         if series == "y":
             frags.seq.iloc[index] = seq[len(seq)-num:len(seq)]
     return(frags)
+
+def errorize(subset, ppm):
+    subset.MZ = subset.apply(lambda x: round(x.MZ + ((ppm*x.MZ)/1000000),6), axis=1)
+    return(subset)
     
 def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry = []
@@ -80,7 +84,7 @@ def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry.append("RTINSECONDS=" + str(i) + "\n")
     mgfentry.append("PEPMASS=" + str(pepmass) + "\n")
     mgfentry.append("CHARGE=" + str(charge) +  "+\n")
-    mgfentry = mgfentry + list(mzs.apply(lambda x: '\t'.join([str(x.MZ), str(x.INT), "\n"]), axis=1))
+    mgfentry = mgfentry + list(mzs.apply(lambda x: ' '.join([str(x.MZ), str(x.INT), "\n"]), axis=1))
     mgfentry.append("END IONS\n")
     return(mgfentry)
 
@@ -111,8 +115,9 @@ def main(args):
         for inten in intensities:
             subset["INT"] = inten
             for error in ppmerrors:
-                # TODO: add ppm to mz
-                mgfentry = makeMGFentry(subset, scan_number, pepmass, 2)
+                errorset = subset.copy()
+                errorset = errorize(errorset, error)
+                mgfentry = makeMGFentry(errorset, scan_number, pepmass, 2)
                 mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
                 mgfdata += mgfentry
                 scan_number += 1
