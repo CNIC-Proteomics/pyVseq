@@ -6,6 +6,8 @@ Created on Tue Mar 29 10:42:30 2022
 """
 
 # import modules
+import shutup
+shutup.please()
 import os
 import sys
 import argparse
@@ -699,8 +701,9 @@ if __name__ == '__main__':
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
-    if not args.verbose:
-        warnings.filterwarnings('ignore')
+    if args.verbose:
+        #warnings.filterwarnings('ignore')
+        shutup.jk()
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
