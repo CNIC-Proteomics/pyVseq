@@ -1,8 +1,9 @@
 // Modules to control application life and create native browser window
+const electron = require('electron');
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
 const { PythonShell } = require('python-shell');
-const exec = require('child_process').exec;
 const path = require('path')
+const dialog = electron.dialog;
 
 var nodeConsole = require('console');
 var pyshell =  require('python-shell');
@@ -21,9 +22,9 @@ function createWindow() {
         height: 720,
         resizable: true,
         webPreferences: {
-            preload: path.join(__dirname, 'gui_example.js'),
-            contextIsolation: true
-                // nodeIntegration: true
+            // preload: path.join(__dirname, 'gui_example.js'),
+            contextIsolation: true,
+            nodeIntegration: true
         }
     })
 

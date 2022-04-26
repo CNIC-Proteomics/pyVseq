@@ -170,24 +170,25 @@
             <div class="row">
                 <div class="w3-panel w3-blue-grey column" style="height:275px">
                     <label class="w3-text-white"><b>Minimum Δmass (Dalton):</b></label>
-                    min_dm: <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="0" step="0.5" style="width:50%">
                     <label class="w3-text-white"><b>Minimum number of matched ions:</b></label>
-                    min_ions: <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="2" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Precursor tolerance (Thomson):</b></label>
-                    ptol: <input class="w3-input w3-border" type="number" value="0.3" step="0.05" min="0" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="0.3" step="0.05" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Fragment tolerance (ppm):</b></label>
-                    ftol: <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="15" min="0" style="width:50%">
                 </div> 
                 <div class="w3-panel w3-blue-grey column" style="height:275px">
                     <label class="w3-text-white"><b>Number of best candidates to plot:</b></label>
-                    best_n: <input class="w3-input w3-border" type="number" value="5" min="0" style="width:50%">
+                    <input class="w3-input w3-border" type="number" value="5" min="0" style="width:50%">
                     <label class="w3-text-white"><b>Sort candidates by:</b></label><br>
                     <select class="w3-select" name="option" style="width:60%">
                         <option value="1">Matched ions</option>
                         <option value="2">E-score</option>
+                        <option value="3">Matched ions * E-score</option>
                     </select><br>
                     <label class="w3-text-white"><b>Raw file (MGF):</b></label>
-                    raw: <input class="w3-input w3-border" type="file" style="width:100%"><br>
+                    <input class="w3-input w3-border" type="file" style="width:100%"><br>
                     <button class="w3-btn w3-light-blue" type="reset" style="width:60%" display="inline-block">Reset Parameters to Default</button>
                 </div> 
             </div>
@@ -202,6 +203,7 @@
                 </div> 
             </div>
             <p><button class="w3-btn w3-blue center" style="width:20%" onclick="runExplorer(min_dm, ptol, ftol, min_ions, best_n, raw)">Run</button></p>
+            <p><button class="w3-btn w3-blue center" style="width:20%" onclick="runmyscript()">Run CMD</button></p>
         </form>
 
         <div class="w3-container mode" id="help" style="display:none">
@@ -217,6 +219,7 @@
             </ul>
         </div>
 
+        <script src="require.js"></script>
         <script>
             function showMode(modeName) {
                 var i;
@@ -257,13 +260,21 @@
                 document.getElementById(id).deleteRow(-1);
             }
             function runExplorer(min_dm, ptol, ftol, min_ions, best_n, raw) {
+                var child_process = require(['child_process']);
+                child_process.exec("python");
                 var sum = ptol + ftol;
                 console.log(sum)
                 var pyshell =  require('python-shell');
-                pyshell.run('VseqExplorer.py',  function  (err)  {
+                pyshell.run('VseqExplorer.py',  function  (err, results)  {
                 if  (err)  throw err;
                 console.log('VseqExplorer finished.');
                 });
+            }
+
+            function runmyscript() {
+                var cp = require(['child_process']);
+                cp.exec('python hello.py', {cwd:'.'})
+                /*const child = execFile('runcmd.js');*/
             }
         </script>
         </div>
