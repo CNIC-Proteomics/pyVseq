@@ -10,6 +10,7 @@ import logging
 import itertools
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import sys
 
 def getTheoMZ(AAs, charge, sequence):
@@ -73,14 +74,14 @@ def makeFrags(seq):
     
 def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry = []
-    mgfentry.append("BEGIN IONS")
-    mgfentry.append("TITLE=") # TODO put case description here
-    mgfentry.append("SCANS=" + str(i))
-    mgfentry.append("RTINSECONDS=" + str(i))
-    mgfentry.append("PEPMASS=" + str(pepmass))
-    mgfentry.append("CHARGE=" + str(charge) +  "+")
-    mgfentry = mgfentry + list(mzs.apply(lambda x: '\t'.join([str(x.MZ), str(x.INT)]), axis=1))
-    mgfentry.append("END IONS")
+    mgfentry.append("BEGIN IONS\n")
+    mgfentry.append("TITLE=\n") # TODO put case description here
+    mgfentry.append("SCANS=" + str(i) + "\n")
+    mgfentry.append("RTINSECONDS=" + str(i) + "\n")
+    mgfentry.append("PEPMASS=" + str(pepmass) + "\n")
+    mgfentry.append("CHARGE=" + str(charge) +  "+\n")
+    mgfentry = mgfentry + list(mzs.apply(lambda x: '\t'.join([str(x.MZ), str(x.INT), "\n"]), axis=1))
+    mgfentry.append("END IONS\n")
     return(mgfentry)
 
 def main(args):
@@ -95,20 +96,27 @@ def main(args):
         combo = itertools.combinations(range(1,9), i)
         for c in combo:
             combos.append(c)
-    mgfdata = []
     sequence = str(args.sequence)
     intensities = [1, 10, 100, 1000]
     ppmerrors = [0, 10, 40] # TODO: add ppm error
-    # TODO: add random noise
+    # TODO: add random noise (with random intensity or same as theor. peaks?)
     frags = makeFrags(sequence)
     frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
     pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
     
+    mgfdata = []
+    scan_number = 1
     for combo in combos:
         subset = frags[frags.region.isin(combo)]
         for inten in intensities:
             subset["INT"] = inten
-            mgfdata += makeMGFentry(subset, combos.index(combo), pepmass, 2)
+            for error in ppmerrors:
+                # TODO: add ppm to mz
+                mgfdata += makeMGFentry(subset, scan_number, pepmass, 2)
+                scan_number += 1
+    with open(Path(args.outfile), 'a') as f:
+        for line in mgfdata:
+            f.write(line)
     return
 
 if __name__ == '__main__':
@@ -124,6 +132,7 @@ if __name__ == '__main__':
 
         ''')
     parser.add_argument('-s',  '--sequence', required=True, help='Aminoacid sequence')
+    parser.add_argument('-o',  '--outfile', required=True, help='Path to save MGF file')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     
