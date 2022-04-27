@@ -99,6 +99,7 @@ def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry.append("RTINSECONDS=" + str(i) + "\n")
     mgfentry.append("PEPMASS=" + str(pepmass) + "\n")
     mgfentry.append("CHARGE=" + str(charge) +  "+\n")
+    mzs.sort_values(by=['MZ'], inplace=True)
     mgfentry = mgfentry + list(mzs.apply(lambda x: ' '.join([str(x.MZ), str(x.INT), "\n"]), axis=1))
     mgfentry.append("END IONS\n")
     return(mgfentry)
