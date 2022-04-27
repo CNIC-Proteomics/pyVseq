@@ -568,10 +568,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     
     frag_palette = [full_frag_palette[i] for i in range(len(full_frag_palette)) if i % 2 != 0]
     fig = plt.figure()
-    fig.set_size_inches(22, 15)
+    fig.set_size_inches(22, 22.5)
     #fig.suptitle('VSeq', fontsize=20)
     ## PPM vs INTENSITY(LOG)
-    ax1 = fig.add_subplot(2,6,(1,2))
+    ax1 = fig.add_subplot(3,6,(7,8))
     #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
     plt.yscale("log")
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
@@ -596,7 +596,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     if not (fppm == 50).all().all():
         posmatrix = posmatrix.loc[list(fppm.T.index.values)]
-    ax5 = fig.add_subplot(2,6,(3,6))
+    ax5 = fig.add_subplot(3,6,(3,6))
     if dm >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
@@ -622,7 +622,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
     tempfrags.reset_index(inplace=True)
-    ax4 = fig.add_subplot(2,6,(7,9))
+    ax4 = fig.add_subplot(3,6,(13,18))
     plt.title(specpar, color="darkblue", fontsize=20)
     plt.xlabel("m/z", fontsize=15)
     plt.ylabel("Relative Intensity", fontsize=15)
@@ -639,9 +639,9 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     PTMprob = list(plainseq)
     if not hasattr(sub, 'DeltaMassLabel'):
         sub.DeltaMassLabel = "'N/A'"
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(escore), str(vscore)],
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
-    ax2 = fig.add_subplot(2,6,(10,11))
+    ax2 = fig.add_subplot(3,6,(1,2))
     ax2.axis('off')
     ax2.axis('tight')
     ytable = plt.table(cellText=datatable.values, rowLabels=datatable.index.to_list(), loc='center', fontsize=15)
