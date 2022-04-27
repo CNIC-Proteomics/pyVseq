@@ -19,6 +19,7 @@ import configparser
 import itertools
 from itertools import repeat
 import logging
+import math
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 import pandas as pd
@@ -650,22 +651,32 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     #             text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
     #             text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
 ###### INTEPRETED V-PLOT ##
+    tempfrags = pd.merge(proof, exp_spec)
+    tempfrags = tempfrags[tempfrags.REL_INT != 0]
+    tempfrags = tempfrags[tempfrags.PPM <= 30]
+    tempfrags.reset_index(inplace=True)
+    tempfrags["combFRAGS"] = tempfrags.apply(lambda x: x.FRAGS[0] + str(re.findall(r'\d+', x.FRAGS)[0]), axis=1)
+    fragints = {}
+    for frag, fragdf in tempfrags.groupby("combFRAGS"):
+        fragints[frag] = sum(fragdf.CORR_INT)
     ax6 = fig.add_subplot(3,6,(9,12))
     interdf = pd.DataFrame(0,index=range(int(len(frags)/2)),columns=range(int(len(frags))))
     interdf.columns = frags.by
     for column in fppm.T:
         if (fppm.T[column]<50).any():
-            interdf[column][int(column[1:])-1] = 1
-    sns.heatmap(interdf, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'intensity'})
+            try:
+                interdf[column][int(column[1:])-1] = math.log(fragints[column])
+            except KeyError:
+                interdf[column][int(column[1:])-1] = 0
+    sns.heatmap(interdf, cmap="viridis", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log(intensity)'})
     # plt.contourf(interdf.iloc[::-1])
     # interdf2 = pd.DataFrame(0,index=range(int(len(frags))),columns=["fragment","height", "intensity"])
     # interdf2.fragment = range(0,60,1)
     # interdf2.height = list(range(29,-1,-1)) + list(range(0,30,1))
     # interdf2.intensity = 1
     # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True)
-    # sns.kdeplot(interdf)
     ax6.figure.axes[-1].yaxis.label.set_size(15)
-    plt.title(mainT, fontsize=20)
+    plt.title("CORRECTED INTENSITY, Fragments with ppm <= 30", fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
 ###### M/Z vs INTENSITY ##
