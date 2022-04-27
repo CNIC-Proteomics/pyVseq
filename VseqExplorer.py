@@ -512,7 +512,10 @@ def main(args):
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
         prots = seqtable.groupby("q")
-        exploredseqs = []
+        # exploredseqs = []
+        outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
+        # with open(outfile, 'w') as f: # Create empty file
+        #     pass
         for fullprot, seqtable in prots:
             try:
                 prot = re.search(r'(?<=\|)[a-zA-Z0-9-_]+(?=\|)', fullprot).group(0)
@@ -674,16 +677,19 @@ def main(args):
                         subtquery.loc[len(subtquery)] = 0
                         subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
                         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
-                    exploredseqs.append(subtquery)
+                    #exploredseqs.append(subtquery)
+                    subtquery = subtquery[subtquery.Charge != 0]
+                    subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                                     mode='a', header=not os.path.exists(outfile))
                 
-        if exploredseqs:    
-            logging.info("Writing output table")
-            # outfile = os.path.join(os.path.split(Path(args.table))[0],
-            #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
-            outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
-            bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
-            bigtable = bigtable[bigtable.Charge != 0]
-            bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        # if exploredseqs:    
+        #     logging.info("Writing output table")
+        #     # outfile = os.path.join(os.path.split(Path(args.table))[0],
+        #     #                        os.path.split(Path(args.table))[1][:-4] + "_EXPLORER.csv")
+        #     outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
+        #     bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
+        #     bigtable = bigtable[bigtable.Charge != 0]
+        #     bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     return
     
 
