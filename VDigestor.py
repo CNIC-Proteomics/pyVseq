@@ -105,7 +105,7 @@ def chunks(lst, n):
 
 
 def trypticCut(so,aa, params):
-    MISCLEAVAGES = int(params['miscleavages'])
+    MISCLEAVAGES = int(params['miscleavages'])+max(1, int(params['modnumber'])) # Consider modifications in K that avoid tryptic cut
     MINSIZE = int(params['minsize'])
     
     # Generate list with mh of each sequence
@@ -142,7 +142,7 @@ def trypticCut(so,aa, params):
     return so
 
 
-def modifications(p2mod, upi2p, unim):
+def modifications(p2mod, upi2p, unim, Kx):
 
     p2mod['site'] = p2mod['p'].apply(set)
 
@@ -165,6 +165,15 @@ def modifications(p2mod, upi2p, unim):
 
     p2mod['mh'] = p2mod['mres'] + p2mod['mono_mass'] + 18.01056 + 1.007825
     p2mod = p2mod.explode('n', ignore_index=True)
+
+    # Remove pdm with Kx (Acetyl or GG) in the last position
+    p2mod = p2mod.loc[
+        ~np.logical_and(
+            np.array([len(i)-1 for i in p2mod['p'].to_list()]) == p2mod['n'].to_numpy(),
+            np.array([i in Kx for i in p2mod['Title'].to_list()])
+        ),
+        :
+    ]
 
     # Build pdm
     pdm = list(zip(p2mod['p'].tolist(), p2mod['n'].tolist(), p2mod['mono_mass'].tolist()))
@@ -241,6 +250,60 @@ def combinations(mmod, upi2p, MODNUMBER):
     return mmod
 
 
+def recalcMissCleavages(p2mod, Kx):
+
+    # p2mod['misscleavages'] = p2mod['misscleavages'] - np.array([
+    #     np.sum([
+    #         True if k in ['Acetyl', 'GG'] and l=='K' else False
+    #         for k,l in zip(i,j)
+    #     ])
+    #     for i,j in zip(
+    #         p2mod['Title'].to_list(),
+    #         p2mod['site'].to_list()
+    #     )
+    # ])
+
+    df = pd.DataFrame(
+        [
+            (n,k,l) 
+            
+            for n,i,j in zip(
+                p2mod['pdm'].to_list(),
+                p2mod['Title'].to_list(),
+                p2mod['site'].to_list()
+            ) 
+            
+            for k,l in zip(i,j)
+        ], columns=['pdm', 'Title', 'site'])
+    
+    df['kx'] = np.logical_and(
+        df['site'] == 'K',
+        np.logical_or(*[df['Title']==i for i in Kx])
+    )
+
+    df = df.loc[:, ['pdm', 'kx']].groupby('pdm').agg(sum).reset_index()
+
+    df = pd.merge(
+        df,
+        p2mod.loc[:, ['pdm', 'misscleavages']],
+        how='inner',
+        on='pdm'
+    )
+
+    df['mc'] = df['misscleavages'] - df['kx']
+
+    p2mod = pd.merge(
+        p2mod,
+        df.loc[:, ['pdm', 'mc']],
+        how='inner',
+        on='pdm'
+    )
+
+    p2mod = p2mod.rename(columns={'misscleavages': 'iKR', 'mc': 'misscleavages'})
+
+    return p2mod
+
+
 def slugify(value, allow_unicode=False):
     """
     Taken from https://github.com/django/django/blob/master/django/utils/text.py
@@ -271,6 +334,10 @@ def main(config):
     params = {i[0]:i[1] for i in config.items(config.sections()[0])}
     logging.info(json.dumps(params, indent=4)[1:-2])
     
+    # Get Kx as list --> Title of modifications that avoid tryptic cut
+    Kx = [i.strip() for i in params['kx'].split(',') if i != '']
+
+
     # Dictionary aa --> mh of residue    
     aa = {i[0].upper():float(i[1]) for i in config.items(config.sections()[1])}
 
@@ -291,8 +358,13 @@ def main(config):
 
     # Filter unim
     aafilter = [i.strip() for i in params['aa'].split(',') if i != '']
+    modfilter = [i.strip().upper() for i in params['mod'].split(',') if i != '']
+
     if len(aafilter) > 0:
         unim = unim.loc[np.isin(unim['site'], aafilter), :]
+
+    if len(modfilter) > 0:
+        unim = unim.loc[[i.upper() in modfilter for i in unim['Title'].to_list()], :]
 
     # Parallelize at protein level
     logging.info(f'Tryiptic digestion')
@@ -350,7 +422,7 @@ def main(config):
     pool = multiprocessing.Pool(int(params['nproc']))
     
     p2mod = np.array_split(p2mod,10)
-    p2mod = pool.starmap(modifications, zip(p2mod, itertools.repeat(upi2p), itertools.repeat(unim)))
+    p2mod = pool.starmap(modifications, zip(p2mod, itertools.repeat(upi2p), itertools.repeat(unim), itertools.repeat(Kx)))
     p2mod = pd.concat(p2mod)
 
     
@@ -382,7 +454,7 @@ def main(config):
         
         mmod['nmod'] = mmod['n'].apply(lambda x: len(x))
 
-        logging.info(f'pdm with more than one modification calculated: {mmod.shape[0]} pdm')
+        logging.info(f'pdm with more than one modification calculated: {mmod.shape[0]} pdm (redundant)')
 
     
     # Adapt table
@@ -444,6 +516,22 @@ def main(config):
         how='left',
         on='p'
     )
+
+
+    # Remove from missing cleavages modifications in K 
+    logging.info(f'Recalculating missing cleavages: {", ".join(Kx)}')
+    pool = multiprocessing.Pool(int(params['nproc']))
+    
+    p2mod = np.array_split(p2mod,10)
+    p2mod = pool.starmap(recalcMissCleavages, zip(p2mod, itertools.repeat(Kx)))
+    p2mod = pd.concat(p2mod)
+
+    pool.close()
+    pool.join()
+
+    p2mod = p2mod.loc[p2mod['misscleavages']<=int(params['miscleavages']), :]
+
+    logging.info(f'Total pdm: {p2mod.shape[0]}')    
 
 
     #
