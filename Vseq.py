@@ -543,7 +543,7 @@ def vScore(qscore, sub, sublen, proofb, proofy, assign):
 
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                  outpath, massconfig, standalone):
+                  outpath, massconfig, standalone, ppm_plot):
     if not standalone:
         mass = massconfig
         outplot = outpath
@@ -653,7 +653,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
 ###### INTEPRETED V-PLOT ##
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
-    tempfrags = tempfrags[tempfrags.PPM <= 30]
+    tempfrags = tempfrags[tempfrags.PPM <= ppm_plot]
     tempfrags.reset_index(inplace=True)
     tempfrags["combFRAGS"] = tempfrags.apply(lambda x: x.FRAGS[0] + str(re.findall(r'\d+', x.FRAGS)[0]), axis=1)
     fragints = {}
@@ -740,7 +740,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalone, massconfig, dograph, min_vscore):
+def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
+           standalone, massconfig, dograph, min_vscore, ppm_plot):
     if not standalone:
         mass = massconfig
     else:
@@ -864,7 +865,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath, standalo
     if dograph and vscore >= min_vscore:
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                       proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
-                      outpath, massconfig, standalone)
+                      outpath, massconfig, standalone, ppm_plot)
     if standalone:
         logging.info("\t\t\tDone.")
         return
@@ -883,6 +884,7 @@ def main(args):
     err = float(mass._sections['Parameters']['fragment_tolerance'])
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
+    ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     min_vscore = 0
     # try:
     #     arg_dm = float(args.deltamass)
@@ -913,7 +915,8 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, pathdict["out"], True, False, True, min_vscore)
+                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                       pathdict["out"], True, False, True, min_vscore, ppm_plot)
             
 if __name__ == '__main__':
 

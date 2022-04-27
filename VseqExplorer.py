@@ -220,14 +220,18 @@ def errorMatrix(mz, theo_spec):
     return(terrors, terrors2, terrors3, exp)
 
 def _parallelGetIons(x, parlist):
-    relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5], parlist[6], parlist[7], parlist[8], parlist[9], parlist[10])
+    relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
+                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11])
     return(relist)
 
-def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore):
+def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
+            standalone, massconfig, dograph, min_vscore, ppm_plot):
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath, standalone, massconfig, dograph, min_vscore)
+    vscore, escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm,
+                                             min_match, ftol, outpath, standalone,
+                                             massconfig, dograph, min_vscore, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -316,7 +320,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_vscore, outpath3,
-                    mass, n_workers, parallelize):
+                    mass, n_workers, parallelize, ppm_plot):
     logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                  + str(query.MH) + " Th, Charge "
                  + str(query.Charge))
@@ -354,7 +358,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_vscore]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_vscore, ppm_plot]
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
@@ -377,7 +381,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                                                   False,
                                                                   mass,
                                                                   False,
-                                                                  min_vscore)
+                                                                  min_vscore,
+                                                                  ppm_plot)
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
@@ -426,7 +431,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                            False,
                                            mass,
                                            True,
-                                           min_vscore), axis = 1)
+                                           min_vscore,
+                                           ppm_plot), axis = 1)
     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
     pagelist = []
     for f in allpagelist:
@@ -456,7 +462,7 @@ def _parallelSeqTable(x, parlist):
                              parlist[4], parlist[5], parlist[6], parlist[7],
                              parlist[8], parlist[9], parlist[10], parlist[11],
                              parlist[12], parlist[13], parlist[14], parlist[15],
-                             parlist[16])
+                             parlist[16], parlist[17])
     return(result)
 
 def main(args):
@@ -471,6 +477,7 @@ def main(args):
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     fsort_by = str(mass._sections['Parameters']['sort_by'])
     min_vscore = float(mass._sections['Parameters']['min_vscore'])
+    ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
     if args.outpath:
         outpath = os.path.join(os.path.dirname(Path(args.outpath)),"Vseq_Results")
@@ -522,7 +529,7 @@ def main(args):
                 tqdm.pandas(position=0, leave=True)
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_vscore, outpath3,
-                           mass, args.n_workers, parallelize]
+                           mass, args.n_workers, parallelize, ppm_plot]
                 chunks = 100
                 if len(rowSeqs) <= 500:
                     chunks = 50
@@ -572,7 +579,8 @@ def main(args):
                     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
                     subtquery["RawCharge"] = subtquery.Charge
                     subtquery.Charge = query.Charge
-                    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_vscore]
+                    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
+                               False, mass, False, min_vscore, ppm_plot]
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
@@ -642,7 +650,8 @@ def main(args):
                                                            False,
                                                            mass,
                                                            True,
-                                                           min_vscore), axis = 1)
+                                                           min_vscore,
+                                                           ppm_plot), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
                     for f in allpagelist:
