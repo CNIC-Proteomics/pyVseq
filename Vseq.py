@@ -658,7 +658,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     tempfrags["combFRAGS"] = tempfrags.apply(lambda x: x.FRAGS[0] + str(re.findall(r'\d+', x.FRAGS)[0]), axis=1)
     fragints = {}
     for frag, fragdf in tempfrags.groupby("combFRAGS"):
-        fragints[frag] = sum(fragdf.CORR_INT)
+        fragints[frag] = sum(fragdf.REL_INT)
     ax6 = fig.add_subplot(3,6,(9,12))
     interdf = pd.DataFrame(0,index=range(int(len(frags)/2)),columns=range(int(len(frags))))
     interdf.columns = frags.by
@@ -668,7 +668,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                 interdf[column][int(column[1:])-1] = math.log(fragints[column])
             except KeyError:
                 interdf[column][int(column[1:])-1] = 0
-    sns.heatmap(interdf, cmap="viridis", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log(intensity)'})
+    sns.heatmap(interdf, cmap="viridis", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
     # plt.contourf(interdf.iloc[::-1])
     # interdf2 = pd.DataFrame(0,index=range(int(len(frags))),columns=["fragment","height", "intensity"])
     # interdf2.fragment = range(0,60,1)
@@ -676,14 +676,14 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     # interdf2.intensity = 1
     # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True)
     ax6.figure.axes[-1].yaxis.label.set_size(15)
-    plt.title("CORRECTED INTENSITY, Fragments with ppm <= 30", fontsize=20)
+    plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
 ###### M/Z vs INTENSITY ##
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
     tempfrags.reset_index(inplace=True)
-    ax4 = fig.add_subplot(3,6,(13,18))
+    ax4 = fig.add_subplot(3,6,(13,17))
     plt.title(specpar, color="darkblue", fontsize=20)
     plt.xlabel("m/z", fontsize=15)
     plt.ylabel("Relative Intensity", fontsize=15)
