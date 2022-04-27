@@ -12,6 +12,7 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+import random
 import sys
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -77,6 +78,18 @@ def makeFrags(seq):
 def errorize(subset, ppm):
     subset.MZ = subset.apply(lambda x: round(x.MZ + ((ppm*x.MZ)/1000000),6), axis=1)
     return(subset)
+
+def noiseMaker(subset, n_peaks):
+    noises = pd.DataFrame(np.random.uniform(subset.MZ.min(), subset.MZ.max(), n_peaks), columns=["MZ"]) 
+    noises["INT"] = np.random.uniform(0, 10, n_peaks)
+    noises["seq"] = "noise"
+    noises = round(noises, 6)
+    check = subset.copy()
+    check = pd.concat([check,noises])
+    check.drop_duplicates("MZ", keep="first", inplace=True) # remove duplicates of real peaks
+    noises = check[check.seq == "noise"]
+    subset = pd.concat([subset,noises])
+    return(subset)
     
 def makeMGFentry(mzs, i, pepmass, charge):
     mgfentry = []
@@ -105,12 +118,13 @@ def main(args):
         for c in combo:
             combos.append(c)
     sequences = pd.read_csv(args.sequence, header=None)
-    intensities = [1, 10, 100, 1000]
+    intensities = [10, 100, 1000]
     ppmerrors = [0, 10, 40]
+    n_peaks = 50 # number of noise peaks to introduce
     logging.info("Combinations of 8 regions: " + str(len(combos)))
     logging.info("Intensities: " + str(intensities))
     logging.info("PPM errors: " + str(ppmerrors))
-    # TODO: add random noise (with random intensity or same as theor. peaks?)
+    logging.info("Noisy peaks: " + str(n_peaks))
     for index, sequence in sequences.iterrows():
         sequence = str(sequence[0])
         logging.info("Generating combinations for sequence: " + sequence)
@@ -127,8 +141,14 @@ def main(args):
                 for error in ppmerrors:
                     errorset = subset.copy()
                     errorset = errorize(errorset, error)
+                    noiseset = noiseMaker(errorset, n_peaks)
+                    # Noiseless entry #
                     mgfentry = makeMGFentry(errorset, scan_number, pepmass, 2)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
+                    mgfdata += mgfentry
+                    # Noise entry #
+                    mgfentry = makeMGFentry(noiseset, scan_number, pepmass, 2)
+                    mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + " with noise" + "\n"
                     mgfdata += mgfentry
                     scan_number += 1
         outfile = os.path.join(Path(args.outpath), sequence + ".mgf")
