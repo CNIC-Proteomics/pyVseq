@@ -567,9 +567,40 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                     "#EDAB32", "#E8AD41", "#E3AF51", "#DDB160", "#D8B370", "#D3B57F", "#CDB78F", "#C8B99E", "#C3BBAE", "#BEBEBE"]
     
     frag_palette = [full_frag_palette[i] for i in range(len(full_frag_palette)) if i % 2 != 0]
+    frag_palette[2] = frag_palette[1]
+    frag_palette[1] = "#FF3300" #Substitute ambiguous color
     fig = plt.figure()
     fig.set_size_inches(22, 22.5)
     #fig.suptitle('VSeq', fontsize=20)
+    ## INFO TABLE ##
+    PTMprob = list(plainseq)
+    if not hasattr(sub, 'DeltaMassLabel'):
+        sub.DeltaMassLabel = "'N/A'"
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
+                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
+    ax2 = fig.add_subplot(3,6,(1,2))
+    ax2.axis('off')
+    ax2.axis('tight')
+    ytable = plt.table(cellText=datatable.values, rowLabels=datatable.index.to_list(), loc='center', fontsize=15)
+    header = [ytable.add_cell(-1,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
+    header[0].visible_edges = "TLR"
+    header[0].get_text().set_text("SCAN INFO")
+    header2 = [ytable.add_cell(9,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
+    header2[0].get_text().set_text("PTM PINPOINTING")
+    if dm >= min_dm:
+        header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]))
+        header6 = [ytable.add_cell(10,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header6[0].get_text().set_text("B series") 
+        header4 = [ytable.add_cell(11,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header4[0].get_text().set_text(str(PTMprob[YDAGmax.to_list()[0]])+str(YDAGmax.to_list()[0]))
+        header5 = [ytable.add_cell(11,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
+        header5[0].get_text().set_text("Y series")
+    else:
+        header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="red")]
+        header3[0].get_text().set_text("Unmodified Peptide")
+    ytable.scale(0.5, 2)
+    ytable.set_fontsize(15)
     ## PPM vs INTENSITY(LOG)
     ax1 = fig.add_subplot(3,6,(7,8))
     #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
@@ -635,35 +666,6 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
             txtcolor = "blue"
         ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
         plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
-    ## INFO TABLE ##
-    PTMprob = list(plainseq)
-    if not hasattr(sub, 'DeltaMassLabel'):
-        sub.DeltaMassLabel = "'N/A'"
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
-                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
-    ax2 = fig.add_subplot(3,6,(1,2))
-    ax2.axis('off')
-    ax2.axis('tight')
-    ytable = plt.table(cellText=datatable.values, rowLabels=datatable.index.to_list(), loc='center', fontsize=15)
-    header = [ytable.add_cell(-1,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
-    header[0].visible_edges = "TLR"
-    header[0].get_text().set_text("SCAN INFO")
-    header2 = [ytable.add_cell(9,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
-    header2[0].get_text().set_text("PTM PINPOINTING")
-    if dm >= min_dm:
-        header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]))
-        header6 = [ytable.add_cell(10,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header6[0].get_text().set_text("B series") 
-        header4 = [ytable.add_cell(11,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header4[0].get_text().set_text(str(PTMprob[YDAGmax.to_list()[0]])+str(YDAGmax.to_list()[0]))
-        header5 = [ytable.add_cell(11,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header5[0].get_text().set_text("Y series")
-    else:
-        header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="red")]
-        header3[0].get_text().set_text("Unmodified Peptide")
-    ytable.scale(0.5, 2)
-    ytable.set_fontsize(15)
     ## SCAN INFO ##
     # ax2 = fig.add_subplot(2,6,(10,11))
     # plt.axis('off')
