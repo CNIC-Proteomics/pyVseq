@@ -662,19 +662,28 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     ax6 = fig.add_subplot(3,6,(9,12))
     interdf = pd.DataFrame(0,index=range(int(len(frags)/2)),columns=range(int(len(frags))))
     interdf.columns = frags.by
+    # intlist = []
     for column in fppm.T:
         if (fppm.T[column]<50).any():
             try:
                 interdf[column][int(column[1:])-1] = math.log(fragints[column])
+                # intlist.append(math.log(fragints[column]))
             except KeyError:
                 interdf[column][int(column[1:])-1] = 0
-    sns.heatmap(interdf, cmap="viridis", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
+                # intlist.append(0)
+        # else:
+            # intlist.append(0)
+    sns.heatmap(interdf, cmap="Blues", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
+    # for i, j in enumerate(frags.by):
+        #plt.axvline(x=frags.by[i], color='#470d60', ls="--")
+        # plt.plot([len(interdf)-1, frags.by[i]], [interdf[j].idxmax()-1, frags.by[i]], linewidth=1)
+            # plt.plot([frags.by[i], frags.by[i]], [len(interdf)-1, interdf[j].idxmax()+1], linewidth=1)
     # plt.contourf(interdf.iloc[::-1])
     # interdf2 = pd.DataFrame(0,index=range(int(len(frags))),columns=["fragment","height", "intensity"])
     # interdf2.fragment = range(0,60,1)
     # interdf2.height = list(range(29,-1,-1)) + list(range(0,30,1))
-    # interdf2.intensity = 1
-    # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True)
+    # interdf2.intensity = intlist
+    # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True, bw_adjust=.1)
     ax6.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
