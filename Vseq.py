@@ -643,7 +643,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         posmatrix = posmatrix.loc[list(fppm.T.index.values)]
     # ax2 = fig.add_subplot(3,6,(3,6))
     if dm >= min_dm and not (fppm == 50).all().all():
-        sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
+        sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     else:
         sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
