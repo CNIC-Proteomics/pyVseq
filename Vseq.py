@@ -790,7 +790,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
             color = 'limegreen'
         if set([fragsb[counter], fragsy[counter]]).issubset(observed): color = 'forestgreen'
         plt.annotate(x, (counter,1), textcoords="offset points", xytext=(0,-10),
-                     ha='center', size = 30, color = color, weight='bold')
+                     ha='center', size = 30, color = colordf.colorT[counter], weight='bold')
         counter += 1
     color = ["tab:green" if i in observed else 'white' for i in fragsb]
     ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
