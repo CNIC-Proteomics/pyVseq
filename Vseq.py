@@ -754,6 +754,13 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     observed = list(interdf.columns[(interdf > 0).any()])
     fragsb = list(frags.by[0:int(len(frags)/2)])
     fragsy = list(frags.by[int(len(frags)/2):int(len(frags))])
+    
+    colordf = pd.DataFrame({"AA":list(plainseq), "B":fragsb, "Y":fragsy})
+    colordf["sumB"] = [1 if i in observed else 0 for i in colordf.B]
+    colordf["cumsumB"] = colordf.sumB.cumsum()
+    colordf["sumY"] = [1 if i in observed else 0 for i in colordf.Y]
+    colordf["cumsumY"] = colordf.sumY[::-1].cumsum()
+    
     points = np.ones(len(plainseq))
     marker_style = dict(color='black', linestyle=' ', marker='o',
                         markersize=35, markerfacecoloralt='tab:red')
