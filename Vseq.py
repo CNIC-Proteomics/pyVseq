@@ -760,6 +760,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     colordf["cumsumB"] = colordf.sumB.cumsum()
     colordf["sumY"] = [1 if i in observed else 0 for i in colordf.Y]
     colordf["cumsumY"] = colordf.sumY[::-1].cumsum()
+    colordf["cumsumT"] = colordf.cumsumB + colordf.cumsumY
+    # if sum(list(map(lambda x: x in observed, fragsb))) >= sum(list(map(lambda x: x in observed, fragsy))):
+    mypalette = sns.color_palette("Reds",len(plainseq)+1)
+    colordf["colorT"] = [mypalette[i] for i in colordf.cumsumT] # TODO this won't ever reach maximum
     
     points = np.ones(len(plainseq))
     marker_style = dict(color='black', linestyle=' ', marker='o',
