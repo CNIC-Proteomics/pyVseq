@@ -16,14 +16,19 @@ def main(args):
     fcolumn = str(args.column)
     keep = int(args.keep)
     threshold = float(args.threshold)
+    logging.info("Reading input file...")
     df = pd.read_csv(args.infile, sep="\t", float_precision='high', low_memory=False)
-    
+    logging.info("Filtering...")
+    symb = ""
     if keep:
         df = df.loc[df[fcolumn] <= threshold]
+        symb = "<="
     else:
-        df = df.loc[df[fcolumn] >= threshold]      
-    
-    df.to_csv(args.infile[:-4] + '_Filtered.txt', sep="\t")
+        df = df.loc[df[fcolumn] >= threshold]  
+        symb = ">="
+    logging.info("Found " + str(len(df)) + " entries with " + fcolumn + " " + symb + " " + str(threshold))
+    logging.info("Writing output file...")
+    df.to_csv(args.infile[:-4] + '_Filtered.tsv', sep="\t")
     return
 
 
