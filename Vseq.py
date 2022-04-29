@@ -755,7 +755,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     fragsb = list(frags.by[0:int(len(frags)/2)])
     fragsy = list(frags.by[int(len(frags)/2):int(len(frags))])
     points = np.ones(len(plainseq))
-    marker_style = dict(color='whitesmoke', linestyle=' ', marker='o',
+    marker_style = dict(color='black', linestyle=' ', marker='o',
                         markersize=35, markerfacecoloralt='tab:red')
     color = ["tab:green" if i in observed else 'white' for i in fragsy]
     ax5.scatter(list(range(len(points))), 2*points, c=color, marker='$\u25AC$', s=2000)
@@ -766,7 +766,9 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         plt.annotate(x, (counter,2), textcoords="offset points", xytext=(2,10),
                      ha='center', size = 15, color = "black", weight = weight) 
         counter += 1
-    ax5.plot(1 * points, fillstyle="full", **marker_style)    
+    # ax5.plot(1 * points, fillstyle="none", **marker_style) 
+    color = ['black' if i in pos else 'white' for i,j in enumerate(plainseq)]
+    ax5.scatter(list(range(len(points))), 1*points, facecolors='none', edgecolors=color, marker='o', s=1000)
     counter = 0
     for x in plainseq:
         color = 'gold'
