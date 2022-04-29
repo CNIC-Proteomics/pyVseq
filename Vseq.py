@@ -20,6 +20,7 @@ import itertools
 from itertools import repeat
 import logging
 import math
+from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 import pandas as pd
@@ -558,7 +559,18 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                                "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                                + "_ch" + str(sub.Charge) + ".pdf")
     fppm.index = list(frags.by)
-    mainT = sub.Sequence + "+" + str(round(dm,6)) 
+    dmlabel = ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)).split(",")
+    mainT = sub.Sequence + "+" + str(round(dm,6))
+    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
+    pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
+    for i, p in enumerate(pos):
+        if i > 0:
+            pos[i] = p - 2 - len(str(mods[i-1]))
+    mainT2 = plainseq
+    for i in pos:
+        mainT2 = mainT2[:pos] + '[' + dmlabel[i] + ']' + mainT2[pos:]
+        # TODO to all pos = sum length of added things
+
     #z  = max(fppm.max())
     
     full_frag_palette = ["#FF0000", "#EA1400", "#D52900", "#C03E00", "#AB5300", "#966800", "#827C00", "#6D9100", "#58A600", "#43BB00",
@@ -570,18 +582,20 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     frag_palette = [full_frag_palette[i] for i in range(len(full_frag_palette)) if i % 2 != 0]
     frag_palette[2] = frag_palette[1]
     frag_palette[1] = "#FF3300" #Substitute ambiguous color
-    fig = plt.figure()
-    fig.set_size_inches(22, 22.5)
+    fig = plt.figure(constrained_layout=False)
+    fig.set_size_inches(22, 26)
+    gs = fig.add_gridspec(nrows=10, ncols=6, hspace=1.5)
     #fig.suptitle('VSeq', fontsize=20)
 ###### INFO TABLE ##
     PTMprob = list(plainseq)
     if not hasattr(sub, 'DeltaMassLabel'):
         sub.DeltaMassLabel = "'N/A'"
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), dmlabel, str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
-    ax2 = fig.add_subplot(3,6,(1,2))
-    ax2.axis('off')
-    ax2.axis('tight')
+    #ax2 = fig.add_subplot(3,6,(1,2))
+    ax1 = fig.add_subplot(gs[0:3, 0:2])
+    ax1.axis('off')
+    ax1.axis('tight')
     ytable = plt.table(cellText=datatable.values, rowLabels=datatable.index.to_list(), loc='center', fontsize=15)
     header = [ytable.add_cell(-1,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
     header[0].visible_edges = "TLR"
@@ -602,19 +616,14 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         header3[0].get_text().set_text("Unmodified Peptide")
     ytable.scale(0.5, 2)
     ytable.set_fontsize(15)
-###### PPM vs INTENSITY(LOG)
-    ax1 = fig.add_subplot(3,6,(7,8))
-    #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
-    plt.yscale("log")
-    plt.xlabel("error in ppm______________________ >50", fontsize=15)
-    plt.ylabel("intensity(log)", fontsize=15)
-    plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
-    plt.axvline(x=err, color='tab:blue', ls="--")
 ###### FRAGMENTS and DM PINPOINTING##
     # colors = ["red","green","blue","orange","grey"]
     # gradient = []
     # for color in colors:
     #     newcolors = list(Color("red").range_to(Color("green"),12))
+    ax2 = fig.add_subplot(gs[0:3, 2:6])
+    # ax2.axis('off')
+    ax2.axis('tight')
     deltamplot.columns = frags.by
     posmatrix = deltamplot.copy()
     for col in posmatrix.columns:
@@ -628,13 +637,13 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     if not (fppm == 50).all().all():
         posmatrix = posmatrix.loc[list(fppm.T.index.values)]
-    ax5 = fig.add_subplot(3,6,(3,6))
+    # ax2 = fig.add_subplot(3,6,(3,6))
     if dm >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 50 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
     else:
         sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
-    ax5.figure.axes[-1].yaxis.label.set_size(15)
+    ax2.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
@@ -650,6 +659,15 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     #         if v == 1:
     #             text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
     #             text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
+###### PPM vs INTENSITY(LOG)
+    # ax1 = fig.add_subplot(3,6,(7,8))
+    ax3 = fig.add_subplot(gs[3:6, 0:2])
+    #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
+    plt.yscale("log")
+    plt.xlabel("error in ppm______________________ >50", fontsize=15)
+    plt.ylabel("intensity(log)", fontsize=15)
+    plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
+    plt.axvline(x=err, color='tab:blue', ls="--")
 ###### INTEPRETED V-PLOT ##
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
@@ -659,7 +677,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     fragints = {}
     for frag, fragdf in tempfrags.groupby("combFRAGS"):
         fragints[frag] = sum(fragdf.REL_INT)
-    ax6 = fig.add_subplot(3,6,(9,12))
+    ax4 = fig.add_subplot(gs[3:6, 2:6])
+    # ax6 = fig.add_subplot(3,6,(9,12))
     interdf = pd.DataFrame(0,index=range(int(len(frags)/2)),columns=range(int(len(frags))))
     interdf.columns = frags.by
     # intlist = []
@@ -684,27 +703,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     # interdf2.height = list(range(29,-1,-1)) + list(range(0,30,1))
     # interdf2.intensity = intlist
     # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True, bw_adjust=.1)
-    ax6.figure.axes[-1].yaxis.label.set_size(15)
+    ax4.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
-###### M/Z vs INTENSITY ##
-    tempfrags = pd.merge(proof, exp_spec)
-    tempfrags = tempfrags[tempfrags.REL_INT != 0]
-    tempfrags.reset_index(inplace=True)
-    ax4 = fig.add_subplot(3,6,(13,17))
-    plt.title(specpar, color="darkblue", fontsize=20)
-    plt.xlabel("m/z", fontsize=15)
-    plt.ylabel("Relative Intensity", fontsize=15)
-    plt.yticks(rotation=90, va="center")
-    plt.plot(exp_spec.MZ, exp_spec.CORR_INT, linewidth=0.5, color="darkblue")
-    for i, txt in enumerate(tempfrags.FRAGS):
-        if "b" in txt:
-            txtcolor = "red"
-        if "y" in txt:
-            txtcolor = "blue"
-        ax4.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
-        plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
 ###### SCAN INFO ##
     # ax2 = fig.add_subplot(2,6,(10,11))
     # plt.axis('off')
@@ -742,7 +744,67 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     #               horizontalalignment='left',
     #               verticalalignment='center',
     #               transform = ax3.transAxes)
-    plt.tight_layout()
+    ## SEQUENCE ##
+    ax5 = fig.add_subplot(gs[6:7,0:6])
+    # ax3 = fig.add_subplot(4,6,(19,23))
+    observed = list(interdf.columns[(interdf > 0).any()])
+    fragsb = list(frags.by[0:int(len(frags)/2)])
+    fragsy = list(frags.by[int(len(frags)/2):int(len(frags))])
+    points = np.ones(len(plainseq))
+    marker_style = dict(color='whitesmoke', linestyle=' ', marker='o',
+                        markersize=35, markerfacecoloralt='tab:red')
+    color = ["tab:green" if i in observed else 'white' for i in fragsy]
+    ax5.scatter(list(range(len(points))), 2*points, c=color, marker='$\u25AC$', s=2000)
+    counter = 0
+    for x in fragsy:
+        weight = 'normal'
+        if x in observed: weight = 'bold'
+        plt.annotate(x, (counter,2), textcoords="offset points", xytext=(2,10),
+                     ha='center', size = 15, color = "black", weight = weight) 
+        counter += 1
+    ax5.plot(1 * points, fillstyle="full", **marker_style)    
+    counter = 0
+    for x in plainseq:
+        color = 'gold'
+        if fragsb[counter] in observed:
+            color = 'limegreen'
+        if fragsy[counter] in observed:
+            color = 'limegreen'
+        if set([fragsb[counter], fragsy[counter]]).issubset(observed): color = 'forestgreen'
+        plt.annotate(x, (counter,1), textcoords="offset points", xytext=(0,-10),
+                     ha='center', size = 30, color = color, weight='bold')
+        counter += 1
+    color = ["tab:green" if i in observed else 'white' for i in fragsb]
+    ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
+    counter = 0
+    for x in fragsb:
+        weight = 'normal'
+        if x in observed:
+            weight = 'bold'
+        plt.annotate(x, (counter,0), textcoords="offset points", xytext=(2,-22),
+                     ha='center', size = 15, color = "black",  weight = weight) 
+        counter += 1
+    ax5.set_axis_off()
+###### M/Z vs INTENSITY ##
+    tempfrags = pd.merge(proof, exp_spec)
+    tempfrags = tempfrags[tempfrags.REL_INT != 0]
+    tempfrags.reset_index(inplace=True)
+    ax6 = fig.add_subplot(gs[7:10,0:6])
+    # ax4 = fig.add_subplot(3,6,(13,17))
+    plt.title(specpar, color="darkblue", fontsize=20)
+    plt.xlabel("m/z", fontsize=15)
+    plt.ylabel("Relative Intensity", fontsize=15)
+    plt.yticks(rotation=90, va="center")
+    plt.plot(exp_spec.MZ, exp_spec.CORR_INT, linewidth=0.5, color="darkblue")
+    for i, txt in enumerate(tempfrags.FRAGS):
+        if "b" in txt:
+            txtcolor = "red"
+        if "y" in txt:
+            txtcolor = "blue"
+        ax6.annotate(txt, (tempfrags.MZ[i], tempfrags.CORR_INT[i]), color=txtcolor, fontsize=20, ha="center")
+        plt.axvline(x=tempfrags.MZ[i], color='orange', ls="--")
+    
+    # plt.tight_layout()
     #plt.show()
     fig.savefig(outplot)  
     fig.clear()
