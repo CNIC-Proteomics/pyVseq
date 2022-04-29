@@ -759,6 +759,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                         markersize=35, markerfacecoloralt='tab:red')
     color = ["tab:green" if i in observed else 'white' for i in fragsy]
     ax5.scatter(list(range(len(points))), 2*points, c=color, marker='$\u25AC$', s=2000)
+    ax5.scatter([s - 0.5 for s in list(range(len(points)))], 2*points, c=color, marker='$\u2503$', s=600)
     counter = 0
     for x in fragsy:
         weight = 'normal'
@@ -782,6 +783,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         counter += 1
     color = ["tab:green" if i in observed else 'white' for i in fragsb]
     ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
+    ax5.scatter([s + 0.4 for s in list(range(len(points)))], 0*points, c=color, marker='$\u2500$', s=1000)
     counter = 0
     for x in fragsb:
         weight = 'normal'
