@@ -761,7 +761,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     colordf["cumsumY"] = colordf.sumY.cumsum()
     colordf["cumsumT"] = colordf.cumsumB + colordf.cumsumY
     # if sum(list(map(lambda x: x in observed, fragsb))) >= sum(list(map(lambda x: x in observed, fragsy))):
-    mypalette = sns.color_palette("Reds",len(plainseq)+1)
+    mypalette = sns.color_palette("Reds", max(colordf.cumsumT)+1)
     colordf["colorT"] = [mypalette[i] for i in colordf.cumsumT] # TODO this won't ever reach maximum
     points = np.ones(len(plainseq))
     marker_style = dict(color='black', linestyle=' ', marker='o',
@@ -787,8 +787,9 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         if fragsy[counter] in observed:
             color = 'limegreen'
         if set([fragsb[counter], fragsy[counter]]).issubset(observed): color = 'forestgreen'
-        plt.annotate(x, (counter,1), textcoords="offset points", xytext=(0,-10),
+        text = plt.annotate(x, (counter,1), textcoords="offset points", xytext=(0,-10),
                      ha='center', size = 30, color = colordf.colorT[counter], weight='bold')
+        text.set_path_effects([path_effects.Stroke(linewidth=1, foreground='black')])
         counter += 1
     color = ["tab:green" if i in observed else 'white' for i in fragsb]
     ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
