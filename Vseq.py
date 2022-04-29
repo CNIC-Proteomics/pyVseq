@@ -567,9 +567,13 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         if i > 0:
             pos[i] = p - 2 - len(str(mods[i-1]))
     mainT2 = plainseq
-    for i in pos:
-        mainT2 = mainT2[:pos] + '[' + dmlabel[i] + ']' + mainT2[pos:]
-        # TODO to all pos = sum length of added things
+    counter = 0
+    for i, p in enumerate(pos):
+        if i > 0:
+            p = p + sum(len(s)+2 for s in [str(r) for r in dmlabel[0:i-1]])
+        mainT2 = mainT2[:p+1] + '[' + dmlabel[counter] + ']' + mainT2[p+1:]
+        counter += 1
+    mainT2 = mainT2 + "+" + str(round(dm,6))
 
     #z  = max(fppm.max())
     
@@ -704,7 +708,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     # interdf2.intensity = intlist
     # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True, bw_adjust=.1)
     ax4.figure.axes[-1].yaxis.label.set_size(15)
-    plt.title(mainT, fontsize=20)
+    plt.title(mainT2, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
 ###### SCAN INFO ##
