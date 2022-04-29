@@ -594,7 +594,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     PTMprob = list(plainseq)
     if not hasattr(sub, 'DeltaMassLabel'):
         sub.DeltaMassLabel = "'N/A'"
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), dmlabel, str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
                              index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
     #ax2 = fig.add_subplot(3,6,(1,2))
     ax1 = fig.add_subplot(gs[0:3, 0:2])
@@ -929,7 +929,7 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     
     #if dograph or standalone:
     pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
-    specpar = "MZ=" + str(pepmass.MZ) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
+    specpar = "MZ=" + str(round(pepmass.MZ, 6)) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
     
     BDAGmax, YDAGmax = asBY(deltaplot, sub, len(plainseq))
     
