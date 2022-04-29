@@ -789,7 +789,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         if set([fragsb[counter], fragsy[counter]]).issubset(observed): color = 'forestgreen'
         text = plt.annotate(x, (counter,1), textcoords="offset points", xytext=(0,-10),
                      ha='center', size = 30, color = colordf.colorT[counter], weight='bold')
-        text.set_path_effects([path_effects.Stroke(linewidth=1, foreground='black')])
+        text.set_path_effects([path_effects.Stroke(linewidth=0.5, foreground='black')])
         counter += 1
     color = ["tab:green" if i in observed else 'white' for i in fragsb]
     ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
@@ -802,6 +802,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         plt.annotate(x, (counter,0), textcoords="offset points", xytext=(2,-22),
                      ha='center', size = 15, color = "black",  weight = weight) 
         counter += 1
+    ax5.scatter([-1.5]*len(mypalette), list(np.linspace(0,2,len(mypalette))), c=mypalette, marker='o', s=1000)
     ax5.set_axis_off()
 ###### M/Z vs INTENSITY ##
     tempfrags = pd.merge(proof, exp_spec)
