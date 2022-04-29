@@ -766,6 +766,9 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
     mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
     pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
+    for i, p in enumerate(pos):
+        if i > 0:
+            pos[i] = p - 2 - len(str(mods[i-1]))
     ## DM ##
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
     mim = sub.MH
