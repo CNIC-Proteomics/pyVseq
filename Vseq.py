@@ -802,11 +802,14 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         plt.annotate(x, (counter,0), textcoords="offset points", xytext=(2,-22),
                      ha='center', size = 15, color = "black",  weight = weight) 
         counter += 1
-    ax5.scatter([-1.5]*len(mypalette), list(np.linspace(0,2,len(mypalette))), c=mypalette, marker='o', s=1000)
+    ax5.scatter([-1.5]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
+                c=mypalette, marker='$\u25AA$', s=300)
+    ax5.scatter([-1.2]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
+                c=mypalette, marker='$\u25AA$', s=300)
     for i in list(range(0,max(colordf.cumsumT)+1)):
         if i in np.round(np.linspace(0, len(list(range(0,max(colordf.cumsumT)+1))) - 1, 5)).astype(int):
-            plt.annotate(str(i),(-2.5,list(np.linspace(0,2,len(mypalette)))[i]-0.1))
-    plt.annotate("N. times\nobserved", (-3,0.4), **{'rotation':'vertical', 'ha':'center'})
+            plt.annotate(str(i),(-2.2,list(np.linspace(0,2,len(mypalette)))[i]-0.1))
+    plt.annotate("N. times\nobserved", (-2.8,0.35), **{'rotation':'vertical', 'ha':'center'})
     ax5.set_axis_off()
 ###### M/Z vs INTENSITY ##
     tempfrags = pd.merge(proof, exp_spec)
