@@ -129,11 +129,13 @@ def expSpectrum(fr_ns, scan, index2):
     
     try:
         ions = fr_ns.iloc[index1+1:index3,:]
+        ions[0] = ions[0].str.strip()
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
     except ValueError:
         ions = fr_ns.iloc[index1+4:index3,:]
+        ions[0] = ions[0].str.strip()
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
