@@ -764,11 +764,13 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     mypalette = sns.color_palette("coolwarm", max(colordf.cumsumT)+1)
     colordf["colorT"] = [mypalette[i] for i in colordf.cumsumT] # TODO this won't ever reach maximum
     points = np.ones(len(plainseq))
+    ax5.scatter(list(range(len(points))), 2.5*points, facecolors='none', edgecolors='none', marker='o', s=1)
+    ax5.scatter(list(range(len(points))), -0.5*points, facecolors='none', edgecolors='none', marker='o', s=1)
     marker_style = dict(color='black', linestyle=' ', marker='o',
                         markersize=35, markerfacecoloralt='tab:red')
     color = ["tab:green" if i in observed else 'white' for i in fragsy]
-    ax5.scatter(list(range(len(points))), 2*points, c=color, marker='$\u25AC$', s=2000)
-    ax5.scatter([s - 0.5 for s in list(range(len(points)))], 2*points-0.2, c=color, marker='$\u2503$', s=1000)
+    ax5.scatter(list(range(len(points))), 1.85*points, c=color, marker='$\u25AC$', s=1500)
+    ax5.scatter([s - 0.4 for s in list(range(len(points)))], 2*points-0.2, c=color, marker='$\u2503$', s=600)
     counter = 0
     for x in fragsy:
         weight = 'normal'
@@ -778,7 +780,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         counter += 1
     # ax5.plot(1 * points, fillstyle="none", **marker_style) 
     color = ['black' if i in pos else 'white' for i,j in enumerate(plainseq)]
-    ax5.scatter(list(range(len(points))), 1*points, facecolors='none', edgecolors=color, marker='o', s=1000)
+    points2 = np.ones(len(plainseq))
+    if len(plainseq) < 30:
+        color += ['white'] * (30-len(plainseq))
+        points2 = np.ones(30)
+    if dm >= min_dm:
+        color[BDAGmax.row.iloc[0]] = 'red'
+        color[len(plainseq)-YDAGmax.to_list()[0]] = 'red'
+    ax5.scatter(list(range(len(points2))), 1*points2, facecolors='none', edgecolors=color, marker='o', s=1200)
+    # if len(plainseq) < 30:
+    #     extra = np.ones(30 - len(plainseq))
+    #     ax5.scatter(list(range(len(extra))), 1*extra, facecolors='none', edgecolors='none', marker='o', s=1000)
     counter = 0
     for x in plainseq:
         color = 'gold'
@@ -792,8 +804,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         text.set_path_effects([path_effects.Stroke(linewidth=0.5, foreground='black')])
         counter += 1
     color = ["tab:green" if i in observed else 'white' for i in fragsb]
-    ax5.scatter(list(range(len(points))), 0*points, c=color, marker='$\u25AC$', s=2000)
-    ax5.scatter([s + 0.4 for s in list(range(len(points)))], 0*points+0.2, c=color, marker='$\u2502$', s=1000)
+    ax5.scatter(list(range(len(points))), 0.025*points, c=color, marker='$\u25AC$', s=1500)
+    ax5.scatter([s + 0.4 for s in list(range(len(points)))], 0*points+0.2, c=color, marker='$\u2502$', s=600)
     counter = 0
     for x in fragsb:
         weight = 'normal'
