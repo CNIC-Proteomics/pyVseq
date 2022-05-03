@@ -761,7 +761,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     colordf["cumsumY"] = colordf.sumY.cumsum()
     colordf["cumsumT"] = colordf.cumsumB + colordf.cumsumY
     # if sum(list(map(lambda x: x in observed, fragsb))) >= sum(list(map(lambda x: x in observed, fragsy))):
-    mypalette = sns.color_palette("Reds", max(colordf.cumsumT)+1)
+    mypalette = sns.color_palette("coolwarm", max(colordf.cumsumT)+1)
     colordf["colorT"] = [mypalette[i] for i in colordf.cumsumT] # TODO this won't ever reach maximum
     points = np.ones(len(plainseq))
     marker_style = dict(color='black', linestyle=' ', marker='o',
@@ -802,11 +802,16 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         plt.annotate(x, (counter,0), textcoords="offset points", xytext=(2,-22),
                      ha='center', size = 15, color = "black",  weight = weight) 
         counter += 1
-    ax5.scatter([-1.5]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
-                c=mypalette, marker='$\u25AA$', s=300)
-    ax5.scatter([-1.2]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
-                c=mypalette, marker='$\u25AA$', s=300)
+    # ax5.scatter([-1.5]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
+    #             c=mypalette, marker='$\u25AA$', s=300)
+    # ax5.scatter([-1.2]*len(mypalette), list(np.linspace(0,2,len(mypalette))),
+    #             c=mypalette, marker='$\u25AA$', s=300)
+    # xs, ys, zs = colored_line(np.array([-1.5]*len(mypalette)),
+    #                           np.array(list(np.linspace(0,2,len(mypalette)))),
+    #                           line_width = .01)
     for i in list(range(0,max(colordf.cumsumT)+1)):
+        ax5.plot([-1.5,-1], [list(np.linspace(0,2,len(mypalette)))[i],list(np.linspace(0,2,len(mypalette)))[i]],
+                 c=mypalette[i], lw=5)
         if i in np.round(np.linspace(0, len(list(range(0,max(colordf.cumsumT)+1))) - 1, 5)).astype(int):
             plt.annotate(str(i),(-2.2,list(np.linspace(0,2,len(mypalette)))[i]-0.1))
     plt.annotate("N. times\nobserved", (-2.8,0.35), **{'rotation':'vertical', 'ha':'center'})
