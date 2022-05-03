@@ -510,7 +510,7 @@ def main(args):
         # mgf.reset_index(drop=True, inplace=True)
         # mgf = Path(mgf.iloc[0][0])
         logging.info("RAW: " + str(mgf))
-        mgf = pd.read_csv(mgf, header=None)
+        mgf = pd.read_csv(mgf, header=None, sep="\t")
         index2 = mgf.to_numpy() == 'END IONS'
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
