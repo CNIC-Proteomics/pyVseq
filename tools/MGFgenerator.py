@@ -70,7 +70,7 @@ def makeFrags(seq):
     frags["seq"] = None
     for index, row in frags.iterrows():
         series = row.by[0]
-        num = int(row.by[1])
+        num = int(row.by[1:])
         if series == "b":
             frags.seq.iloc[index] = seq[0:num]
         if series == "y":
