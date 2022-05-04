@@ -150,10 +150,10 @@ def main(args):
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
                     mgfdata += mgfentry
                     # Noise entry #
-                    mgfentry = makeMGFentry(noiseset, scan_number, pepmass, 1)
+                    mgfentry = makeMGFentry(noiseset, scan_number+1, pepmass, 1)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + " with noise" + "\n"
                     mgfdata += mgfentry
-                    scan_number += 1
+                    scan_number += 2
         outfile = os.path.join(Path(args.outpath), sequence + ".mgf")
         logging.info("Writing " + str(outfile))
         with open(outfile, 'a') as f:
