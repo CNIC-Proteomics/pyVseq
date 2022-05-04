@@ -322,7 +322,9 @@ def slugify(value, allow_unicode=False):
 
 
 def writedf(df, OUTFILE_PATH):
-    df[1].to_csv(os.path.join(OUTFILE_PATH, slugify(df[0])+'.tsv'), sep='\t', index=False),
+    r = re.search(r'GN=([^\s]+)', df[0])
+    filename = r.groups()[0] if r and len(r.groups())==1 else slugify(df[0])
+    df[1].to_csv(os.path.join(OUTFILE_PATH, filename+'.tsv'), sep='\t', index=False)
 
 #
 # Main
