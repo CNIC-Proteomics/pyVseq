@@ -485,7 +485,7 @@ def main(args):
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
     if args.outpath:
-        outpath = os.path.join(os.path.dirname(Path(args.outpath)),"Vseq_Results")
+        outpath = os.path.join(Path(args.outpath),"Vseq_Results")
     else:
         outpath = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results")
     if not os.path.exists(Path(outpath)):
@@ -528,8 +528,8 @@ def main(args):
                 prot = fullprot
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(outpath, str(raw), str(prot))
-            if not os.path.exists(Path(outpath3)):
-                os.mkdir(Path(outpath3))
+            # if not os.path.exists(Path(outpath3)):
+            #     os.mkdir(Path(outpath3))
                 
             if parallelize == "sequence" or parallelize == "both":
                 indices, rowSeqs = zip(*seqtable.iterrows())
@@ -670,6 +670,8 @@ def main(args):
                         merger.append(FileIO(page,"rb"))
                     logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
                     if len(pagelist) > 0:
+                        if not os.path.exists(Path(outpath3)):
+                            os.mkdir(Path(outpath3))
                         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                         with open(outmerge, 'wb') as f:
                             merger.write(f)
@@ -716,7 +718,7 @@ if __name__ == '__main__':
     parser.add_argument('-i',  '--infile', required=True, help='Table of MGFs to search')
     parser.add_argument('-t',  '--table', required=True, help='Table of sequences to compare')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-o', '--outpath', default=False, help='Path to save results')
+    parser.add_argument('-o', '--outpath', help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
