@@ -16,15 +16,16 @@ import random
 import sys
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def getTheoMZ(AAs, charge, sequence):
+def getTheoMZ(AAs, charge, sequence, series):
     '''    
     Calculate theoretical MZ using the PSM sequence.
     '''
     m_proton = 1.007276
     m_hydrogen = 1.007825
     m_oxygen = 15.994915
-    total_aas = 2*m_hydrogen + m_oxygen
-    total_aas += charge*m_proton
+    total_aas = charge*m_proton
+    if series == "y":
+        total_aas += 2*m_hydrogen + m_oxygen
     for i, aa in enumerate(sequence):
         if aa.upper() in AAs:
             total_aas += float(AAs[aa.upper()])
@@ -41,7 +42,8 @@ def makeFrags(seq):
     Name all fragments.
     '''
     frags = pd.DataFrame(np.nan, index=list(range(0,len(seq)*2)),
-                         columns=["by"])
+                         columns=["series", "by"])
+    frags.series = ["b" for i in list(range(1,len(seq)+1))] + ["y" for i in list(range(1,len(seq)+1))[::-1]]
     frags.by = ["b" + str(i) for i in list(range(1,len(seq)+1))] + ["y" + str(i) for i in list(range(1,len(seq)+1))[::-1]]
     ## REGIONS ##
     rsize = int(round(len(seq)/4,0))
@@ -130,8 +132,8 @@ def main(args):
         sequence = str(sequence[0])
         logging.info("Generating combinations for sequence: " + sequence)
         frags = makeFrags(sequence)
-        frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 2, x.seq)[0],6), axis=1)
-        pepmass = round(getTheoMZ(AAs, 2, sequence)[0],6)
+        frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 1, x.seq, x.series)[0],6), axis=1)
+        pepmass = round(getTheoMZ(AAs, 1, sequence, "y")[0],6)
         
         mgfdata = []
         scan_number = 1
@@ -144,11 +146,11 @@ def main(args):
                     errorset = errorize(errorset, error)
                     noiseset = noiseMaker(errorset, n_peaks)
                     # Noiseless entry #
-                    mgfentry = makeMGFentry(errorset, scan_number, pepmass, 2)
+                    mgfentry = makeMGFentry(errorset, scan_number, pepmass, 1)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
                     mgfdata += mgfentry
                     # Noise entry #
-                    mgfentry = makeMGFentry(noiseset, scan_number, pepmass, 2)
+                    mgfentry = makeMGFentry(noiseset, scan_number, pepmass, 1)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + " with noise" + "\n"
                     mgfdata += mgfentry
                     scan_number += 1
