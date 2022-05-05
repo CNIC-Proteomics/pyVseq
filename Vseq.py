@@ -671,7 +671,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     #ax1.plot([1, 1], [15, 15], color='red', transform=ax1.transAxes)  
     plt.yscale("log")
     plt.xlabel("error in ppm______________________ >50", fontsize=15)
-    plt.ylabel("intensity(log)", fontsize=15)
+    plt.ylabel("'log₁₀(Intensity)'", fontsize=15)
     plt.scatter(zoom, ions.INT, c="lightblue", edgecolors="blue", s=100)
     plt.axvline(x=err, color='tab:blue', ls="--")
 ###### INTEPRETED V-PLOT ##
@@ -698,7 +698,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                 # intlist.append(0)
         # else:
             # intlist.append(0)
-    sns.heatmap(interdf, cmap="Blues", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
+    res = sns.heatmap(interdf, cmap="Blues", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
     # for i, j in enumerate(frags.by):
         #plt.axvline(x=frags.by[i], color='#470d60', ls="--")
         # plt.plot([len(interdf)-1, frags.by[i]], [interdf[j].idxmax()-1, frags.by[i]], linewidth=1)
@@ -709,6 +709,9 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     # interdf2.height = list(range(29,-1,-1)) + list(range(0,30,1))
     # interdf2.intensity = intlist
     # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True, bw_adjust=.1)
+    for _, spine in res.spines.items():
+        spine.set_visible(True)
+        spine.set_linewidth(1)
     ax4.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT2, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
