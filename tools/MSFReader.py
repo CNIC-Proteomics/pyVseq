@@ -17,20 +17,16 @@ def main(args):
     logging.info("Looking for .dta files...")
     msffiles = os.listdir(Path(args.dir))
     msffiles = [i for i in msffiles if i[-4:]=='.msf']
-    logging.info(str(len(msffiles)) + " .msf files found.")
+    logging.info(str(len(msffiles)) + " .msf files found. Converting to .tsv...")
     
     for i, j in enumerate(msffiles):
         logging.info(str(i) + " out of " + str(len(msffiles)) + "...")
-    con = sqlite3.connect(r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\MGFS\IPGLLSPHPLLQLSYTATDR.msf")
-    # cursor = con.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    # cursor.close()
-    surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
+        con = sqlite3.connect(os.path.join(args.dir, j))
+        surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
+        outfile = os.path.join(args.dir, j[:-4] + ".tsv")
+        surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
 if __name__ == '__main__':
-
-    # multiprocessing.freeze_support()
-
-    # parse arguments
     parser = argparse.ArgumentParser(
         description='VseqExplorer',
         epilog='''
@@ -40,6 +36,7 @@ if __name__ == '__main__':
         ''')
     
     parser.add_argument('-d',  '--dir', required=True, help='Directory containing .MSF files')
+    parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
 
     # logging debug level. By default, info level
