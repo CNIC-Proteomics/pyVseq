@@ -647,6 +647,8 @@ def main(args):
                     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                     if f_subtquery.shape[0] > 0:
                         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+                        if not os.path.exists(Path(outpath3)):
+                            os.mkdir(Path(outpath3))
                         f_subtquery.apply(lambda x: doVseq(x,
                                                            tquery,
                                                            mgf,
@@ -670,8 +672,6 @@ def main(args):
                         merger.append(FileIO(page,"rb"))
                     logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
                     if len(pagelist) > 0:
-                        if not os.path.exists(Path(outpath3)):
-                            os.mkdir(Path(outpath3))
                         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                         with open(outmerge, 'wb') as f:
                             merger.write(f)
