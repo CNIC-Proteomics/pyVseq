@@ -323,9 +323,9 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_vscore, outpath3,
                     mass, n_workers, parallelize, ppm_plot):
-    logging.info("\tExploring sequence " + str(query.Sequence) + ", "
-                 + str(query.MH) + " Th, Charge "
-                 + str(query.Charge))
+    # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
+    #              + str(query.MH) + " Th, Charge "
+    #              + str(query.Charge))
     ## SEQUENCE ##
     query.Sequence = str(query.Sequence).upper()
     plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
@@ -350,11 +350,11 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     ## OPERATIONS ##
     # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
     subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
-    logging.info("\t" + str(subtquery.shape[0]) + " scans found within ±"
-                 + str(ptol) + " Th")
+    # logging.info("\t" + str(subtquery.shape[0]) + " scans found within ±"
+    #              + str(ptol) + " Th")
     if subtquery.shape[0] == 0:
         return # TODO can this be nothing or do we need a dummy DF
-    logging.info("\tComparing...")
+    # logging.info("\tComparing...")
     subtquery['Protein'] = fullprot
     subtquery['Sequence'] = query.Sequence
     subtquery['MH'] = query.expMH
@@ -424,7 +424,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     f_subtquery.reset_index(drop=True, inplace=True)
     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
     if f_subtquery.shape[0] > 0:
-        logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+        # logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
         f_subtquery.apply(lambda x: doVseq(x,
                                            tquery,
                                            mgf,
@@ -446,7 +446,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     merger = PdfFileMerger()
     for page in pagelist:
         merger.append(FileIO(page,"rb"))
-    logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
+    # logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
     if len(pagelist) > 0:
         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
         with open(outmerge, 'wb') as f:
