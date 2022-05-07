@@ -322,7 +322,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_vscore, outpath3,
-                    mass, n_workers, parallelize, ppm_plot):
+                    mass, n_workers, parallelize, ppm_plot, outfile):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
     #              + str(query.Charge))
@@ -425,6 +425,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
     if f_subtquery.shape[0] > 0:
         # logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+        if not os.path.exists(Path(outpath3)):
+            os.mkdir(Path(outpath3))
         f_subtquery.apply(lambda x: doVseq(x,
                                            tquery,
                                            mgf,
@@ -460,6 +462,9 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         subtquery.loc[len(subtquery)] = 0
         subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+    subtquery = subtquery[subtquery.Charge != 0]
+    subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                     mode='a', header=not os.path.exists(outfile))
     return(subtquery)
 
 def _parallelSeqTable(x, parlist):
@@ -467,7 +472,7 @@ def _parallelSeqTable(x, parlist):
                              parlist[4], parlist[5], parlist[6], parlist[7],
                              parlist[8], parlist[9], parlist[10], parlist[11],
                              parlist[12], parlist[13], parlist[14], parlist[15],
-                             parlist[16], parlist[17])
+                             parlist[16], parlist[17], parlist[18])
     return(result)
 
 def main(args):
@@ -537,7 +542,7 @@ def main(args):
                 tqdm.pandas(position=0, leave=True)
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_vscore, outpath3,
-                           mass, args.n_workers, parallelize, ppm_plot]
+                           mass, args.n_workers, parallelize, ppm_plot, outfile]
                 chunks = 100
                 if len(rowSeqs) <= 500:
                     chunks = 50
@@ -547,6 +552,9 @@ def main(args):
                                                           itertools.repeat(parlist),
                                                           chunksize=chunks),
                                       total=len(rowSeqs)))
+                # exploredseqs = pd.concat(exploredseqs)
+                # exploredseqs.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                #                  mode='a', header=not os.path.exists(outfile))
             elif parallelize == "candidate":
                 ## COMPARE EACH SEQUENCE ##
                 for index, query in seqtable.iterrows(): # TODO: parallelize
