@@ -19,12 +19,18 @@ def main(args):
     msffiles = [i for i in msffiles if i[-4:]=='.msf']
     logging.info(str(len(msffiles)) + " .msf files found. Converting to .tsv...")
     
+    allsurveys = []
     for i, j in enumerate(msffiles):
         logging.info(str(i) + " out of " + str(len(msffiles)) + "...")
         con = sqlite3.connect(os.path.join(args.dir, j))
         surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
         surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        surveys_df["FILE"] = str(j)
+        allsurveys.append(surveys_df)
+    allsurveys = pd.concat(allsurveys)
+    outfile = os.path.join(args.dir, "ALL_MSFs.tsv")
+    allsurveys.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
