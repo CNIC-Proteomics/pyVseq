@@ -23,7 +23,10 @@ def main(args):
     for i, j in enumerate(msffiles):
         logging.info(str(i) + " out of " + str(len(msffiles)) + "...")
         con = sqlite3.connect(os.path.join(args.dir, j))
-        surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
+        if int(args.sequest) == 0: # SEQUEST
+            surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
+        elif int(args.sequest) == 1: # SEQUEST-HT
+            surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=4;", con)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
         surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         surveys_df["FILE"] = str(j)
@@ -42,6 +45,7 @@ if __name__ == '__main__':
         ''')
     
     parser.add_argument('-d',  '--dir', required=True, help='Directory containing .MSF files')
+    parser.add_argument('-s',  '--sequest', required=True, help='0 = Sequest, 1 = Sequest-HT')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
 
