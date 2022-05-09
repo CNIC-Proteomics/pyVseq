@@ -83,7 +83,7 @@ def errorize(subset, ppm):
 
 def noiseMaker(subset, n_peaks):
     noises = pd.DataFrame(np.random.uniform(subset.MZ.min(), subset.MZ.max(), n_peaks), columns=["MZ"]) 
-    noises["INT"] = np.random.uniform(0, 10, n_peaks)
+    noises["INT"] = np.random.uniform(10, 100, n_peaks)
     noises["seq"] = "noise"
     noises = round(noises, 6)
     check = subset.copy()
@@ -123,7 +123,7 @@ def main(args):
     sequences = pd.read_csv(args.sequence, header=None)
     intensities = [10, 100, 1000]
     ppmerrors = [0, 10, 40]
-    n_peaks = 50 # number of noise peaks to introduce
+    n_peaks = 100 # number of noise peaks to introduce
     logging.info("Combinations of 8 regions: " + str(len(combos)))
     logging.info("Intensities: " + str(intensities))
     logging.info("PPM errors: " + str(ppmerrors))
@@ -137,6 +137,7 @@ def main(args):
         
         mgfdata = []
         scan_number = 1
+        # titles = []
         for combo in combos:
             subset = frags[frags.region.isin(combo)]
             for inten in intensities:
@@ -149,11 +150,18 @@ def main(args):
                     mgfentry = makeMGFentry(errorset, scan_number, pepmass, 1)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + "\n"
                     mgfdata += mgfentry
+                    # titles.append([str(combo), str(inten), str(error), "NO"])
                     # Noise entry #
                     mgfentry = makeMGFentry(noiseset, scan_number+1, pepmass, 1)
                     mgfentry[1] += " " + sequence + " combo" + str(combo) + " int" + str(inten) + " error" + str(error) + " with noise" + "\n"
                     mgfdata += mgfentry
+                    # titles.append([str(combo), str(inten), str(error), "YES"])
                     scan_number += 2
+        # titles = pd.DataFrame(titles)
+        # titles.columns=['REGIONS', 'INTENSITY', 'PPM_ERROR', 'NOISE']
+        # titles.reset_index(inplace=True)
+        # titles = titles.rename(columns = {'index':'SCAN'})
+        # titles.SCAN = titles.SCAN + 1
         outfile = os.path.join(Path(args.outpath), sequence + ".mgf")
         logging.info("Writing " + str(outfile))
         with open(outfile, 'a') as f:
