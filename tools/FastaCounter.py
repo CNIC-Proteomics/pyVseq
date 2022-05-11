@@ -97,10 +97,9 @@ def main(args):
            "T":101.047679, "U":150.953630, "W":186.079313, "Y":163.063329,
            "V":99.068414, "O":132.089878, "Z":129.042594}
     combos = []
-    for i in range(1,9):
-        combo = itertools.combinations(range(1,9), i)
-        for c in combo:
-            combos.append(c)
+    combo = itertools.combinations(range(1,9), 1)
+    for c in combo:
+        combos.append(c)
     # sequences = pd.read_csv(r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list.txt", header=None)
     sequences = pd.read_csv(args.infile, header=None)
     sequences.columns = ["SEQUENCE"]
@@ -153,7 +152,7 @@ def main(args):
         temp_counts = list(tqdm(executor.map(matchSeqs, row_series,
                                               itertools.repeat(jtargets),
                                               itertools.repeat(jdecoys),
-                                              chunksize=100),
+                                              chunksize=10),
                                  total=len(row_series)))
     # counts = pd.concat(temp_counts, axis=1).T
     results["COUNTS"] = temp_counts
@@ -161,7 +160,7 @@ def main(args):
     ##############
     ## PLOTTING ##
     ##############
-    outfile = Path(args.infile[:-4] + "_Region_Counts.tsv")
+    outfile = Path(args.infile[:-4] + "_Regions_Counts.tsv")
     results.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
     return
