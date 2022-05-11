@@ -5,10 +5,10 @@ import itertools
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 from pathlib import Path
 import re
+import seaborn as sns
 import sys
 from tqdm import tqdm
 
@@ -121,9 +121,12 @@ def main(args):
             subset = frags[frags.region.isin(combo)]
             fragseqs = []
             for i,j in subset.groupby("region"):
-                fragseqs.append((i, j.iloc[np.where(j["seq"].str.len() == j["seq"].str.len().max())[0]]["seq"].iloc[0]))
-            results.append([sequence, combo, subset.by.to_list(), fragseqs])
-    results = pd.DataFrame(results, columns=["SEQUENCE", "REGIONS", "FRAGMENTS", "SUBSEQUENCES"])
+                subseq = j.iloc[np.where(j["seq"].str.len() == j["seq"].str.len().max())[0]]["seq"].iloc[0]
+                subseq = subseq.replace("I", "L")
+                fragseqs.append((i, subseq))
+            sequence_l = sequence.replace("I", "L")
+            results.append([sequence, sequence_l, combo, subset.by.to_list(), fragseqs])
+    results = pd.DataFrame(results, columns=["ORIGINAL_SEQUENCE", "SEQUENCE", "REGIONS", "FRAGMENTS", "SUBSEQUENCES"])
 
     ##############################
     ## PREPARE FASTA FOR SEARCH ##
@@ -156,12 +159,44 @@ def main(args):
                                  total=len(row_series)))
     # counts = pd.concat(temp_counts, axis=1).T
     results["COUNTS"] = temp_counts
+    outfile = Path(args.infile[:-4] + "_Regions_Counts.tsv")
+    results.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
     ##############
     ## PLOTTING ##
     ##############
-    outfile = Path(args.infile[:-4] + "_Regions_Counts.tsv")
-    results.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    # tempdata = r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list_Regions_Counts.tsv"
+    # tempdata = pd.read_csv(tempdata, sep="\t")
+    # tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[2:], axis=1)
+    # tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[:-2], axis=1)
+    # tempdata[['TARGET_COUNT', 'DECOY_COUNT']] = tempdata["COUNTS"].str.split(', ', 1, expand=True)
+    # templist = []
+    # for i, j in tempdata.groupby("SEQUENCE"):
+    #     df = j[["TARGET_COUNT"]].T
+    #     df.columns = j.REGIONS.to_list()
+    #     df.index = [i]
+    #     templist.append(df)
+    # df = pd.concat(templist)
+    # df.insert(0, "SEQUENCE", df.index)
+    # df.reset_index(drop=True, inplace=True)
+    # df.columns = ['SEQUENCE', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
+    # df.insert(1, "LENGTH", df.SEQUENCE.str.len())
+    # df = df.sort_values(by=['LENGTH'])
+    # df.reset_index(drop=True, inplace=True)
+    # df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']] = df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']].apply(pd.to_numeric)
+    # for i, j in df.groupby("LENGTH"):
+    #     fig = plt.figure()
+    #     fig.set_size_inches(10, 15)
+    #     k = np.log(j[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']])
+    #     k[k == -np.inf] = 0
+    #     sns.set(font_scale = 2)
+    #     sns.heatmap(k,
+    #                 yticklabels=j.SEQUENCE.to_list(),
+    #                 cmap=sns.light_palette("red", as_cmap=True),
+    #                 cbar_kws={'label': 'log10(Frequency)'})
+    #     plt.show()
+    #     fig.clear()
+    #     plt.close(fig)
     
     return
 
