@@ -3,6 +3,7 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import re
 
 def getTheoMZ(AAs, charge, sequence, series):
     '''    
@@ -67,7 +68,20 @@ def makeFrags(seq):
     pd.options.mode.chained_assignment = 'warn'  # default='warn'
     return(frags)
 
+def matchSeqs(seqlist, targets, decoys):
+    matches = []
+    for r, s in seqlist:
+        # target_matches.append(len([t for t in targets if s in t])) # ONLY COUNTS ONE OCCURENCE IN EACH PROTEIN
+        # decoy_matches.append(len([d for d in decoys if s in d]))
+        target_matches = len(re.findall(s, targets))
+        decoy_matches = len(re.findall(s, decoys))
+        matches.append((target_matches, decoy_matches))
+    return(matches)
+
 def main(args):
+    ##################################
+    ## PREPARE SEQUENCES FOR SEARCH ##
+    ##################################
     AAs = {"A":71.037114, "R":156.101111, "N":114.042927, "D":115.026943,
            "C":103.009185, "E":129.042593, "Q":128.058578, "G":57.021464,
            "H":137.058912, "I":113.084064, "L":113.084064, "K":128.094963,
@@ -79,7 +93,6 @@ def main(args):
         combo = itertools.combinations(range(1,9), i)
         for c in combo:
             combos.append(c)
-    fasta = SeqIO.parse(open(r"S:\U_Proteomica\UNIDAD\iSanXoT_DBs\202105\human_202105_uni-sw-tr.target-decoy.fasta"),'fasta')
     sequences = pd.read_csv(r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list.txt", header=None)
     sequences.columns = ["SEQUENCE"]
     sequences["LENGTH"] = sequences.SEQUENCE.str.len()
@@ -100,7 +113,30 @@ def main(args):
             results.append([sequence, combo, subset.by.to_list(), fragseqs])
     results = pd.DataFrame(results, columns=["SEQUENCE", "REGIONS", "FRAGMENTS", "SUBSEQUENCES"])
 
+    ##############################
+    ## PREPARE FASTA FOR SEARCH ##
+    ##############################
+    fasta = SeqIO.parse(open(r"S:\U_Proteomica\UNIDAD\iSanXoT_DBs\202105\human_202105_uni-sw-tr.target-decoy.fasta"),'fasta')
+    targets = []
+    decoys = []
     for f in fasta:
-        name, sequence = f.id, str(f.seq)
+        if "DECOY" in f.id:
+            decoys.append(str(f.seq))
+        else:
+            targets.append(str(f.seq))
+    jtargets = '\n'.join(targets)
+    jdecoys = '\n'.join(decoys)
+            
+    ############
+    ## SEARCH ##
+    ############
+    results["COUNTS"] = results.apply(lambda x: matchSeqs(x.SUBSEQUENCES, jtargets, jdecoys), axis=1)
+    
+    ##############
+    ## PLOTTING ##
+    ##############
+    
+    return
+    
     
 # Separate target and decoys, two heatmaps
