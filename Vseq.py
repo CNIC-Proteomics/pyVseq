@@ -1007,7 +1007,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
-    min_vscore = 0
+    min_vscore = float(mass._sections['Parameters']['min_vscore'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
