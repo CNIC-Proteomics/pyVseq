@@ -23,17 +23,13 @@ plt.title("0. Raw Spectrum")
 ################
 ## 1. BINNING ##
 ################
-bin_width = 0.01 # TODO: what bin width? 40 ppm in PD
+bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
 bins = list(np.arange(int(round(min(scan.MZ))),
                       int(round(max(scan.MZ)))+bin_width,
                       bin_width))
 bins = [round(x, _decimal_places(bin_width)) for x in bins]
 scan['BIN'] = pd.cut(scan.MZ, bins=bins)
-# bins_df = pd.DataFrame(columns=["BIN","SUM_INT"])
-# for i, j in scan.groupby("BIN"):
-#     bins_df = pd.concat([bins_df, pd.DataFrame([[i,j.INT.sum()]], columns=["BIN","INT"])])
-bins_df = scan.groupby("BIN").sum()
-bins_df = bins_df.drop('MZ',axis=1)
+bins_df = pd.DataFrame(scan.groupby("BIN")["INT"].sum())
 bins_df.reset_index(drop=False, inplace=True)
 bins_df.insert(1, 'MZ', bins_df['BIN'].apply(lambda x: x.mid))
 plt.plot(bins_df.MZ, bins_df.INT, linewidth=0.5)
