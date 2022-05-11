@@ -1,9 +1,16 @@
+import argparse
 from Bio import SeqIO
+import concurrent.futures
 import itertools
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
+from pathlib import Path
 import re
+import sys
+from tqdm import tqdm
 
 def getTheoMZ(AAs, charge, sequence, series):
     '''    
@@ -93,18 +100,21 @@ def main(args):
         combo = itertools.combinations(range(1,9), i)
         for c in combo:
             combos.append(c)
-    sequences = pd.read_csv(r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list.txt", header=None)
+    # sequences = pd.read_csv(r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list.txt", header=None)
+    sequences = pd.read_csv(args.infile, header=None)
     sequences.columns = ["SEQUENCE"]
     sequences["LENGTH"] = sequences.SEQUENCE.str.len()
     sequences = sequences.sort_values(by=['LENGTH'])
+    sequences.reset_index(drop=True, inplace=True)
     
+    logging.info("Preparing sequences...")
     results = []
     for index, sequence in sequences.iterrows():
-        print(index)
+        if index+1 % 10 == 0:
+            logging.info(str(index+1) + " out of " + str(len(sequences)))
         sequence = str(sequence[0])
         frags = makeFrags(sequence)
         frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 1, x.seq, x.series)[0],6), axis=1)
-        pepmass = round(getTheoMZ(AAs, 1, sequence, "y")[0],6)
         for combo in combos:
             subset = frags[frags.region.isin(combo)]
             fragseqs = []
@@ -116,7 +126,9 @@ def main(args):
     ##############################
     ## PREPARE FASTA FOR SEARCH ##
     ##############################
-    fasta = SeqIO.parse(open(r"S:\U_Proteomica\UNIDAD\iSanXoT_DBs\202105\human_202105_uni-sw-tr.target-decoy.fasta"),'fasta')
+    # fasta = SeqIO.parse(open(r"S:\U_Proteomica\UNIDAD\iSanXoT_DBs\202105\human_202105_uni-sw-tr.target-decoy.fasta"),'fasta')
+    logging.info("Preparing FASTA...")
+    fasta = SeqIO.parse(open(args.fasta),'fasta')
     targets = []
     decoys = []
     for f in fasta:
@@ -130,13 +142,65 @@ def main(args):
     ############
     ## SEARCH ##
     ############
-    results["COUNTS"] = results.apply(lambda x: matchSeqs(x.SUBSEQUENCES, jtargets, jdecoys), axis=1)
+    # results["COUNTS"] = results.apply(lambda x: matchSeqs(x.SUBSEQUENCES, jtargets, jdecoys), axis=1)
+    
+    logging.info("Searching...")
+    indices, row_series = zip(*results.iterrows())
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+        temp_counts = list(tqdm(executor.map(matchSeqs, row_series.SUBSEQUENCES,
+                                              itertools.repeat(jtargets),
+                                              itertools.repeat(jdecoys),
+                                              chunksize=1000),
+                                 total=len(row_series)))
+    counts = pd.concat(temp_counts, axis=1).T
+    results["COUNTS"] = counts
     
     ##############
     ## PLOTTING ##
     ##############
+    outfile = Path(args.infile[:-4] + "_Region_Counts.tsv")
+    results.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
     return
+
+if __name__ == '__main__':
+
+    # multiprocessing.freeze_support()
+
+    # parse arguments
+    parser = argparse.ArgumentParser(
+        description='FastaCounter',
+        epilog='''
+        Example:
+            python FastaCounter.py
+
+        ''')
     
+    parser.add_argument('-i',  '--infile', required=True, help='Table of sequences to search')
+    parser.add_argument('-f',  '--fasta', required=True, help='FASTA file')
+    parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
+    parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
+    args = parser.parse_args()
+
+    # logging debug level. By default, info level
+    log_file = outfile = args.infile[:-4] + 'ScanIntegrator_log.txt'
+    log_file_debug = outfile = args.infile[:-4] + 'ScanIntegrator_log_debug.txt'
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - %(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file_debug),
+                                      logging.StreamHandler()])
+    else:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p',
+                            handlers=[logging.FileHandler(log_file),
+                                      logging.StreamHandler()])
+
+    # start main function
+    logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
+    main(args)
+    logging.info('end script')
     
 # Separate target and decoys, two heatmaps
