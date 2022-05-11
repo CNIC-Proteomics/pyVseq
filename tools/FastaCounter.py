@@ -76,6 +76,7 @@ def makeFrags(seq):
     return(frags)
 
 def matchSeqs(seqlist, targets, decoys):
+    seqlist = seqlist.SUBSEQUENCES
     matches = []
     for r, s in seqlist:
         # target_matches.append(len([t for t in targets if s in t])) # ONLY COUNTS ONE OCCURENCE IN EACH PROTEIN
@@ -106,12 +107,14 @@ def main(args):
     sequences["LENGTH"] = sequences.SEQUENCE.str.len()
     sequences = sequences.sort_values(by=['LENGTH'])
     sequences.reset_index(drop=True, inplace=True)
+    #TEST
+    # sequences = sequences[sequences.LENGTH==8]
     
     logging.info("Preparing sequences...")
     results = []
     for index, sequence in sequences.iterrows():
-        if index+1 % 10 == 0:
-            logging.info(str(index+1) + " out of " + str(len(sequences)))
+        if index % 10 == 0:
+            logging.info(str(index) + " out of " + str(len(sequences)))
         sequence = str(sequence[0])
         frags = makeFrags(sequence)
         frags["MZ"] = frags.apply(lambda x: round(getTheoMZ(AAs, 1, x.seq, x.series)[0],6), axis=1)
@@ -147,13 +150,13 @@ def main(args):
     logging.info("Searching...")
     indices, row_series = zip(*results.iterrows())
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-        temp_counts = list(tqdm(executor.map(matchSeqs, row_series.SUBSEQUENCES,
+        temp_counts = list(tqdm(executor.map(matchSeqs, row_series,
                                               itertools.repeat(jtargets),
                                               itertools.repeat(jdecoys),
-                                              chunksize=1000),
+                                              chunksize=100),
                                  total=len(row_series)))
-    counts = pd.concat(temp_counts, axis=1).T
-    results["COUNTS"] = counts
+    # counts = pd.concat(temp_counts, axis=1).T
+    results["COUNTS"] = temp_counts
     
     ##############
     ## PLOTTING ##
