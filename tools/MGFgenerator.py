@@ -77,8 +77,11 @@ def makeFrags(seq):
             frags.seq.iloc[index] = seq[len(seq)-num:len(seq)]
     return(frags)
 
-def errorize(subset, ppm):
-    subset.MZ = subset.apply(lambda x: round(x.MZ + ((ppm*x.MZ)/1000000),6), axis=1)
+def errorize(subset, error, etype, charge):
+    if etype == 0:
+        subset.MZ = subset.apply(lambda x: round(x.MZ + ((error*x.MZ)/1000000),6), axis=1)
+    else:
+        subset.MZ = subset.MZ + (error/charge)
     return(subset)
 
 def noiseMaker(subset, n_peaks):
@@ -122,11 +125,17 @@ def main(args):
             combos.append(c)
     sequences = pd.read_csv(args.sequence, header=None)
     intensities = [10, 100, 1000]
-    ppmerrors = [0, 10, 40]
+    if int(args.error) == 0:
+        errors = ppmerrors = [0, 10, 40]
+    else:
+        errors = mherrors = [0, 0.01, 0.025]
     n_peaks = 100 # number of noise peaks to introduce
     logging.info("Combinations of 8 regions: " + str(len(combos)))
     logging.info("Intensities: " + str(intensities))
-    logging.info("PPM errors: " + str(ppmerrors))
+    if int(args.error) == 0:
+        logging.info("PPM errors: " + str(ppmerrors))
+    else:
+        logging.info("Da errors: " + str(mherrors))
     logging.info("Noisy peaks: " + str(n_peaks))
     for index, sequence in sequences.iterrows():
         sequence = str(sequence[0])
@@ -142,9 +151,9 @@ def main(args):
             subset = frags[frags.region.isin(combo)]
             for inten in intensities:
                 subset["INT"] = inten
-                for error in ppmerrors:
+                for error in errors:
                     errorset = subset.copy()
-                    errorset = errorize(errorset, error)
+                    errorset = errorize(errorset, error, int(args.error), 1)
                     noiseset = noiseMaker(errorset, n_peaks)
                     # Noiseless entry #
                     mgfentry = makeMGFentry(errorset, scan_number, pepmass, 1)
@@ -182,6 +191,7 @@ if __name__ == '__main__':
 
         ''')
     parser.add_argument('-s',  '--sequence', required=True, help='List of aminoacid sequences')
+    parser.add_argument('-e',  '--error', required=True, help='0=ppm, 1=Da')
     parser.add_argument('-o',  '--outpath', required=True, help='Path to save MGF files')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
