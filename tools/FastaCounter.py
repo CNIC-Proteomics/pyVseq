@@ -165,38 +165,39 @@ def main(args):
     ##############
     ## PLOTTING ##
     ##############
-    # tempdata = r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list_Regions_Counts.tsv"
-    # tempdata = pd.read_csv(tempdata, sep="\t")
-    # tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[2:], axis=1)
-    # tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[:-2], axis=1)
-    # tempdata[['TARGET_COUNT', 'DECOY_COUNT']] = tempdata["COUNTS"].str.split(', ', 1, expand=True)
-    # templist = []
-    # for i, j in tempdata.groupby("SEQUENCE"):
-    #     df = j[["TARGET_COUNT"]].T
-    #     df.columns = j.REGIONS.to_list()
-    #     df.index = [i]
-    #     templist.append(df)
-    # df = pd.concat(templist)
-    # df.insert(0, "SEQUENCE", df.index)
-    # df.reset_index(drop=True, inplace=True)
-    # df.columns = ['SEQUENCE', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
-    # df.insert(1, "LENGTH", df.SEQUENCE.str.len())
-    # df = df.sort_values(by=['LENGTH'])
-    # df.reset_index(drop=True, inplace=True)
-    # df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']] = df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']].apply(pd.to_numeric)
-    # for i, j in df.groupby("LENGTH"):
-    #     fig = plt.figure()
-    #     fig.set_size_inches(10, 15)
-    #     k = np.log(j[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']])
-    #     k[k == -np.inf] = 0
-    #     sns.set(font_scale = 2)
-    #     sns.heatmap(k,
-    #                 yticklabels=j.SEQUENCE.to_list(),
-    #                 cmap=sns.light_palette("red", as_cmap=True),
-    #                 cbar_kws={'label': 'log10(Frequency)'})
-    #     plt.show()
-    #     fig.clear()
-    #     plt.close(fig)
+    tempdata = r"S:\LAB_JVC\RESULTADOS\AndreaLaguillo\pyVseq\EXPLORER\PEPTIDES\peptide_list_Regions_Counts.tsv"
+    tempdata = pd.read_csv(tempdata, sep="\t")
+    tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[2:], axis=1)
+    tempdata.COUNTS = tempdata.apply(lambda x: x.COUNTS[:-2], axis=1)
+    tempdata[['TARGET_COUNT', 'DECOY_COUNT']] = tempdata["COUNTS"].str.split(', ', 1, expand=True)
+    templist = []
+    for i, j in tempdata.groupby("SEQUENCE"):
+        df = j[["TARGET_COUNT"]].T
+        df.columns = j.REGIONS.to_list()
+        df.index = [i]
+        templist.append(df)
+    df = pd.concat(templist)
+    df.insert(0, "SEQUENCE", df.index)
+    df.reset_index(drop=True, inplace=True)
+    df.columns = ['SEQUENCE', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
+    df.insert(1, "LENGTH", df.SEQUENCE.str.len())
+    df = df.sort_values(by=['LENGTH'])
+    df.reset_index(drop=True, inplace=True)
+    df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']] = df[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']].apply(pd.to_numeric)
+    for i, j in df.groupby("LENGTH"):
+        fig = plt.figure()
+        fig.set_size_inches(10, 15)
+        k = np.log(j[['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']])
+        k[k == -np.inf] = 0
+        sns.set(font_scale = 2)
+        sns.heatmap(k,
+                    yticklabels=j.SEQUENCE.to_list(),
+                    cmap=sns.light_palette("red", as_cmap=True),
+                    cbar_kws={'label': 'log10(Frequency)'})
+                    # vmin=0, vmax=10)
+        plt.show()
+        fig.clear()
+        plt.close(fig)
     
     return
 
