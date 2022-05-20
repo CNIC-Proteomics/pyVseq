@@ -27,7 +27,15 @@ def main(args):
             surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
         elif int(args.sequest) == 1: # SEQUEST-HT
             # surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=4;", con)
-            surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=4;", con)
+            if int(args.pd) == 0:
+                surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=4;", con)
+            elif int(args.pd) == 1:
+                targets_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,P.searchenginerank,P.xcorr,P.FirstScan from TargetPsms as P", con)
+                targets_df["TYPE"] = "Target"
+                con = sqlite3.connect(os.path.join(args.dir, j))
+                decoys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,P.searchenginerank,P.xcorr,P.FirstScan from DecoyPsms as P", con)
+                decoys_df["TYPE"] = "Decoy"
+                surveys_df = pd.concat([targets_df, decoys_df])
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
         surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         surveys_df["FILE"] = str(j)
@@ -47,6 +55,7 @@ if __name__ == '__main__':
     
     parser.add_argument('-d',  '--dir', required=True, help='Directory containing .MSF files')
     parser.add_argument('-s',  '--sequest', required=True, help='0 = Sequest, 1 = Sequest-HT')
+    parser.add_argument('-p',  '--pd', required=True, help='0 = PD 2.4 or under, 1 = PD 2.5')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
 
