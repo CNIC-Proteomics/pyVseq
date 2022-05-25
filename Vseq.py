@@ -20,6 +20,8 @@ import itertools
 from itertools import repeat
 import logging
 import math
+import matplotlib
+matplotlib.use('pdf')
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects

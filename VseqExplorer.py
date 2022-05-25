@@ -17,7 +17,9 @@ import configparser
 from io import FileIO
 import itertools
 import logging
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('pdf')
 import numpy as np
 import pandas as pd
 from pathlib import Path
