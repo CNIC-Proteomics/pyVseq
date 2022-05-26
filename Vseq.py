@@ -34,25 +34,26 @@ import scipy.stats
 import statistics
 import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
+import ScanIntegrator
 
-def prepareWorkspace(exp, mgfpath, dtapath, outpath):
+def prepareWorkspace(exp, mgfpath, mzmlpath, outpath):
     mgfpath = Path(mgfpath)
-    dtapath = Path(dtapath)
+    mzmlpath = Path(mzmlpath)
     outpath = Path(outpath)
     # Get dta path for the experiment
-    dtapath = os.path.join(dtapath, exp + ".dta")
+    mzmlpath = os.path.join(mzmlpath, exp + ".dta")
     var_name_path = os.path.join(outpath, exp)
     # Create output directory
     if not os.path.exists(outpath):
         os.mkdir(var_name_path)
     logging.info("Experiment: " + exp)
     logging.info("mgfpath: " + str(mgfpath))
-    logging.info("dtapath: " + str(dtapath))
+    logging.info("mzmlpath: " + str(mzmlpath))
     logging.info("outpath: " + str(outpath))
     logging.info("varNamePath: " + str(var_name_path))
     pathdict = {"exp": exp,
                 "mgf": mgfpath,
-                "dta": dtapath,
+                "mzml": mzmlpath,
                 "out": outpath,
                 "var_name": var_name_path}
     return pathdict
@@ -657,16 +658,6 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.ylabel("large--Exp.masses--small", fontsize=15)
     for i, j in enumerate(frags.by):
         plt.axvline(x=frags.by[i], color='white', ls="--")
-    # for i, c in enumerate(fppm.T.columns):
-    #     for j, v in enumerate(fppm.T[c]):
-    #         if v < z:
-    #             ax5.text(i + 0.5, j + 0.5, '★', color='white', size=20, ha='center', va='center')
-    #posmatrix = fppm.T.copy()
-    # for i, c in enumerate(posmatrix.columns):
-    #     for j, v in enumerate(posmatrix[c]):
-    #         if v == 1:
-    #             text = ax5.text(i + 0.5, j - 1.5, '★', color='white', size=20, ha='center', va='center')
-    #             text.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
 ###### PPM vs INTENSITY(LOG)
     # ax1 = fig.add_subplot(3,6,(7,8))
     ax3 = fig.add_subplot(gs[3:6, 0:2])
@@ -701,16 +692,6 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         # else:
             # intlist.append(0)
     res = sns.heatmap(interdf, cmap="Blues", xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'log₁₀(Relative Intensity)'})
-    # for i, j in enumerate(frags.by):
-        #plt.axvline(x=frags.by[i], color='#470d60', ls="--")
-        # plt.plot([len(interdf)-1, frags.by[i]], [interdf[j].idxmax()-1, frags.by[i]], linewidth=1)
-            # plt.plot([frags.by[i], frags.by[i]], [len(interdf)-1, interdf[j].idxmax()+1], linewidth=1)
-    # plt.contourf(interdf.iloc[::-1])
-    # interdf2 = pd.DataFrame(0,index=range(int(len(frags))),columns=["fragment","height", "intensity"])
-    # interdf2.fragment = range(0,60,1)
-    # interdf2.height = list(range(29,-1,-1)) + list(range(0,30,1))
-    # interdf2.intensity = intlist
-    # sns.kdeplot(data=interdf2, x="fragment", y="height", hue="intensity", fill=True, bw_adjust=.1)
     for _, spine in res.spines.items():
         spine.set_visible(True)
         spine.set_linewidth(1)
@@ -719,42 +700,6 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.xlabel("b series --------- y series", fontsize=15)
     plt.ylabel("large--Exp.masses--small", fontsize=15)
 ###### SCAN INFO ##
-    # ax2 = fig.add_subplot(2,6,(10,11))
-    # plt.axis('off')
-    # plt.text(0, 0.5,
-    #          'Raw='+str(sub.Raw)+'\n'+
-    #          'FirstScan='+str(sub.FirstScan)+'\n'+
-    #          'Charge='+str(sub.Charge)+'\n'+
-    #          'RT='+str(sub.RetentionTime)+'\n'+
-    #          'DeltaM='+str(round(dm,6))+'\n'+
-    #          'M.Mass='+str(sub.ExpNeutralMass + mass.getfloat('Masses', 'm_proton'))+'\n'+
-    #          'Escore='+str(escore)+'\n'+
-    #          'Vscore='+str(vscore)+'\n',
-    #          fontsize=20,
-    #          horizontalalignment='left',
-    #          verticalalignment='center',
-    #          transform = ax2.transAxes)
-    ## MODIFIED RESIDUE CHARACTERIZATION ##
-    # PTMprob = list(sub.Sequence)
-    # ax3 = fig.add_subplot(2,6,12)
-    # plt.axis('off')
-    # if dm >= min_dm:
-    #     plt.text(-0.5, 0.5,
-    #               'PTM pinpointing:'+'\n'+
-    #               'Bseries='+ str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0])+'\n'+
-    #               'Yseries='+ str(PTMprob[YDAGmax[0]])+str(YDAGmax[0])+'\n',
-    #               fontsize=20,
-    #               horizontalalignment='left',
-    #               verticalalignment='center',
-    #               transform = ax3.transAxes)
-    # else:
-    #     plt.text(-0.5, 0.5,
-    #               'Unmodified Peptide',
-    #               color="red",
-    #               fontsize=20,
-    #               horizontalalignment='left',
-    #               verticalalignment='center',
-    #               transform = ax3.transAxes)
     ## SEQUENCE ##
     ax5 = fig.add_subplot(gs[6:7,0:6])
     # ax3 = fig.add_subplot(4,6,(19,23))
@@ -859,6 +804,14 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     fig.savefig(outplot)  
     fig.clear()
     plt.close(fig)
+    return
+
+def plotIntegration(scan, mz, scanrange, mzrange, bin_width, mzmlpath):
+    mz, apex_list, apexonly = ScanIntegrator.Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath)
+    outpath = Path(r".csv") # TODO
+    apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
+    outplot = Path(r".pdf") # TODO
+    ScanIntegrator.PlotIntegration(mz, apex_list, apexonly, outplot)
     return
 
 def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
@@ -1010,6 +963,9 @@ def main(args):
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     min_vscore = float(mass._sections['Parameters']['min_vscore'])
+    int_scanrange = float(mass._sections['Parameters']['int_scanrange'])
+    int_mzrange = float(mass._sections['Parameters']['int_mzrange'])
+    int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -1028,6 +984,7 @@ def main(args):
         sql.reset_index(inplace=True, drop=True)
         pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
+        mzml = os.path.join(pathdict["mzml"], exp + ".mzML")
         logging.info("\tReading mgf file")
         fr_ns = pd.read_csv(mgf, header=None)
         index2 = fr_ns.to_numpy() == 'END IONS'
@@ -1041,6 +998,8 @@ def main(args):
                 #seq2 = sub.Sequence[::-1]
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
+                mz = float(sub.MH) / int(sub.Charge)
+                plotIntegration(sub.FirstScan, mz, int_scanrange, int_mzrange, int_binwidth, mzml) # outside of doVseq() becuase we don't want it in VseqExplorer
             
 if __name__ == '__main__':
 
