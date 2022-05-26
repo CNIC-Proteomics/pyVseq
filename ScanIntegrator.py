@@ -1,3 +1,4 @@
+import pyopenms
 import argparse
 import concurrent.futures
 import itertools
@@ -10,6 +11,20 @@ import pandas as pd
 from pathlib import Path
 import sys
 from tqdm import tqdm
+
+def readMZML(mzmlpath, scan, scanrange):
+    exp = pyopenms.MSExperiment()
+    pyopenms.MzMLFile().load(mzmlpath, exp)
+    # Keep only full scans
+    spec = []
+    for s in exp.getSpectra():
+        if s.getMSLevel() == 1:
+            spec.append([int(s.getNativeID().split(' ')[-1][5:]), s.get_peaks()[0], s.get_peaks()[1]]) 
+    spec = pd.DataFrame(spec)
+    spec.columns = ["SCAN", "MZ", "INT"]
+    q = spec.loc[spec.SCAN==scan].index.to_list()[0]
+    spec = spec[q-scanrange:q+scanrange+1]
+    return(spec)
 
 def _decimal_places(x):
     s = str(x)
@@ -89,7 +104,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, dtapath):
     apexonly.reset_index(drop=True, inplace=True)
     return(mz, apex_list, apexonly)
 
-def PlotIntegration(mz, apex_list, apexonly):
+def PlotIntegration(mz, apex_list, apexonly, outplot):
     fig = plt.figure()
     fig.set_size_inches(20, 15)
     
@@ -110,6 +125,10 @@ def PlotIntegration(mz, apex_list, apexonly):
     plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue")
     plt.axvline(x=mz, color='orange', ls="--")
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
+    
+    fig.savefig(outplot)
+    fig.clear()
+    plt.close(fig)
     return
 
 def main(args):
