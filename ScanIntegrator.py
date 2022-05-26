@@ -17,13 +17,15 @@ def readMZML(mzmlpath, scan, scanrange):
     pyopenms.MzMLFile().load(mzmlpath, exp)
     # Keep only full scans
     spec = []
+    query = np.arange(scan-scanrange,scan+scanrange+1,1)
     for s in exp.getSpectra():
-        if s.getMSLevel() == 1:
-            spec.append([int(s.getNativeID().split(' ')[-1][5:]), s.get_peaks()[0], s.get_peaks()[1]]) 
-    spec = pd.DataFrame(spec)
-    spec.columns = ["SCAN", "MZ", "INT"]
-    q = spec.loc[spec.SCAN==scan].index.to_list()[0]
-    spec = spec[q-scanrange:q+scanrange+1]
+        # Keep only scans in range
+        if s.getMSLevel() == 1 and int(s.getNativeID().split(' ')[-1][5:]) in query:
+            df = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+            df.columns = ["MZ", "INT"]
+            spec.append(df)
+    spec = pd.concat(spec)
+    spec = spec.sort_values(by="MZ", ignore_index=True)
     return(spec)
 
 def _decimal_places(x):
@@ -50,21 +52,11 @@ def InInt(row, dtas):
     #     inintlist.append(inint)
     return(row)
 
-def Integrate(scan, mz, scanrange, mzrange, bin_width, dtapath):
+def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath):
     srange = int(scanrange)
     drange = float(mzrange)
-    # Find DTA files #
-    dtafiles = os.listdir(dtapath)
-    dtafiles = [i for i in dtafiles if i[-6:]=='.0.dta'] # Full Scans
-    dtadf = pd.DataFrame(dtafiles)
-    dtadf["SCAN"] = dtadf.FILENAME.str.split(".").str[-3].astype(int)
-    dtadf = dtadf.sort_values(by="SCAN", ignore_index=True)
-    # Read necessary DTA files #
-    qfull = min(list(dtadf.SCAN), key = lambda x : abs(x - scan))
-    dta = dtadf[dtadf.SCAN == qfull].index.values[0]
-    dta = dtadf.iloc[dtadf[dtadf.SCAN == qfull].index.values[0]-srange:dtadf[dtadf.SCAN == qfull].index.values[0]+srange+1]
-    dtas = pd.concat([pd.read_table(os.path.join(dtapath, f.FILENAME), index_col=None, header=0, delimiter=" ", names=["MZ", "INT"]) for i, f in dta.iterrows()])
-    dtas = dtas.sort_values(by="MZ", ignore_index=True)
+    # Read MZML file #
+    dtas = readMZML(mzmlpath, scan, scanrange)
     # Binning #
     bins = list(np.arange(mz-drange, mz+drange, bin_width))
     bins = [round(x, _decimal_places(bin_width)) for x in bins]
