@@ -612,12 +612,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     header2 = [ytable.add_cell(9,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
     header2[0].get_text().set_text("PTM PINPOINTING")
     if dm >= min_dm:
+        ypos = len(plainseq)-YDAGmax.to_list()[0]
+        yaa = PTMprob[YDAGmax.to_list()[0]]
+        if ypos > len(plainseq):
+            ypos = 1
+            yaa = PTMprob[-1]
         header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]))
+        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]+1))
         header6 = [ytable.add_cell(10,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header6[0].get_text().set_text("B series") 
         header4 = [ytable.add_cell(11,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header4[0].get_text().set_text(str(PTMprob[YDAGmax.to_list()[0]])+str(YDAGmax.to_list()[0]))
+        header4[0].get_text().set_text(str(yaa)+str(ypos))
         header5 = [ytable.add_cell(11,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header5[0].get_text().set_text("Y series")
     else:
@@ -738,7 +743,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         points2 = np.ones(30)
     if dm >= min_dm:
         color[BDAGmax.row.iloc[0]] = 'red'
-        color[len(plainseq)-YDAGmax.to_list()[0]] = 'red'
+        if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
+            color[len(plainseq)-1] = 'red'
+        else:
+            color[abs(YDAGmax.to_list()[0])] = 'red'
     ax5.scatter(list(range(len(points2))), 1*points2, facecolors='none', edgecolors=color, marker='o', s=1200)
     # if len(plainseq) < 30:
     #     extra = np.ones(30 - len(plainseq))
