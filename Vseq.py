@@ -615,7 +615,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         ypos = len(plainseq)-YDAGmax.to_list()[0]
         yaa = PTMprob[YDAGmax.to_list()[0]]
         if ypos > len(plainseq):
-            ypos = 1
+            ypos = len(plainseq)
             yaa = PTMprob[-1]
         header3 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]+1))
