@@ -417,7 +417,7 @@ def asBY(deltaplot, sub, sublen):
                 BYDAG.dist.iloc[-1] = BYDAG.col.iloc[-1]
                 BYDAG.dist.iloc[i-1] = abs(BYDAG.col.iloc[i] - BYDAG.col.iloc[i-1])
                 for j in list(range(1,i+1)):
-                    if BYDAG.dist.iloc[i] <= 7:
+                    if BYDAG.dist.iloc[i] <= 7: # TODO: adjust this value
                         BYDAG.value.iloc[j] = BYDAG.value.iloc[i] + 1
                     elif BYDAG.dist.iloc[i] > 7:
                         BYDAG.value.iloc[j] = 0
@@ -814,11 +814,15 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def plotIntegration(scan, mz, scanrange, mzrange, bin_width, mzmlpath):
-    mz, apex_list, apexonly = ScanIntegrator.Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath)
-    outpath = Path(r".csv") # TODO
+def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, outpath):
+    outpath = os.path.join(outpath, str(sub.Raw) +
+                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                           + "_ch" + str(sub.Charge) + "_Integration.csv")
+    outplot = os.path.join(outpath, str(sub.Raw) +
+                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                           + "_ch" + str(sub.Charge) + "_Integration.pdf")
+    mz, apex_list, apexonly = ScanIntegrator.Integrate(sub.FirstScan, mz, scanrange, mzrange, bin_width, mzmlpath)
     apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
-    outplot = Path(r".pdf") # TODO
     ScanIntegrator.PlotIntegration(mz, apex_list, apexonly, outplot)
     return
 
@@ -1007,7 +1011,8 @@ def main(args):
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
                 mz = float(sub.MH) / int(sub.Charge)
-                plotIntegration(sub.FirstScan, mz, int_scanrange, int_mzrange, int_binwidth, mzml) # outside of doVseq() becuase we don't want it in VseqExplorer
+                plotIntegration(sub, mz, int_scanrange, int_mzrange,
+                                int_binwidth, mzml, pathdict["out"]) # outside of doVseq() becuase we don't want it in VseqExplorer
             
 if __name__ == '__main__':
 
