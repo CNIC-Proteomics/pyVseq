@@ -1013,7 +1013,7 @@ def main(args):
                 #seq2 = sub.Sequence[::-1]
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
-                mz = float(sub.MH) / int(sub.Charge)
+                mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 logging.info("\t\t\tIntegrating scans...")
                 plotIntegration(sub, mz, int_scanrange, int_mzrange,
                                 int_binwidth, mzml, pathdict["out"],
