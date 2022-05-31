@@ -41,7 +41,7 @@ def prepareWorkspace(exp, mgfpath, mzmlpath, outpath):
     mzmlpath = Path(mzmlpath)
     outpath = Path(outpath)
     # Get dta path for the experiment
-    mzmlpath = os.path.join(mzmlpath, exp + ".dta")
+    # mzmlpath = os.path.join(mzmlpath, exp + ".dta")
     var_name_path = os.path.join(outpath, exp)
     # Create output directory
     if not os.path.exists(outpath):
@@ -814,15 +814,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, outpath):
+def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers):
     ''' Integrate and save apex list and plot to files. '''
-    outpath = os.path.join(outpath, str(sub.Raw) +
+    outpath = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + "_ch" + str(sub.Charge) + "_Integration.csv")
-    outplot = os.path.join(outpath, str(sub.Raw) +
+    outplot = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + "_ch" + str(sub.Charge) + "_Integration.pdf")
-    mz, apex_list, apexonly = ScanIntegrator.Integrate(sub.FirstScan, mz, scanrange, mzrange, bin_width, mzmlpath)
+    mz, apex_list, apexonly = ScanIntegrator.Integrate(sub.FirstScan, mz, scanrange,
+                                                       mzrange, bin_width, mzmlpath,
+                                                       n_workers)
     apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
     ScanIntegrator.PlotIntegration(mz, apex_list, apexonly, outplot)
     return
@@ -1012,13 +1014,15 @@ def main(args):
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
                 mz = float(sub.MH) / int(sub.Charge)
+                logging.info("\t\t\tIntegrating scans...")
                 plotIntegration(sub, mz, int_scanrange, int_mzrange,
-                                int_binwidth, mzml, pathdict["out"]) # outside of doVseq() becuase we don't want it in VseqExplorer
+                                int_binwidth, mzml, pathdict["out"],
+                                int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
+                logging.info("\t\t\tDone.")
             
 if __name__ == '__main__':
 
     # multiprocessing.freeze_support()
-
     # parse arguments
     parser = argparse.ArgumentParser(
         description='Vseq',
@@ -1034,6 +1038,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
     parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
+    parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
     

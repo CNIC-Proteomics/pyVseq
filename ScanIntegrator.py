@@ -52,7 +52,7 @@ def InInt(row, dtas):
     #     inintlist.append(inint)
     return(row)
 
-def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath):
+def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     srange = int(scanrange)
     drange = float(mzrange)
     # Read MZML file #
@@ -63,7 +63,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath):
     bins_df = pd.DataFrame([bins]*len(dtas))
     # Calculate intensity #
     indices, row_series = zip(*bins_df.iterrows())
-    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+    with concurrent.futures.ProcessPoolExecutor(n_workers) as executor:
         temp_bins_df = list(tqdm(executor.map(InInt, row_series, itertools.repeat(dtas), chunksize=500),
                                  total=len(row_series)))
     bins_df = pd.concat(temp_bins_df, axis=1).T
