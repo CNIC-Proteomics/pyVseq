@@ -96,7 +96,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(mz, apex_list, apexonly)
 
-def PlotIntegration(mz, apex_list, apexonly, outplot):
+def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     fig = plt.figure()
     fig.set_size_inches(20, 15)
     

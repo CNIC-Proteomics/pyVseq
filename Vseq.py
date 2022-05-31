@@ -814,7 +814,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers):
+def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers, massconfig):
     ''' Integrate and save apex list and plot to files. '''
     outpath = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
@@ -826,7 +826,24 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
                                                        mzrange, bin_width, mzmlpath,
                                                        n_workers)
     apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
-    ScanIntegrator.PlotIntegration(mz, apex_list, apexonly, outplot)
+    
+    # Isotopic envelope theoretical distribution (Poisson)
+    massconfig = configparser.ConfigParser(inline_comment_prefixes='#')
+    massconfig.read(args.config)
+    plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
+    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
+    pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
+    theomh = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
+    # mean_aa = np.mean([float(dict(mass._sections['Aminoacids'])[aa] )for aa in dict(mass._sections['Aminoacids'])])
+    avg_aa = 111.1254 # Dalton
+    C13 = 1.003355 # Dalton
+    est_C13 = (0.000594 * theomh) - 0.03091
+    poisson_df = pd.DataFrame(list(range(0,9)))
+    poisson_df.columns = ["n"]
+    poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
+    poisson_df["Poisson"] = poisson_df.apply(lambda x: scipy.stats.poisson.pmf(x.n, est_C13), axis=1)
+    # Plots
+    ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 
 def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
