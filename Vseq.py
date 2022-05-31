@@ -815,6 +815,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     return
 
 def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, outpath):
+    ''' Integrate and save apex list and plot to files. '''
     outpath = os.path.join(outpath, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + "_ch" + str(sub.Charge) + "_Integration.csv")
@@ -994,7 +995,7 @@ def main(args):
         sql = scan_info.loc[scan_info.Raw == exp]
         #data_type = sql.type[0]
         sql.reset_index(inplace=True, drop=True)
-        pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.dtaDir[0], sql.outDir[0])
+        pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.mzmlDir[0], sql.outDir[0])
         mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
         mzml = os.path.join(pathdict["mzml"], exp + ".mzML")
         logging.info("\tReading mgf file")
