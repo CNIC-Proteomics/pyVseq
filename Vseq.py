@@ -1036,11 +1036,12 @@ def main(args):
                 doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
-                logging.info("\t\t\tIntegrating scans...")
-                plotIntegration(sub, mz, int_scanrange, int_mzrange,
-                                int_binwidth, mzml, pathdict["out"],
-                                int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
-                logging.info("\t\t\tDone.")
+                if args.integrate:
+                    logging.info("\t\t\tIntegrating scans...")
+                    plotIntegration(sub, mz, int_scanrange, int_mzrange,
+                                    int_binwidth, mzml, pathdict["out"],
+                                    int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
+                    logging.info("\t\t\tDone.")
             
 if __name__ == '__main__':
 
@@ -1060,6 +1061,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
     parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
+    parser.add_argument('-n', '--integrate', action="store_true", help='Perform scan integration')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
