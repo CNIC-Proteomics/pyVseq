@@ -822,9 +822,9 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     outplot = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                            + "_ch" + str(sub.Charge) + "_Integration.pdf")
-    mz, apex_list, apexonly = ScanIntegrator.Integrate(sub.FirstScan, mz, scanrange,
-                                                       mzrange, bin_width, mzmlpath,
-                                                       n_workers)
+    apex_list, apexonly = ScanIntegrator.Integrate(sub.FirstScan, mz, scanrange,
+                                                   mzrange, bin_width, mzmlpath,
+                                                   n_workers)
     apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
     
     # Isotopic envelope theoretical distribution (Poisson)
@@ -833,7 +833,10 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
     mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
     pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
-    theomh = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
+    parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
+    mim = sub.MH
+    dm = mim - parental
+    theomh = parental + dm
     # mean_aa = np.mean([float(dict(mass._sections['Aminoacids'])[aa] )for aa in dict(mass._sections['Aminoacids'])])
     avg_aa = 111.1254 # Dalton
     C13 = 1.003355 # Dalton
@@ -841,7 +844,9 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     poisson_df = pd.DataFrame(list(range(0,9)))
     poisson_df.columns = ["n"]
     poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
+    poisson_df["theomz"] = poisson_df.theomh / sub.Charge
     poisson_df["Poisson"] = poisson_df.apply(lambda x: scipy.stats.poisson.pmf(x.n, est_C13), axis=1)
+    poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
     # Plots
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return

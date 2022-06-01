@@ -94,14 +94,11 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
         apexonly.loc[apexonly.shape[0]] = after
     apexonly.sort_values(by=['BIN'], inplace=True)
     apexonly.reset_index(drop=True, inplace=True)
-    return(mz, apex_list, apexonly)
+    return(apex_list, apexonly)
 
 def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     fig = plt.figure()
     fig.set_size_inches(20, 15)
-    
-    # TODO: add superposed poisson theo_dist
-    # TODO: adjust Y axis
     
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
@@ -110,8 +107,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans", fontsize=20)
-    plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue")
-    plt.axvline(x=mz, color='orange', ls="--")
+    plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=3)
+    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=2)
+    plt.axvline(x=mz, color='orange', ls="--", zorder=1)
     ax1.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
 
     ax2 = fig.add_subplot(2,1,2)
@@ -119,8 +117,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans (apexes only)", fontsize=20)
-    plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue")
-    plt.axvline(x=mz, color='orange', ls="--")
+    plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=3)
+    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=2)
+    plt.axvline(x=mz, color='orange', ls="--", zorder=1)
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
     
     fig.savefig(outplot)
