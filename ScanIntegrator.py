@@ -103,7 +103,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     
     custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                 Line2D([0], [0], color="lightblue", lw=2),
-                Line2D([0], [0], color="orange", lw=2, ls="--")]
+                Line2D([0], [0], color="orange", lw=2, ls="--"),
+                Line2D([0], [0], color="green", lw=2, ls="dotted")]
     
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
@@ -112,22 +113,24 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans", fontsize=20)
-    plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=3)
-    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=2)
-    plt.axvline(x=mz, color='orange', ls="--", zorder=1)
+    plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=4)
+    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=3)
+    plt.axvline(x=mz, color='orange', ls="--", zorder=2)
+    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax1.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'])
+    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'])
 
     ax2 = fig.add_subplot(2,1,2)
     plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans (apexes only)", fontsize=20)
-    plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=3)
-    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=2)
-    plt.axvline(x=mz, color='orange', ls="--", zorder=1)
+    plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=4)
+    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="lightblue", zorder=3)
+    plt.axvline(x=mz, color='orange', ls="--", zorder=2)
+    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'])
+    ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'])
     
     fig.savefig(outplot)
     fig.clear()

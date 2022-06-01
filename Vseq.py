@@ -981,7 +981,8 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
                       proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                       outpath, massconfig, standalone, ppm_plot)
     if standalone:
-        logging.info("\t\t\tDone.")
+        if not args.integrate:
+            logging.info("\t\t\tDone.")
         return
     elif dograph and not standalone:
         return
