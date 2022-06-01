@@ -100,9 +100,13 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     fig = plt.figure()
     fig.set_size_inches(20, 15)
     
+    # TODO: add superposed poisson theo_dist
+    # TODO: adjust Y axis
+    
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
     apex_list.loc[apex_list.APEX == True, 'COLOR'] = 'red'
+    plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans", fontsize=20)
@@ -111,6 +115,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     ax1.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
 
     ax2 = fig.add_subplot(2,1,2)
+    plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
     plt.xlabel("M/Z", fontsize=15)
     plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
     plt.title("Integrated Scans (apexes only)", fontsize=20)

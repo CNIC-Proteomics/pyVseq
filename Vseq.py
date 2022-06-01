@@ -814,7 +814,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers, massconfig):
+def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers):
     ''' Integrate and save apex list and plot to files. '''
     outpath = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
