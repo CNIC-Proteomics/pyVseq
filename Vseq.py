@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 import pandas as pd
 from pathlib import Path
+import pyopenms
 import random
 import re
 import seaborn as sns
@@ -36,9 +37,8 @@ import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 import ScanIntegrator
 
-def prepareWorkspace(exp, mgfpath, mzmlpath, outpath):
-    mgfpath = Path(mgfpath)
-    mzmlpath = Path(mzmlpath)
+def prepareWorkspace(exp, msdatapath, outpath):
+    msdata = Path(msdatapath)
     outpath = Path(outpath)
     # Get dta path for the experiment
     # mzmlpath = os.path.join(mzmlpath, exp + ".dta")
@@ -47,13 +47,11 @@ def prepareWorkspace(exp, mgfpath, mzmlpath, outpath):
     if not os.path.exists(outpath):
         os.mkdir(var_name_path)
     logging.info("Experiment: " + exp)
-    logging.info("mgfpath: " + str(mgfpath))
-    logging.info("mzmlpath: " + str(mzmlpath))
+    logging.info("msdatapath: " + str(msdatapath))
     logging.info("outpath: " + str(outpath))
     logging.info("varNamePath: " + str(var_name_path))
     pathdict = {"exp": exp,
-                "mgf": mgfpath,
-                "mzml": mzmlpath,
+                "msdata": msdatapath,
                 "out": outpath,
                 "var_name": var_name_path}
     return pathdict
@@ -1020,12 +1018,20 @@ def main(args):
         sql = scan_info.loc[scan_info.Raw == exp]
         #data_type = sql.type[0]
         sql.reset_index(inplace=True, drop=True)
-        pathdict = prepareWorkspace(exp, sql.mgfDir[0], sql.mzmlDir[0], sql.outDir[0])
-        mgf = os.path.join(pathdict["mgf"], exp + ".mgf")
-        mzml = os.path.join(pathdict["mzml"], exp + ".mzML")
-        logging.info("\tReading mgf file")
-        fr_ns = pd.read_csv(mgf, header=None)
-        index2 = fr_ns.to_numpy() == 'END IONS'
+        pathdict = prepareWorkspace(exp, sql.msdataDir[0], sql.outDir[0])
+        if os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mzML")):
+            msdata = os.path.join(pathdict["msdata"], exp + ".mzML")
+            mode = "mzml"
+            logging.info("\tReading mzML file...")
+            # TODO read mzML into fr_ns
+        elif os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mgf")):
+            msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
+            mode = "mgf"
+            logging.info("\tReading MGF file...")
+            fr_ns = pd.read_csv(msdata, header=None)
+            index2 = fr_ns.to_numpy() == 'END IONS'
+        else:
+            logging.info("MGF or mzML file not found in " + str(msdata))
         tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
@@ -1038,11 +1044,14 @@ def main(args):
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 if args.integrate:
-                    logging.info("\t\t\tIntegrating scans...")
-                    plotIntegration(sub, mz, int_scanrange, int_mzrange,
-                                    int_binwidth, mzml, pathdict["out"],
-                                    int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
-                    logging.info("\t\t\tDone.")
+                    if mode == "mzml":
+                        logging.info("\t\t\tIntegrating scans...")
+                        plotIntegration(sub, mz, int_scanrange, int_mzrange,
+                                        int_binwidth, msdata, pathdict["out"], # TODO Check msdata is mzML, warn if not
+                                        int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
+                        logging.info("\t\t\tDone.")
+                    elif mode == "mgf":
+                        logging.info("Cannot integrate using MGF files.")
             
 if __name__ == '__main__':
 
