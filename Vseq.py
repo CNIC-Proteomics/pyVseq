@@ -836,7 +836,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
     mim = sub.MH
     dm = mim - parental
-    theomh = parental + dm + 2*mass.getfloat('Masses', 'm_proton')
+    theomh = parental + dm + (sub.Charge-1)*mass.getfloat('Masses', 'm_proton')
     # mean_aa = np.mean([float(dict(mass._sections['Aminoacids'])[aa] )for aa in dict(mass._sections['Aminoacids'])])
     avg_aa = 111.1254 # Dalton
     C13 = 1.003355 # Dalton
