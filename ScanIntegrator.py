@@ -74,7 +74,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     srange = int(scanrange)
     drange = float(mzrange)
     # Read MZML file #
-    dtas = readMZML(mzmlpath, scan, scanrange)
+    dtas = readMZML(mzmlpath, scan, srange)
     # Binning #
     bins = list(np.arange(mz-drange, mz+drange, bin_width))
     bins = [round(x, _decimal_places(bin_width)) for x in bins]
