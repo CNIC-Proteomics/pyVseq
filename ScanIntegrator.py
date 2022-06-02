@@ -12,13 +12,30 @@ import pandas as pd
 from pathlib import Path
 import sys
 from tqdm import tqdm
+from bisect import bisect_left
 
+def findFULL(fulls, scan, scanrange):
+    pos = bisect_left(fulls, scan)
+    if pos == 0:
+        return fulls[:pos+1+scanrange]
+    if pos == len(fulls):
+        return fulls[pos-1-scanrange:]
+    if fulls[pos] <= scan:
+        return fulls[pos-scanrange:pos+1+scanrange]
+    else:
+        return fulls[pos-1-scanrange:pos+scanrange]
+    
 def readMZML(mzmlpath, scan, scanrange):
     exp = pyopenms.MSExperiment()
     pyopenms.MzMLFile().load(mzmlpath, exp)
     # Keep only full scans
+    fulls = []
+    for s in exp.getSpectra():
+        if s.getMSLevel() == 1: # Keep only full scans
+            fulls.append(int(s.getNativeID().split(' ')[-1][5:]))
+    # query = np.arange(scan-scanrange,scan+scanrange+1,1)
+    query = findFULL(fulls, scan, scanrange)
     spec = []
-    query = np.arange(scan-scanrange,scan+scanrange+1,1)
     for s in exp.getSpectra():
         # Keep only scans in range
         if s.getMSLevel() == 1 and int(s.getNativeID().split(' ')[-1][5:]) in query:
