@@ -87,7 +87,7 @@ def getTquery(fr_ns, mode):
                           s.getPrecursors()[0].getMZ(), # Precursor MZ
                           s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
                 df.columns = ["SCANS", "CHARGE", "MZ", "INT"]
-                spec.append(df)
+                tquery.append(df)
         tquery = pd.concat(tquery)
         tquery = tquery.apply(pd.to_numeric)
     return tquery
