@@ -56,27 +56,40 @@ def prepareWorkspace(exp, msdatapath, outpath):
                 "var_name": var_name_path}
     return pathdict
 
-def getTquery(fr_ns):
-    squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
-    squery = squery[0].str.replace("SCANS=","")
-    squery.reset_index(inplace=True, drop=True)
-    mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
-    mquery = mquery[0].str.replace("PEPMASS=","")
-    mquery.reset_index(inplace=True, drop=True)
-    cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
-    cquery = cquery[0].str.replace("CHARGE=","")
-    cquery.reset_index(inplace=True, drop=True)
-    tquery = pd.concat([squery.rename('SCANS'),
-                        mquery.rename('PEPMASS'),
-                        cquery.rename('CHARGE')],
-                       axis=1)
-    try:
-        tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
-    except ValueError:
-        tquery['MZ'] = tquery.PEPMASS
-    tquery['CHARGE'] = tquery.CHARGE.str[:-1]
-    tquery = tquery.drop("PEPMASS", axis=1)
-    tquery = tquery.apply(pd.to_numeric)
+def getTquery(fr_ns, mode):
+    if mode == "mgf":
+        squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
+        squery = squery[0].str.replace("SCANS=","")
+        squery.reset_index(inplace=True, drop=True)
+        mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
+        mquery = mquery[0].str.replace("PEPMASS=","")
+        mquery.reset_index(inplace=True, drop=True)
+        cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
+        cquery = cquery[0].str.replace("CHARGE=","")
+        cquery.reset_index(inplace=True, drop=True)
+        tquery = pd.concat([squery.rename('SCANS'),
+                            mquery.rename('PEPMASS'),
+                            cquery.rename('CHARGE')],
+                           axis=1)
+        try:
+            tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+        except ValueError:
+            tquery['MZ'] = tquery.PEPMASS
+        tquery['CHARGE'] = tquery.CHARGE.str[:-1]
+        tquery = tquery.drop("PEPMASS", axis=1)
+        tquery = tquery.apply(pd.to_numeric)
+    elif mode == "mzML":
+        tquery = []
+        for s in fr_ns.getSpectra():
+            if s.getMSLevel() == 2:
+                df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
+                          s.getPrecursors()[0].getCharge(), # Precursor Charge
+                          s.getPrecursors()[0].getMZ(), # Precursor MZ
+                          s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
+                df.columns = ["SCANS", "CHARGE", "MZ", "INT"]
+                spec.append(df)
+        tquery = pd.concat(tquery)
+        tquery = tquery.apply(pd.to_numeric)
     return tquery
 
 def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
@@ -1035,6 +1048,7 @@ def main(args):
             fr_ns = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(msdata, fr_ns)
             index2 = 0
+            tquery = getTquery(fr_ns, mode # TODO mzML
             # TODO read mzML into fr_ns
         elif os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mgf")):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
@@ -1042,9 +1056,9 @@ def main(args):
             logging.info("\tReading MGF file...")
             fr_ns = pd.read_csv(msdata, header=None)
             index2 = fr_ns.to_numpy() == 'END IONS'
+            tquery = getTquery(fr_ns, mode)
         else:
             logging.info("MGF or mzML file not found in " + str(msdata))
-        tquery = getTquery(fr_ns)
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
             logging.info("\t\tScan: " + str(scan))
