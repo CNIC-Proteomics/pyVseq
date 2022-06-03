@@ -28,6 +28,7 @@ import re
 import scipy.stats
 import statistics
 from tqdm import tqdm
+# from p_tqdm import p_map
 import warnings
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -233,7 +234,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, ppmfinal, frags = doVseq(x, tquery, mgf, index2, min_dm,
+    vscore, escore, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, min_vscore, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -429,7 +430,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         # logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
         if not os.path.exists(Path(outpath3)):
             os.mkdir(Path(outpath3))
-        f_subtquery.apply(lambda x: doVseq(x,
+        f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+                                           x,
                                            tquery,
                                            mgf,
                                            index2,
@@ -510,6 +512,9 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
+        mode = "mgf"
+        if raw[-4:] == "mzML":
+            mode = "mzml"
         mgf = Path(raw)
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
@@ -519,7 +524,7 @@ def main(args):
         # mgf.reset_index(drop=True, inplace=True)
         # mgf = Path(mgf.iloc[0][0])
         logging.info("RAW: " + str(mgf))
-        mgf = pd.read_csv(mgf, header=None, sep="\t")
+        mgf = pd.read_csv(mgf, header=None, sep="\t") # TODO add mzML mode and mode arg to doVseq call
         index2 = mgf.to_numpy() == 'END IONS'
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
@@ -549,11 +554,16 @@ def main(args):
                 if len(rowSeqs) <= 500:
                     chunks = 50
                 with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                    # exploredseqs = list(tqdm(p_map(_parallelSeqTable,
                     exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
                                                           rowSeqs,
                                                           itertools.repeat(parlist),
                                                           chunksize=chunks),
                                       total=len(rowSeqs)))
+                # exploredseqs = p_map(_parallelSeqTable,
+                #                                       rowSeqs,
+                #                                       itertools.repeat(parlist),
+                #                                       num_cpus=args.n_workers)
                 # exploredseqs = pd.concat(exploredseqs)
                 # exploredseqs.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                 #                  mode='a', header=not os.path.exists(outfile))
@@ -659,7 +669,8 @@ def main(args):
                         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
-                        f_subtquery.apply(lambda x: doVseq(x,
+                        f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+                                                           x,
                                                            tquery,
                                                            mgf,
                                                            index2,
