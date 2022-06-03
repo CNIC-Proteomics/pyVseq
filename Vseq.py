@@ -868,17 +868,17 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     poisson_df["Poisson"] = poisson_df.apply(lambda x: scipy.stats.poisson.pmf(x.n, est_C13), axis=1)
     poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
     poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<0.8], poisson_df[poisson_df["cumsum"]>=0.8].head(1)])
-    poisson_df["n_cumsum"] = poisson_df["cumsum"]/poisson_df["cumsum"].max()
+    poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
     # Select experimental peaks within tolerance
     apexonly2 = apexonly[apexonly.SUMINT>0]
     poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
     poisson_df.exp_peak = poisson_df.apply(lambda x: -1 if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
     poisson_df = poisson_df[poisson_df.exp_peak>=0]
     poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-    int_total = poisson_df[poisson_df.exp_peak!=None].exp_int.sum()
-    poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*int_total, axis=1)
+    int_total = poisson_df.exp_int.sum()
+    poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
     # poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
-    # Plots # TODO chi squared
+    # Plots
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 

@@ -6,10 +6,12 @@ import logging
 import math
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnchoredText
 import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+from scipy.stats import chi2_contingency
 import sys
 from tqdm import tqdm
 from bisect import bisect_left
@@ -123,6 +125,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
                 Line2D([0], [0], color="orange", lw=2, ls="--"),
                 Line2D([0], [0], color="green", lw=2, ls="dotted")]
     
+    chi2, p, dof, ex = chi2_contingency(np.array([list(theo_dist.exp_int), list(theo_dist.P_compare)]))
+    
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
     apex_list.loc[apex_list.APEX == True, 'COLOR'] = 'red'
@@ -147,6 +151,10 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.axvline(x=mz, color='orange', ls="--", zorder=2)
     plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
+    text_box = AnchoredText("Chi2: " + str(chi2) + "\nP-value: " + str(p) + "\DoF: " + str(dof),
+                            frameon=True, loc='upper left', pad=0.5)
+    plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+    ax2.add_artist(text_box) # TODO check
     ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'])
     
     fig.savefig(outplot)
