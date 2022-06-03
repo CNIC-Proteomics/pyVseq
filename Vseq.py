@@ -116,30 +116,39 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, scan, index2):
+def expSpectrum(fr_ns, scan, index2, mode):
     '''
     Prepare experimental spectrum.
     '''
     # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
     # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
     
-    index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
-    index1 = np.where(index1)[0][0]
-    index3 = np.where(index2)[0]
-    index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-    
-    try:
-        ions = fr_ns.iloc[index1+1:index3,:]
-        ions[0] = ions[0].str.strip()
-        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-        ions = ions.drop(ions.columns[0], axis=1)
-        ions = ions.apply(pd.to_numeric)
-    except ValueError:
-        ions = fr_ns.iloc[index1+4:index3,:]
-        ions[0] = ions[0].str.strip()
-        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-        ions = ions.drop(ions.columns[0], axis=1)
-        ions = ions.apply(pd.to_numeric)
+    if mode == "mgf":
+        index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
+        index1 = np.where(index1)[0][0]
+        index3 = np.where(index2)[0]
+        index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+        
+        try:
+            ions = fr_ns.iloc[index1+1:index3,:]
+            ions[0] = ions[0].str.strip()
+            ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+            ions = ions.drop(ions.columns[0], axis=1)
+            ions = ions.apply(pd.to_numeric)
+        except ValueError:
+            ions = fr_ns.iloc[index1+4:index3,:]
+            ions[0] = ions[0].str.strip()
+            ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+            ions = ions.drop(ions.columns[0], axis=1)
+            ions = ions.apply(pd.to_numeric)
+    elif mode == "mzml":
+        for s in fr_ns.getSpectra():
+            # Keep only scans in range
+            if int(s.getNativeID().split(' ')[-1][5:]) == int(scan):
+                ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+                ions.columns = ["MZ", "INT"]
+                break # Scan numbers are unique
+        
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
@@ -211,7 +220,7 @@ def theoSpectrum(seq, mods, pos, len_ions, dm, massconfig, standalone):
     spec.reset_index(inplace=True, drop=True)
     return(spec)
 
-def errorMatrix(fr_ns, mz, theo_spec, massconfig, standalone):
+def errorMatrix(mz, theo_spec, massconfig, standalone):
     '''
     Prepare ppm-error and experimental mass matrices.
     '''
@@ -849,7 +858,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 
-def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
+def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_vscore, ppm_plot):
     if not standalone:
         mass = massconfig
@@ -876,15 +885,15 @@ def doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     parentaldm = parental + dm
     dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2, mode)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
     theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)
-    terrors, terrors2, terrors3, texp = errorMatrix(fr_ns, ions.MZ, theo_spec, massconfig, standalone)
+    terrors, terrors2, terrors3, texp = errorMatrix(ions.MZ, theo_spec, massconfig, standalone)
     
     ## DM OPERATIONS ##
     dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), dm, massconfig, standalone)
-    dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(fr_ns, ions.MZ, dm_theo_spec, massconfig, standalone)
+    dmterrors, dmterrors2, dmterrors3, dmtexp = errorMatrix(ions.MZ, dm_theo_spec, massconfig, standalone)
     dmterrorsmin = pd.DataFrame(np.array([dmterrors, dmterrors2, dmterrors3]).min(0)) # Parallel minima
     parcialdm = dmterrorsmin
     dmfppm = dmterrorsmin[(dmterrorsmin < 300).sum(axis=1) >= 0.01*len(dmterrorsmin.columns)]
@@ -1023,6 +1032,9 @@ def main(args):
             msdata = os.path.join(pathdict["msdata"], exp + ".mzML")
             mode = "mzml"
             logging.info("\tReading mzML file...")
+            fr_ns = pyopenms.MSExperiment()
+            pyopenms.MzMLFile().load(msdata, fr_ns)
+            index2 = 0
             # TODO read mzML into fr_ns
         elif os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mgf")):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
@@ -1040,7 +1052,7 @@ def main(args):
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
-                doVseq(sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_vscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 if args.integrate:
