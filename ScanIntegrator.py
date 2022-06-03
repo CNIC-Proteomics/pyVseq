@@ -162,6 +162,7 @@ def main(args):
     srange = int(args.scanrange)
     drange = float(args.mzrange)
     bin_width = float(args.bin)
+    t_poisson = float(args.poisson)
     
     # infile = r"\\Tierra\SC\U_Proteomica\UNIDAD\DatosCrudos\JorgeAlegreCebollada\Glyco_Titin\experiment_Oct21\8870\Titin_glyco.51762.51762.0.dta"
     logging.info("Scan range: ±" + str(srange))
@@ -292,6 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('-s',  '--scanrange', default=6, help='± full scans to use')
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
+    parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
     parser.add_argument('-o', '--outpath', help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")

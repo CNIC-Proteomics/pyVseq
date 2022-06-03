@@ -834,7 +834,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.close(fig)
     return
 
-def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_workers):
+def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath, out, n_workers):
     ''' Integrate and save apex list and plot to files. '''
     outpath = os.path.join(out, str(sub.Raw) +
                            "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
@@ -866,7 +866,16 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, mzmlpath, out, n_wor
     poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
     poisson_df["theomz"] = poisson_df.theomh / sub.Charge
     poisson_df["Poisson"] = poisson_df.apply(lambda x: scipy.stats.poisson.pmf(x.n, est_C13), axis=1)
-    poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
+    poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
+    poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<0.8], poisson_df[poisson_df["cumsum"]>=0.8].head(1)])
+    poisson_df["n_cumsum"] = poisson_df["cumsum"]/poisson_df["cumsum"].max()
+    # Select experimental peaks within tolerance
+    poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+    poisson_df.exp_peak = poisson_df.apply(lambda x: None if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
+    poisson_df["exp_int"] = poisson_df.apply(lambda x: apexonly[apexonly.BIN==x.exp_peak].SUMINT, axis=1)
+    int_total = poisson_df[poisson_df.exp_peak!=None].exp_int.sum()
+    poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*int_total, axis=1)
+    # poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
     # Plots
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
@@ -1024,6 +1033,7 @@ def main(args):
     int_scanrange = float(mass._sections['Parameters']['int_scanrange'])
     int_mzrange = float(mass._sections['Parameters']['int_mzrange'])
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
+    t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -1072,8 +1082,8 @@ def main(args):
                     if mode == "mzml":
                         logging.info("\t\t\tIntegrating scans...")
                         plotIntegration(sub, mz, int_scanrange, int_mzrange,
-                                        int_binwidth, msdata, pathdict["out"], # TODO Check msdata is mzML, warn if not
-                                        int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
+                                        int_binwidth, t_poisson, msdata,
+                                        pathdict["out"], int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
                         logging.info("\t\t\tDone.")
                     elif mode == "mgf":
                         logging.info("Cannot integrate using MGF files.")
