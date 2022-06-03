@@ -80,7 +80,7 @@ def getTquery(fr_ns, mode):
         tquery = tquery.apply(pd.to_numeric)
     elif mode == "mzML":
         tquery = []
-        for s in fr_ns.getSpectra():
+        for s in fr_ns.getSpectra(): # TODO this is slow
             if s.getMSLevel() == 2:
                 df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
                           s.getPrecursors()[0].getCharge(), # Precursor Charge
@@ -1048,8 +1048,7 @@ def main(args):
             fr_ns = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(msdata, fr_ns)
             index2 = 0
-            tquery = getTquery(fr_ns, mode # TODO mzML
-            # TODO read mzML into fr_ns
+            tquery = getTquery(fr_ns, mode)
         elif os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mgf")):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
             mode = "mgf"
