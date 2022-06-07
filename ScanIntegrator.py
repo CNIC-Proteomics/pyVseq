@@ -139,7 +139,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.axvline(x=mz, color='orange', ls="--", zorder=2)
     plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax1.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'])
+    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
+               loc="upper right")
 
     ax2 = fig.add_subplot(2,1,2)
     plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
@@ -151,11 +152,12 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.axvline(x=mz, color='orange', ls="--", zorder=2)
     plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    text_box = AnchoredText("Chi2: " + str(chi2) + "\nP-value: " + str(p) + "\DoF: " + str(dof),
+    text_box = AnchoredText("Chi2:\t" + str(round(chi2, 2)) + "\nP-value:\t" + str(p) + "\nDoF:\t" + str(dof),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax2.add_artist(text_box) # TODO check
-    ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'])
+    ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
+               loc="upper right")
     
     fig.savefig(outplot)
     fig.clear()
