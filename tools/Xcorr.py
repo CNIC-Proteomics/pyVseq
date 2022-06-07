@@ -59,7 +59,29 @@ def Xcorr(seq, theo_spec, exp_spec):
     #########################
     offset_by = 1 # bin
     offset_n = 75 # ± bins
+    offsets = np.arange(-offset_n, offset_n+1, offset_by)
     # Similarity at no offset - Mean of similarities at all offsets
-    offset_df = 
+    offset_df = []
+    bins_df.MZ = bins_df.MZ.astype('float')
+    for o in offsets:
+        # if o != 0:
+        temp_df = bins_df.copy()
+        temp_df.MZ = temp_df.MZ + (o*bin_width)
+        offset_df.append(temp_df)
+            
+    ##########################
+    ## 5. CROSS CORRELATION ##
+    ##########################
+    # Theoretical mass spectrum
+    theo_spec = theo_spec.head(1).T
+    theo_spec.columns = ["MZ"]
+    theo_spec["INT"] = list(int(len(theo_spec)/2)*[25]) + list(int(len(theo_spec)/2)*[50]) # Half INT for b-series
+    theo_spec.sort_values(by=['MZ'], inplace=True)
+    theo_spec.reset_index(drop=True, inplace=True)
+    # Dot product at each offset
+    xcorrs = []
+    for o_df in offset_df:
+        
+    
     return(xcorr)
 
