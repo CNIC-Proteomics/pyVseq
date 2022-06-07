@@ -13,17 +13,29 @@ scan = pd.read_table(infile, index_col=None, header=0, delimiter=" ", names=["MZ
 plt.plot(scan.MZ, scan.INT, linewidth=0.5)
 plt.title("0. Raw Spectrum")
 
-def Xcorr(seq, theo_spec, exp_spec):
+def Xcorr(seq, charge, theo_spec, exp_spec): # exp_spec is ions
+    m_proton = mass.getfloat('Masses', 'm_proton')
+    bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
+    offset_by = 1 # bin
+    offset_n = 75 # ± bins
+    # Prepare theoretical mass spectrum
+    theo_spec = theo_spec.head(1).T
+    theo_spec.columns = ["MZ"]
+    theo_spec.MZ = (theo_spec.MZ + charge*m_proton) / charge
+    theo_spec["INT"] = list(int(len(theo_spec)/2)*[25]) + list(int(len(theo_spec)/2)*[50]) # Half INT for b-series
+    theo_spec.sort_values(by=['MZ'], inplace=True)
+    theo_spec.reset_index(drop=True, inplace=True)
     ################
     ## 1. BINNING ##   # Xcorr without binning would be better # but then what do we use as offset?
     ################
-    bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
-    bins = list(np.arange(int(round(min(scan.MZ))),
-                          int(round(max(scan.MZ)))+bin_width,
+    min_MZ = min(exp_spec.MZ) if min(exp_spec.MZ)<=min(theo_spec.MZ) else min(theo_spec.MZ)
+    max_MZ = max(exp_spec.MZ) if max(exp_spec.MZ)>=min(theo_spec.MZ) else max(theo_spec.MZ)
+    bins = list(np.arange(int(round(min_MZ)-(offset_n*bin_width)),
+                          int(round(max(exp_spec.MZ))+(offset_n*(bin_width+1))),
                           bin_width))
     bins = [round(x, _decimal_places(bin_width)) for x in bins]
-    scan['BIN'] = pd.cut(scan.MZ, bins=bins)
-    bins_df = pd.DataFrame(scan.groupby("BIN")["INT"].sum())
+    exp_spec['BIN'] = pd.cut(exp_spec.MZ, bins=bins)
+    bins_df = pd.DataFrame(exp_spec.groupby("BIN")["INT"].sum())
     bins_df.reset_index(drop=False, inplace=True)
     bins_df.insert(1, 'MZ', bins_df['BIN'].apply(lambda x: x.mid))
     plt.plot(bins_df.MZ, bins_df.INT, linewidth=0.5)
@@ -57,8 +69,6 @@ def Xcorr(seq, theo_spec, exp_spec):
     #########################
     ## 4. GENERATE OFFSETS ##
     #########################
-    offset_by = 1 # bin
-    offset_n = 75 # ± bins
     offsets = np.arange(-offset_n, offset_n+1, offset_by)
     # Similarity at no offset - Mean of similarities at all offsets
     offset_df = []
@@ -72,12 +82,7 @@ def Xcorr(seq, theo_spec, exp_spec):
     ##########################
     ## 5. CROSS CORRELATION ##
     ##########################
-    # Theoretical mass spectrum
-    theo_spec = theo_spec.head(1).T
-    theo_spec.columns = ["MZ"]
-    theo_spec["INT"] = list(int(len(theo_spec)/2)*[25]) + list(int(len(theo_spec)/2)*[50]) # Half INT for b-series
-    theo_spec.sort_values(by=['MZ'], inplace=True)
-    theo_spec.reset_index(drop=True, inplace=True)
+    theo_spec['BIN'] = pd.cut(theo_spec.MZ, bins=bins)
     # Dot product at each offset
     xcorrs = []
     for o_df in offset_df:
