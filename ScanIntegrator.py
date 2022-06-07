@@ -152,7 +152,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.axvline(x=mz, color='orange', ls="--", zorder=2)
     plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
     ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    text_box = AnchoredText("Chi2:\t" + str(round(chi2, 2)) + "\nP-value:\t" + str(p) + "\nDoF:\t" + str(dof),
+    text_box = AnchoredText("Chi2:     " + str(round(chi2, 2)) + "\nP-value: " + str(p) + "\nDoF:       " + str(dof),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax2.add_artist(text_box) # TODO check
