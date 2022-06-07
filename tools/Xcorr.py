@@ -13,8 +13,7 @@ scan = pd.read_table(infile, index_col=None, header=0, delimiter=" ", names=["MZ
 plt.plot(scan.MZ, scan.INT, linewidth=0.5)
 plt.title("0. Raw Spectrum")
 
-def Xcorr(seq, charge, theo_spec, exp_spec): # exp_spec is ions
-    m_proton = mass.getfloat('Masses', 'm_proton')
+def Xcorr(seq, charge, theo_spec, exp_spec, m_proton): # exp_spec is ions
     bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
     offset_by = 1 # bin
     offset_n = 75 # ± bins
@@ -77,16 +76,20 @@ def Xcorr(seq, charge, theo_spec, exp_spec): # exp_spec is ions
         # if o != 0:
         temp_df = bins_df.copy()
         temp_df.MZ = temp_df.MZ + (o*bin_width)
+        # TODO: re-bin
         offset_df.append(temp_df)
             
     ##########################
     ## 5. CROSS CORRELATION ##
     ##########################
     theo_spec['BIN'] = pd.cut(theo_spec.MZ, bins=bins)
+    theo_spec['MZ'] = theo_spec.BIN.apply(lambda x: x.mid)
+    theo_spec = theo_spec[['MZ','INT']]
     # Dot product at each offset
     xcorrs = []
     for o_df in offset_df:
-        
-    
+        o_df = pd.merge(o_df, theo_spec, on ='MZ', how ='left').fillna(0)
+        o_df.INT_y = o_df.INT_y.fillna(0)
+        xcorr = np.dot(o_df.INT_x, o_df.INT_y)
     return(xcorr)
 
