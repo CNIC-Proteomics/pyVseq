@@ -78,7 +78,7 @@ def getTquery(fr_ns, mode):
         tquery['CHARGE'] = tquery.CHARGE.str[:-1]
         tquery = tquery.drop("PEPMASS", axis=1)
         tquery = tquery.apply(pd.to_numeric)
-    elif mode == "mzML":
+    elif mode == "mzml":
         tquery = []
         for s in fr_ns.getSpectra(): # TODO this is slow
             if s.getMSLevel() == 2:
@@ -1088,7 +1088,7 @@ def main(args):
                                         pathdict["out"], int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
                         logging.info("\t\t\tDone.")
                     elif mode == "mgf":
-                        logging.info("Cannot integrate using MGF files.")
+                        logging.info("\tCannot integrate using MGF files.")
             
 if __name__ == '__main__':
 
