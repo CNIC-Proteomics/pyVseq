@@ -86,10 +86,11 @@ def Xcorr(seq, charge, theo_spec, exp_spec, m_proton): # exp_spec is ions
     theo_spec['MZ'] = theo_spec.BIN.apply(lambda x: x.mid)
     theo_spec = theo_spec[['MZ','INT']]
     # Dot product at each offset
-    xcorrs = []
+    p_xcorrs = []
     for o_df in offset_df:
-        o_df = pd.merge(o_df, theo_spec, on ='MZ', how ='left').fillna(0)
+        o_df = pd.merge(o_df, theo_spec, on ='MZ', how ='left')
         o_df.INT_y = o_df.INT_y.fillna(0)
-        xcorr = np.dot(o_df.INT_x, o_df.INT_y)
+        p_xcorr = np.dot(o_df.INT_x, o_df.INT_y)
+        p_xcorrs.append(p_xcorr)
     return(xcorr)
 
