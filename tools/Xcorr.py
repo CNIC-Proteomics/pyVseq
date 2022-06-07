@@ -90,7 +90,8 @@ def Xcorr(seq, charge, theo_spec, exp_spec, m_proton): # exp_spec is ions
     for o_df in offset_df:
         o_df = pd.merge(o_df, theo_spec, on ='MZ', how ='left')
         o_df.INT_y = o_df.INT_y.fillna(0)
-        p_xcorr = np.dot(o_df.INT_x, o_df.INT_y)
+        p_xcorr = np.dot(o_df.NORM_INT, o_df.INT_y)
         p_xcorrs.append(p_xcorr)
+    plt.plot(offsets, p_xcorrs, linewidth=0.5)
     return(xcorr)
 
