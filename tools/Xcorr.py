@@ -13,14 +13,16 @@ scan = pd.read_table(infile, index_col=None, header=0, delimiter=" ", names=["MZ
 plt.plot(scan.MZ, scan.INT, linewidth=0.5)
 plt.title("0. Raw Spectrum")
 
-def Xcorr(seq, charge, theo_spec, exp_spec, m_proton): # exp_spec is ions
+def Xcorr(seq, charge, assign, exp_spec, m_proton): # exp_spec is ions
     bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
     offset_by = 1 # bin
     offset_n = 75 # ± bins
     # Prepare theoretical mass spectrum
-    theo_spec = theo_spec.head(1).T
-    theo_spec.columns = ["MZ"]
-    theo_spec.MZ = (theo_spec.MZ + charge*m_proton) / charge
+    theo_spec = assign
+    theo_spec.sort_values(by=['FRAGS'], inplace=True)
+    # theo_spec = theo_spec.head(1).T
+    # theo_spec.columns = ["MZ"]
+    # theo_spec.MZ = (theo_spec.MZ + charge*m_proton) / charge
     theo_spec["INT"] = list(int(len(theo_spec)/2)*[25]) + list(int(len(theo_spec)/2)*[50]) # Half INT for b-series
     theo_spec.sort_values(by=['MZ'], inplace=True)
     theo_spec.reset_index(drop=True, inplace=True)
