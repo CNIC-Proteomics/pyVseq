@@ -93,5 +93,11 @@ def Xcorr(seq, charge, theo_spec, exp_spec, m_proton): # exp_spec is ions
         p_xcorr = np.dot(o_df.NORM_INT, o_df.INT_y)
         p_xcorrs.append(p_xcorr)
     plt.plot(offsets, p_xcorrs, linewidth=0.5)
+    mean_sim = p_xcorrs[:75] + p_xcorrs[76:]
+    mean_sim = sum(mean_sim) / len(mean_sim)
+    xcorr = p_xcorrs[75] - mean_sim
+    # xcorr_corr
+    # plt.xcorr
+    # np.correlate
     return(xcorr)
 
