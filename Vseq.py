@@ -602,6 +602,7 @@ def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
     proof["CHARGE"] = proof.apply(lambda x: x.FRAGS.count('+') if x.FRAGS.count('+')>1 else 1, axis=1)
     proof["SERIES"] = proof.apply(lambda x: x.FRAGS[0], axis=1)
     proof["LENGTH"] = proof.apply(lambda x: int(re.search(r'\d+', x.FRAGS).group()), axis=1)
+    proof["A_LENGTH"] = proof.apply(lambda x: x.LENGTH if x.SERIES=="b" else (len(plainseq)*2)-x.LENGTH, axis=1)
     proof["NM"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, [0], [0], massconfig, standalone), axis=1)
     proof["MOD"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, mods, pos, massconfig, standalone), axis=1)
     proof["DIFF"] = (proof.MOD - proof.NM) * proof.CHARGE
@@ -711,6 +712,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     posmatrix.columns = list(range(0,posmatrix.shape[1]))
     if not (fppm == 50).all().all():
         posmatrix = posmatrix.loc[list(fppm.T.index.values)]
+    # start fixed mod annotation
+    ions.reset_index(drop=True,inplace=True)
+    ions_check = pd.DataFrame(ions.iloc[posmatrix[(posmatrix=='⬤').any(axis=1)].index.to_list()].MZ.copy())
+    ions_check["ID"] = ions_check.index
+    ions_check = pd.merge(proof, ions_check)
+    ions_check = ions_check.loc[ions_check.DIFF!=0]
+    posmatrix2 = posmatrix.copy() # ☐ ◢
+    posmatrix2[posmatrix2=='⬤'] = ''
+    for index, row in ions_check.iterrows():
+        posmatrix2.at[row.ID, row.A_LENGTH] = ' ◢'
+    # end fixed mod annotation
     # ax2 = fig.add_subplot(3,6,(3,6))
     if dm >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
@@ -849,7 +861,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.annotate("N. times\nobserved", (-2.8,0.35), **{'rotation':'vertical', 'ha':'center'})
     ax5.set_axis_off()
 ###### M/Z vs INTENSITY ##
-    proof.FRAGS = proof.apply(lambda x: str(x.FRAGS)+"&" if x.DIFF!=0 else x.FRAGS, axis=1)
+    proof.FRAGS = proof.apply(lambda x: str(x.FRAGS)+"#" if x.DIFF!=0 else x.FRAGS, axis=1)
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
     tempfrags.reset_index(inplace=True)
