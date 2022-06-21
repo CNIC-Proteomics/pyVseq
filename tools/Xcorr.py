@@ -13,17 +13,18 @@ scan = pd.read_table(infile, index_col=None, header=0, delimiter=" ", names=["MZ
 plt.plot(scan.MZ, scan.INT, linewidth=0.5)
 plt.title("0. Raw Spectrum")
 
-def Xcorr(seq, charge, assign, exp_spec, m_proton): # exp_spec is ions
+def Xcorr(seq, charge, assign, ions, m_proton):
     bin_width = 0.02 # TODO: calculate bin_width in m/z from sequence and ppm threshold (40 ppm in PD)
     offset_by = 1 # bin
     offset_n = 75 # ± bins
+    exp_spec = ions
     # Prepare theoretical mass spectrum
     theo_spec = assign
     theo_spec.sort_values(by=['FRAGS'], inplace=True)
     # theo_spec = theo_spec.head(1).T
     # theo_spec.columns = ["MZ"]
     # theo_spec.MZ = (theo_spec.MZ + charge*m_proton) / charge
-    theo_spec["INT"] = list(int(len(theo_spec)/2)*[25]) + list(int(len(theo_spec)/2)*[50]) # Half INT for b-series
+    theo_spec["INT"] = list(int(len(theo_spec)/2)*[1]) + list(int(len(theo_spec)/2)*[1]) # NO Half INT for b-series
     theo_spec.sort_values(by=['MZ'], inplace=True)
     theo_spec.reset_index(drop=True, inplace=True)
     ################
@@ -52,7 +53,7 @@ def Xcorr(seq, charge, assign, exp_spec, m_proton): # exp_spec is ions
     ######################
     ## 3. NORMALIZATION ##
     ######################
-    mz_windows = 10 # TODO: how many windows?
+    mz_windows = 10 # Comet MS/MS uses 10 windows
     # mz_range = np.linspace(min(bins_df.MZ), max(bins_df.MZ), num=mz_windows)
     windows = np.array_split(bins_df, mz_windows)
     normalized = []
@@ -62,7 +63,7 @@ def Xcorr(seq, charge, assign, exp_spec, m_proton): # exp_spec is ions
             norm = (normarray - normarray.min()) / (normarray.max() - normarray.min())
         else: # nothing to normalize
             norm = np.array(w.SQRT_INT).reshape(-1, 1)
-        normalized.append(norm * 50) # max. intensity always 50
+        normalized.append(norm * 1) # max. intensity always 50
     bins_df["NORM_INT"] = np.concatenate(normalized)
     plt.plot(bins_df.MZ, bins_df.NORM_INT, linewidth=0.5)
     plt.title("3. Normalization of Intensities: " + str(mz_windows) + " m/z windows")
@@ -95,9 +96,16 @@ def Xcorr(seq, charge, assign, exp_spec, m_proton): # exp_spec is ions
         p_xcorr = np.dot(o_df.NORM_INT, o_df.INT_y)
         p_xcorrs.append(p_xcorr)
     plt.plot(offsets, p_xcorrs, linewidth=0.5)
+    plt.title("4. Cross-correlation at each offset")
     mean_sim = p_xcorrs[:75] + p_xcorrs[76:]
     mean_sim = sum(mean_sim) / len(mean_sim)
     xcorr = p_xcorrs[75] - mean_sim
+    # TODO take offset 0 spectrum substract mean_sim and recalculate dot product
+    temp_df = bins_df.copy()
+    temp_df.NORM_INT = temp_df.NORM_INT - mean_sim
+    temp_df = pd.merge(temp_df, theo_spec, on ='MZ', how ='left')
+    temp_df.INT_y = temp_df.INT_y.fillna(0)
+    p_xcorr = np.dot(temp_df.NORM_INT, temp_df.INT_y)
     # xcorr_corr
     # plt.xcorr
     # np.correlate
