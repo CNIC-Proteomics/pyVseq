@@ -906,8 +906,8 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
     mim = sub.MH
     dm = mim - parental
-    parentaldm = parental + dm
-    dmdm = mim - parentaldm
+    #parentaldm = parental + dm
+    #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
     exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2, mode)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
