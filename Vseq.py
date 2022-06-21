@@ -727,10 +727,10 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     if dm >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
-        sns.heatmap(fppm.T, cmap=frag_palette, cbar=False, annot=posmatrix2, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "lightblue", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]})
+        sns.heatmap(fppm.T, cmap=frag_palette, cbar=False, annot=posmatrix2, fmt='', yticklabels=False, annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "lightblue", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]})
     else:
         sns.heatmap(fppm.T, cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
-        sns.heatmap(fppm.T, cmap=frag_palette, cbar=False, annot=posmatrix2, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "lightblue", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]})
+        sns.heatmap(fppm.T, cmap=frag_palette, cbar=False, annot=posmatrix2, fmt='', yticklabels=False, annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "lightblue", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]})
     ax2.figure.axes[-1].yaxis.label.set_size(15)
     plt.title(mainT, fontsize=20)
     plt.xlabel("b series --------- y series", fontsize=15)
