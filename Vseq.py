@@ -604,6 +604,7 @@ def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
     proof["LENGTH"] = proof.apply(lambda x: int(re.search(r'\d+', x.FRAGS).group()), axis=1)
     proof["NM"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, [0], [0], massconfig, standalone), axis=1)
     proof["MOD"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, mods, pos, massconfig, standalone), axis=1)
+    proof["DIFF"] = (proof.MOD - proof.NM) * proof.CHARGE
     return(proof)
 
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
@@ -848,6 +849,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     plt.annotate("N. times\nobserved", (-2.8,0.35), **{'rotation':'vertical', 'ha':'center'})
     ax5.set_axis_off()
 ###### M/Z vs INTENSITY ##
+    proof.FRAGS = proof.apply(lambda x: str(x.FRAGS)+"&" if x.DIFF!=0 else x.FRAGS, axis=1)
     tempfrags = pd.merge(proof, exp_spec)
     tempfrags = tempfrags[tempfrags.REL_INT != 0]
     tempfrags.reset_index(inplace=True)
@@ -1047,6 +1049,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     if standalone:
         logging.info("\t\t\tPlotting...")
     if dograph and vscore >= min_vscore:
+        proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                       proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                       outpath, massconfig, standalone, ppm_plot)
