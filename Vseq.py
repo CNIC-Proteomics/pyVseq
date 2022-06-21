@@ -567,6 +567,45 @@ def vScore(qscore, sub, sublen, proofb, proofy, assign):
     vscore = (SS1 + SS2 + SS3 + Kerr + (SS4 * SS5)) * Kv / sublen
     return(vscore)
 
+def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
+    if not standalone:
+        mass = massconfig
+    else:
+        mass = configparser.ConfigParser(inline_comment_prefixes='#')
+        mass.read(args.config)
+        if args.error is not None:
+            mass.set('Parameters', 'ppm_error', str(args.error))
+        if args.deltamass is not None:
+            mass.set('Parameters', 'min_dm', str(args.deltamass))
+    m_proton = mass.getfloat('Masses', 'm_proton')
+    def _calcMZ(charge, series, length, plainseq):
+        if series == "b":
+            seq = plainseq[:length]
+            ct = False
+            if length == len(plainseq):
+                ct = True
+            MZ = getTheoMH(charge, seq, mods, pos, True, ct, massconfig, standalone)
+            # for m,p in mods,pos:
+            #     if p+1 <= length:
+            #         MZ += m
+        else: # "y"
+            seq = plainseq[-length:]
+            nt = False
+            if length == len(plainseq):
+                nt = True
+            MZ = getTheoMH(charge, seq, mods, pos, nt, True, massconfig, standalone)
+            # for m,p in mods,pos:
+            #     if p+1 <= len(plainseq)-length:
+            #         MZ += m
+        MZ = (MZ + (charge-1)*m_proton) / int(charge)
+        return MZ
+    proof["CHARGE"] = proof.apply(lambda x: x.FRAGS.count('+') if x.FRAGS.count('+')>1 else 1, axis=1)
+    proof["SERIES"] = proof.apply(lambda x: x.FRAGS[0], axis=1)
+    proof["LENGTH"] = proof.apply(lambda x: int(re.search(r'\d+', x.FRAGS).group()), axis=1)
+    proof["NM"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.MODS, x.POS), axis=1)
+    # proof["MOD"] = proof.apply(lambda x: , axis=1)
+    return(proof)
+
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                   proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
                   outpath, massconfig, standalone, ppm_plot):
