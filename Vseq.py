@@ -602,8 +602,8 @@ def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
     proof["CHARGE"] = proof.apply(lambda x: x.FRAGS.count('+') if x.FRAGS.count('+')>1 else 1, axis=1)
     proof["SERIES"] = proof.apply(lambda x: x.FRAGS[0], axis=1)
     proof["LENGTH"] = proof.apply(lambda x: int(re.search(r'\d+', x.FRAGS).group()), axis=1)
-    proof["NM"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, mods, pos, massconfig, standalone), axis=1)
-    # proof["MOD"] = proof.apply(lambda x: , axis=1)
+    proof["NM"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, [0], [0], massconfig, standalone), axis=1)
+    proof["MOD"] = proof.apply(lambda x: _calcMZ(x.CHARGE, x.SERIES, x.LENGTH, plainseq, mods, pos, massconfig, standalone), axis=1)
     return(proof)
 
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
