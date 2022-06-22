@@ -530,7 +530,7 @@ def main(args):
         tquery = tquery.drop_duplicates(subset=['SCANS'])
         prots = seqtable.groupby("q")
         # exploredseqs = []
-        outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
+        # outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
         # with open(outfile, 'w') as f: # Create empty file
         #     pass
         for fullprot, seqtable in prots:
@@ -540,6 +540,7 @@ def main(args):
                 prot = fullprot
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(outpath, str(raw), str(prot))
+            outfile = os.path.join(outpath3, str(Path(raw).stem) + "_" + str(prot) + "_EXPLORER.tsv")
             # if not os.path.exists(Path(outpath3)):
             #     os.mkdir(Path(outpath3))
                 
