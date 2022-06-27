@@ -610,7 +610,7 @@ def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
     return(proof)
 
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                  proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+                  proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, min_dm,
                   outpath, massconfig, standalone, ppm_plot):
     if not standalone:
         mass = massconfig
@@ -664,8 +664,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     PTMprob = list(plainseq)
     if not hasattr(sub, 'DeltaMassLabel'):
         sub.DeltaMassLabel = "'N/A'"
-    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6))],
-                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore"])
+    datatable = pd.DataFrame([str(sub.Raw), str(sub.FirstScan), str(sub.Charge), str(sub.RetentionTime), str(round(dm,6)), ', '.join(re.findall(r'\'(.*?)\'', sub.DeltaMassLabel)), str(sub.MH), str(round(escore, 6)), str(round(vscore,6)), str(round(hscore,6))],
+                             index=["Raw", "Scan", "Charge", "RT", "DeltaM", "Label", "MH", "Escore", "Vscore", "Hyperscore"])
     #ax2 = fig.add_subplot(3,6,(1,2))
     ax1 = fig.add_subplot(gs[0:3, 0:2])
     ax1.axis('off')
@@ -1060,8 +1060,9 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     ## SURVEY SCAN INFORMATION ##
     # TODO: dta files required
     
-    ## V-SCORE ##
+    ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
+    hscore = Hyperscore.hyperscore(ions, proof)
     
     ## PLOTS ##
     if standalone:
@@ -1069,7 +1070,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     if dograph and vscore >= min_vscore:
         proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                      proof, deltamplot, escore, vscore, BDAGmax, YDAGmax, min_dm,
+                      proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, min_dm,
                       outpath, massconfig, standalone, ppm_plot)
     if standalone:
         if not args.integrate:
