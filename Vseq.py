@@ -1079,7 +1079,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
-        return(vscore, escore, ppmfinal, frags)
+        return(vscore, escore, hscore, ppmfinal, frags)
     else:
         return
 

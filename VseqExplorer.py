@@ -235,7 +235,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
+    vscore, escore, hscore, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, min_vscore, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -273,7 +273,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     #         y_ions = y_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "y" in x]
     #         b_ions = b_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "b" in x]
     #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
-    return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore])
+    return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore, hscore])
 
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
@@ -642,6 +642,7 @@ def main(args):
                     subtquery['Raw'] = str(raw)
                     subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
                     subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
+                    subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
                     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
                     subtquery = subtquery.drop('templist', axis = 1)
                     # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
@@ -657,6 +658,7 @@ def main(args):
                     #                                        #if x.b_series and x.y_series else 0
                     #                                        , axis = 1)
                     ## SORT BY ions_matched ##
+                    logging.info("Sorting by " +  str(fsort_by) + "...")
                     try:
                         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
                         subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
