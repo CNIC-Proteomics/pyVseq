@@ -35,7 +35,8 @@ import scipy.stats
 import statistics
 import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
-import ScanIntegrator
+import tools.Hyperscore as Hyperscore
+import tools.ScanIntegrator as ScanIntegrator
 
 def prepareWorkspace(exp, msdatapath, outpath):
     msdata = Path(msdatapath)

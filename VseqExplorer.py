@@ -31,6 +31,7 @@ from tqdm import tqdm
 # from p_tqdm import p_map
 import warnings
 pd.options.mode.chained_assignment = None  # default='warn'
+import tools.Hyperscore as Hyperscore
 
 from Vseq import doVseq
 # infile= r"C:\Users\alaguillog\GitHub\eca\Sadek_fr8.mgf"
