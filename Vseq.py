@@ -13,11 +13,8 @@ Created on Wed Mar  2 14:10:14 2022
 import os
 import sys
 import argparse
-#from colour import Color
-import concurrent.futures
 import configparser
 import itertools
-from itertools import repeat
 import logging
 import math
 import matplotlib
@@ -42,13 +39,12 @@ def prepareWorkspace(exp, msdatapath, outpath):
     msdata = Path(msdatapath)
     outpath = Path(outpath)
     # Get dta path for the experiment
-    # mzmlpath = os.path.join(mzmlpath, exp + ".dta")
     var_name_path = os.path.join(outpath, exp)
     # Create output directory
     if not os.path.exists(outpath):
         os.mkdir(var_name_path)
     logging.info("Experiment: " + exp)
-    logging.info("msdatapath: " + str(msdatapath))
+    logging.info("msdatapath: " + str(msdata))
     logging.info("outpath: " + str(outpath))
     logging.info("varNamePath: " + str(var_name_path))
     pathdict = {"exp": exp,
@@ -339,24 +335,6 @@ def makeAblines(texp, minv, assign, ions, min_match):
     return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
-    # parcialdm = pd.DataFrame(parcialdm)
-    # parcial = pd.DataFrame(parcial)
-    # ppmfinal = pd.DataFrame(ppmfinal)
-    # awidth = 1
-    # newdf_list = []
-    # for df in [parcialdm, parcial, ppmfinal]:
-    #     if len(df.shape) > 1:
-    #         if df.shape[1] > 1:
-    #             awidth = df.shape[1]
-    # for df in [parcialdm, parcial, ppmfinal]:
-    #     if len(df.shape) <= 1:
-    #         df = pd.DataFrame(0, index=np.arange(len(df)), columns=list(range(0,awidth)))
-    #     elif df.shape[1] <= 1:
-    #         df = df.reindex(columns=list(range(0,awidth)), fill_value=0)
-    #     newdf_list.append(df)
-    # parcialdm = newdf_list[0]
-    # parcial = newdf_list[1]
-    # ppmfinal = newdf_list[2]
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
     deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
     if deltamplot.empty:

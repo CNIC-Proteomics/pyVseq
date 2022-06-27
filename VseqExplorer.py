@@ -11,7 +11,6 @@ shutup.please()
 import os
 import sys
 import argparse
-#from colour import Color
 import concurrent.futures
 import configparser
 from io import FileIO
@@ -31,7 +30,6 @@ from tqdm import tqdm
 # from p_tqdm import p_map
 import warnings
 pd.options.mode.chained_assignment = None  # default='warn'
-import tools.Hyperscore as Hyperscore
 
 from Vseq import doVseq
 # infile= r"C:\Users\alaguillog\GitHub\eca\Sadek_fr8.mgf"
@@ -247,32 +245,6 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
         b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
         y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
     ions_matched = len(b_ions) + len(y_ions)
-    # spec, ions, spec_correction = expSpectrum(mgf, x.SCANS)
-    # wdm_theo_spec = theoSpectrum(x.Sequence, len(ions), dm)
-    # ions_exp = len(ions)
-    # ions_matched = []
-    # b_ions = []
-    # y_ions = []
-    # for frag in ions.MZ:
-    #     terrors, terrors2, terrors3, texp = errorMatrix(ions.MZ, wdm_theo_spec)
-    #     #terrors = (((frag - dm_theo_spec)/dm_theo_spec)*1000000).abs()
-    #     terrors[terrors>ftol] = 0
-    #     terrors = terrors.astype('bool')
-    #     terrors2[terrors2>ftol] = 0
-    #     terrors2 = terrors2.astype('bool')
-    #     terrors3[terrors3>ftol] = 0
-    #     terrors3 = terrors3.astype('bool')
-    #     terrors, terrors2, terrors3 = terrors.T, terrors2.T, terrors3.T
-    #     terrors.index, terrors2.index, terrors3.index = frags, frags, frags
-    #     #tempbool = dm_theo_spec.between(frag-ftol, frag+ftol)
-    #     if terrors.any().any():
-    #         ions_matched.append(frag)
-    #         b_ions = b_ions + [x for x in list(terrors[terrors==True].index.values) if "b" in x]
-    #         y_ions = y_ions + [x for x in list(terrors[terrors==True].index.values) if "y" in x]
-    #         b_ions = b_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "b" in x]
-    #         y_ions = y_ions + [x+"++" for x in list(terrors2[terrors2==True].index.values) if "y" in x]
-    #         b_ions = b_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "b" in x]
-    #         y_ions = y_ions + [x+"+++" for x in list(terrors3[terrors3==True].index.values) if "y" in x]
     return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore, hscore])
 
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
@@ -404,18 +376,6 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
     subtquery = subtquery.drop('templist', axis = 1)
-    # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
-    #                                                         tquery,
-    #                                                         mgf,
-    #                                                         min_dm,
-    #                                                         min_match,
-    #                                                         err,
-    #                                                         Path(outpath),
-    #                                                         False,
-    #                                                         mass,
-    #                                                         False)
-    #                                        #if x.b_series and x.y_series else 0
-    #                                        , axis = 1)
     ## SORT BY ions_matched ##
     try:
         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
@@ -621,19 +581,6 @@ def main(args):
                         vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
                                           total=len(rowSeries)))
                     subtquery['templist'] = vseqs
-                    # subtquery['templist'] = subtquery.apply(lambda x: getIons(x,
-                    #                                                          tquery,
-                    #                                                          mgf,
-                    #                                                          index2,
-                    #                                                          min_dm,
-                    #                                                          min_match,
-                    #                                                          ftol,
-                    #                                                          Path(outpath),
-                    #                                                          False,
-                    #                                                          mass,
-                    #                                                          False)
-                    #                                         #if x.b_series and x.y_series else 0
-                    #                                         , axis = 1)
                     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
                     #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
                     subtquery['ions_total'] = len(plainseq) * 2
@@ -645,18 +592,6 @@ def main(args):
                     subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
                     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
                     subtquery = subtquery.drop('templist', axis = 1)
-                    # subtquery['e_score'] = subtquery.apply(lambda x: doVseq(x,
-                    #                                                         tquery,
-                    #                                                         mgf,
-                    #                                                         min_dm,
-                    #                                                         min_match,
-                    #                                                         err,
-                    #                                                         Path(outpath),
-                    #                                                         False,
-                    #                                                         mass,
-                    #                                                         False)
-                    #                                        #if x.b_series and x.y_series else 0
-                    #                                        , axis = 1)
                     ## SORT BY ions_matched ##
                     logging.info("Sorting by " +  str(fsort_by) + "...")
                     try:
