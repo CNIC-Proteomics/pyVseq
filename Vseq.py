@@ -632,14 +632,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     for i, p in enumerate(pos):
         if i > 0:
             pos[i] = p - 2 - len(str(mods[i-1]))
-    mainT2 = plainseq
-    counter = 0
-    for i, p in enumerate(pos):
-        if i > 0:
-            p = p + sum(len(s)+2 for s in [str(r) for r in dmlabel[0:i-1]])
-        mainT2 = mainT2[:p+1] + '[' + dmlabel[counter] + ']' + mainT2[p+1:]
-        counter += 1
-    mainT2 = mainT2 + "+" + str(round(dm,6))
+    try:
+        mainT2 = plainseq
+        counter = 0
+        for i, p in enumerate(pos):
+            if i > 0:
+                p = p + sum(len(s)+2 for s in [str(r) for r in dmlabel[0:i-1]])
+            mainT2 = mainT2[:p+1] + '[' + dmlabel[counter] + ']' + mainT2[p+1:]
+            counter += 1
+        mainT2 = mainT2 + "+" + str(round(dm,6))
+    except IndexError: # Missing DM Labels, just use mainT
+        mainT2 = mainT
 
     #z  = max(fppm.max())
     
