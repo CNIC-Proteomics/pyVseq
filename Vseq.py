@@ -152,12 +152,9 @@ def expSpectrum(fr_ns, scan, index2, mode):
             ions = ions.drop(ions.columns[0], axis=1)
             ions = ions.apply(pd.to_numeric)
     elif mode == "mzml":
-        for s in fr_ns.getSpectra():
-            # Keep only scans in range
-            if int(s.getNativeID().split(' ')[-1][5:]) == int(scan):
-                ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
-                ions.columns = ["MZ", "INT"]
-                break # Scan numbers are unique
+        s = fr_ns.getSpectrum(scan-1)
+        ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+        ions.columns = ["MZ", "INT"]
         
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
