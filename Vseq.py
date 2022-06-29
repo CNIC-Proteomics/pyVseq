@@ -312,19 +312,28 @@ def makeAblines(texp, minv, assign, ions, min_match):
         proof = pd.DataFrame([[0,0,0,0]])
         proof.columns = ["MZ","FRAGS","PPM","INT"]
         return(proof, False)    
-    matches_ions = pd.DataFrame()
-    for mi in list(range(0,len(matches))):
-        for ci in list(range(0, len(assign))):
-            if abs(matches.iloc[mi,0]-assign.iloc[ci,0])/assign.iloc[ci,0]*1000000 <= 51:
-                asign = pd.Series([matches.iloc[mi,0], assign.iloc[ci,1], matches.iloc[mi,1]])
-                matches_ions = pd.concat([matches_ions, asign], ignore_index=True, axis=1)
-                #matches.iloc[2,1]
-    matches_ions = matches_ions.T
+    matches_ions = pd.DataFrame(list(itertools.product(list(range(0, len(matches))), list(range(0, len(assign))))))
+    matches_ions.columns = ["mi", "ci"]
+    matches_ions["temp_ci"] = list(assign.iloc[matches_ions.ci,0])
+    matches_ions["temp_mi"] = list(matches.iloc[matches_ions.mi,0])
+    matches_ions["temp_ci1"] = list(assign.iloc[matches_ions.ci,1])
+    matches_ions["temp_mi1"] = list(matches.iloc[matches_ions.mi,1])
+    matches_ions["check"] = abs(matches_ions.temp_mi-matches_ions.temp_ci)/matches_ions.temp_ci*1000000
+    matches_ions = matches_ions[matches_ions.check<=51]
+    matches_ions = matches_ions.drop(["mi", "ci", "temp_ci", "check"], axis = 1)
+    matches_ions.columns = ["MZ","FRAGS","PPM"]
+    # for mi in list(range(0,len(matches))):
+    #     for ci in list(range(0, len(assign))):
+    #         if abs(matches.iloc[mi,0]-assign.iloc[ci,0])/assign.iloc[ci,0]*1000000 <= 51:
+    #             asign = pd.Series([matches.iloc[mi,0], assign.iloc[ci,1], matches.iloc[mi,1]])
+    #             matches_ions = pd.concat([matches_ions, asign], ignore_index=True, axis=1)
+    #             #matches.iloc[2,1]
+    # matches_ions = matches_ions.T
     if matches_ions.empty:
         proof = pd.DataFrame([[0,0,0,0]])
         proof.columns = ["MZ","FRAGS","PPM","INT"]
         return(proof, False) 
-    matches_ions.columns = ["MZ","FRAGS","PPM"]
+    # matches_ions.columns = ["MZ","FRAGS","PPM"]
     proof = pd.merge(matches_ions, ions[['MZ','INT']], how="left", on="MZ")
     if len(proof)==0:
         mzcycle = itertools.cycle([ions.MZ.iloc[0], ions.MZ.iloc[1]])
