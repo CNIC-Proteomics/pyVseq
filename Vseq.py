@@ -610,6 +610,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
                                "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                                + "_ch" + str(sub.Charge) + ".pdf")
     fppm.index = list(frags.by)
+    if not hasattr(sub, 'DeltaMassLabel'):
+        sub.DeltaMassLabel = "'N/A'"
     dmlabel = ', '.join(re.findall(r'\'(.*?)\'', str(sub.DeltaMassLabel))).split(",")
     mainT = sub.Sequence + "+" + str(round(dm,6))
     mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
