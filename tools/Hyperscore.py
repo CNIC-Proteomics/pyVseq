@@ -15,6 +15,9 @@ def hyperscore(ions, proof):
     ions["MSF_INT"] = norm
     ## 2. Pick matched ions ##
     matched_ions = pd.merge(proof, ions, on="MZ")
+    if len(matched_ions) == 0:
+        hs = 0
+        return(hs)
     ## 3. Adjust intensity
     matched_ions.MSF_INT = matched_ions.MSF_INT / 10E2
     ## 4. Hyperscore ##
