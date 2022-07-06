@@ -229,13 +229,13 @@ def _parallelGetIons(x, parlist):
     return(relist)
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
-            standalone, massconfig, dograph, min_vscore, ppm_plot):
+            standalone, massconfig, dograph, min_hscore, ppm_plot):
     ions_exp = []
     b_ions = []
     y_ions = []
     vscore, escore, hscore, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
-                                             massconfig, dograph, min_vscore, ppm_plot)
+                                             massconfig, dograph, min_hscore, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -297,7 +297,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     return
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
-                    prot, mgf, index2, min_dm, min_match, min_vscore, outpath3,
+                    prot, mgf, index2, min_dm, min_match, min_hscore, outpath3,
                     mass, n_workers, parallelize, ppm_plot, outfile):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
@@ -339,7 +339,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_vscore, ppm_plot]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot]
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
@@ -362,7 +362,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                                                   False,
                                                                   mass,
                                                                   False,
-                                                                  min_vscore,
+                                                                  min_hscore,
                                                                   ppm_plot)
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
@@ -403,7 +403,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                            False,
                                            mass,
                                            True,
-                                           min_vscore,
+                                           min_hscore,
                                            ppm_plot), axis = 1)
     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
     pagelist = []
@@ -413,7 +413,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     merger = PdfFileMerger()
     for page in pagelist:
         merger.append(FileIO(page,"rb"))
-    # logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
+    # logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_hscore))
     if len(pagelist) > 0:
         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
         with open(outmerge, 'wb') as f:
@@ -451,7 +451,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     fsort_by = str(mass._sections['Parameters']['sort_by'])
-    min_vscore = float(mass._sections['Parameters']['min_vscore'])
+    min_hscore = float(mass._sections['Parameters']['min_hyperscore'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
     if args.outpath:
@@ -510,7 +510,7 @@ def main(args):
                 rowSeqs = list(rowSeqs)
                 tqdm.pandas(position=0, leave=True)
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
-                           mgf, index2, min_dm, min_match, min_vscore, outpath3,
+                           mgf, index2, min_dm, min_match, min_hscore, outpath3,
                            mass, args.n_workers, parallelize, ppm_plot, outfile]
                 chunks = 100
                 if len(rowSeqs) <= 500:
@@ -570,7 +570,7 @@ def main(args):
                     subtquery["RawCharge"] = subtquery.Charge
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
-                               False, mass, False, min_vscore, ppm_plot]
+                               False, mass, False, min_hscore, ppm_plot]
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
@@ -606,7 +606,7 @@ def main(args):
                     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                     if f_subtquery.shape[0] > 0:
                         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
-                        f_subtquery = f_subtquery[f_subtquery['v_score']>min_vscore]
+                        f_subtquery = f_subtquery[f_subtquery['hyperscore']>min_hscore]
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
                         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
@@ -621,7 +621,7 @@ def main(args):
                                                            False,
                                                            mass,
                                                            True,
-                                                           min_vscore,
+                                                           min_hscore,
                                                            ppm_plot), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
@@ -631,7 +631,7 @@ def main(args):
                     merger = PdfFileMerger()
                     for page in pagelist:
                         merger.append(FileIO(page,"rb"))
-                    logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_vscore))
+                    logging.info("\tFound " + str(len(pagelist)) + " candidates with hyperscore > " + str(min_hscore))
                     if len(pagelist) > 0:
                         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                         with open(outmerge, 'wb') as f:

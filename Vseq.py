@@ -928,7 +928,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     return
 
 def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
-           standalone, massconfig, dograph, min_vscore, ppm_plot):
+           standalone, massconfig, dograph, min_hscore, ppm_plot):
     if not standalone:
         mass = massconfig
     else:
@@ -1052,8 +1052,8 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     
     ## PLOTS ##
     if standalone:
-        logging.info("\t\t\tPlotting...")
-    if dograph and vscore >= min_vscore:
+        logging.info("\t\t\tPlotting...") # TODO should we have min_vscore take effect here or not
+    if dograph and vscore >= min_hscore:
         proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
                       proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, min_dm,
@@ -1078,7 +1078,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
-    min_vscore = float(mass._sections['Parameters']['min_vscore'])
+    min_hscore = float(mass._sections['Parameters']['min_hyperscore'])
     int_scanrange = float(mass._sections['Parameters']['int_scanrange'])
     int_mzrange = float(mass._sections['Parameters']['int_mzrange'])
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
@@ -1125,7 +1125,7 @@ def main(args):
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
                 doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err,
-                       pathdict["out"], True, False, True, min_vscore, ppm_plot)
+                       pathdict["out"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 if args.integrate:
                     if mode == "mzml":
