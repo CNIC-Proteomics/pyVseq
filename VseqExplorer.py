@@ -233,7 +233,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, hscore, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
+    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, min_hscore, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -245,7 +245,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
         b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
         y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
     ions_matched = len(b_ions) + len(y_ions)
-    return([ions_matched, ions_exp, b_ions, y_ions, vscore, escore, hscore])
+    return([ions_matched, nions, bions, yions, vscore, escore, hscore])
 
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])

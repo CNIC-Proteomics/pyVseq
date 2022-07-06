@@ -1049,7 +1049,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
-    hscore = Hyperscore.hyperscore(ions, proof)
+    hscore, nions, bions, yions = Hyperscore.hyperscore(ions, proof, err)
     
     ## PLOTS ##
     if standalone:
@@ -1066,7 +1066,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
-        return(vscore, escore, hscore, ppmfinal, frags)
+        return(vscore, escore, hscore, nions, bions, yions, ppmfinal, frags)
     else:
         return
 
