@@ -245,7 +245,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
         b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
         y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
     ions_matched = len(b_ions) + len(y_ions)
-    return([ions_matched, nions, bions, yions, vscore, escore, hscore])
+    return([nions, ions_exp, bions, yions, vscore, escore, hscore])
 
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
