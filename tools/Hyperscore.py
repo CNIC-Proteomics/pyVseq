@@ -22,8 +22,8 @@ def hyperscore(ions, proof):
     matched_ions.MSF_INT = matched_ions.MSF_INT / 10E2
     ## 4. Hyperscore ##
     matched_ions["SERIES"] = matched_ions.apply(lambda x: x.FRAGS[0], axis=1)
-    matched_ions.FRAGS = matched_ions.FRAGS.str.replace('+', '')
-    matched_ions.FRAGS = matched_ions.FRAGS.str.replace('*', '')
+    matched_ions.FRAGS = matched_ions.FRAGS.str.replace('+', '', regex=False)
+    matched_ions.FRAGS = matched_ions.FRAGS.str.replace('*', '', regex=False)
     temp = matched_ions.copy()
     # temp = temp.drop_duplicates(subset='FRAGS', keep="first") # Count each kind of fragment only once
     try:
