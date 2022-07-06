@@ -599,13 +599,14 @@ def main(args):
                         subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                     except KeyError:
                         subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
+                    # subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                     subtquery.reset_index(drop=True, inplace=True)
                     f_subtquery = subtquery.iloc[0:bestn]
                     f_subtquery.reset_index(drop=True, inplace=True)
                     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                     if f_subtquery.shape[0] > 0:
                         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+                        f_subtquery = f_subtquery[f_subtquery['v_score']>min_vscore]
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
                         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
