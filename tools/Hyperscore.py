@@ -11,7 +11,8 @@ def _decimal_places(x):
 
 def hyperscore(ions, proof):
     ## 1. Normalize intensity to 10^5
-    norm = (ions.INT / ions.INT.max()) * 10E4
+    norm = (ions.INT / ions.INT.max()) * 1E5
+    ions.reset_index(drop=True, inplace=True)
     ions["MSF_INT"] = norm
     ## 2. Pick matched ions ##
     matched_ions = pd.merge(proof, ions, on="MZ")
@@ -19,11 +20,12 @@ def hyperscore(ions, proof):
         hs = 0
         return(hs)
     ## 3. Adjust intensity
-    matched_ions.MSF_INT = matched_ions.MSF_INT / 10E2
+    matched_ions.MSF_INT = matched_ions.MSF_INT / 1E3
     ## 4. Hyperscore ##
     matched_ions["SERIES"] = matched_ions.apply(lambda x: x.FRAGS[0], axis=1)
     matched_ions.FRAGS = matched_ions.FRAGS.str.replace('+', '', regex=False)
     matched_ions.FRAGS = matched_ions.FRAGS.str.replace('*', '', regex=False)
+    matched_ions.FRAGS = matched_ions.FRAGS.str.replace('#', '', regex=False)
     temp = matched_ions.copy()
     # temp = temp.drop_duplicates(subset='FRAGS', keep="first") # Count each kind of fragment only once
     try:

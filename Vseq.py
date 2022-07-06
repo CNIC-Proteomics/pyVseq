@@ -134,8 +134,9 @@ def expSpectrum(fr_ns, scan, index2, mode):
     # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
     
     if mode == "mgf":
-        index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
-        index1 = np.where(index1)[0][0]
+        # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
+        # index1 = np.where(index1)[0][0]
+        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
         index3 = np.where(index2)[0]
         index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
         
