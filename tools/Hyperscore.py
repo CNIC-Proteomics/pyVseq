@@ -44,6 +44,8 @@ def hyperscore(ions, proof):
         hs = math.log10(math.factorial(n_b) * math.factorial(n_y) * i_b * i_y)
     except ValueError:
         hs = 0
+    if hs > 0:
+        hs = 0
     return(hs)
 
 # Problem 1 is that MGF and mzML conversion is different - always use same format for MSFragger and Vseq to compare
