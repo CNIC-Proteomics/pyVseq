@@ -464,6 +464,7 @@ def main(args):
     logging.info("Reading input table")
     seqtable = pd.read_csv(args.table, sep='\t')
     seqtable = seqtable[seqtable.Sequence.notna()]
+    prots = seqtable.groupby("q")
     #raws = seqtable.groupby("Raw")
     logging.info("Reading input file")
     mgftable = pd.read_csv(args.infile, header=None)
@@ -489,7 +490,6 @@ def main(args):
         index2 = mgf.to_numpy() == 'END IONS'
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
-        prots = seqtable.groupby("q")
         # exploredseqs = []
         # outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
         # with open(outfile, 'w') as f: # Create empty file
