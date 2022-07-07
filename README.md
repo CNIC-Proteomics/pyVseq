@@ -8,3 +8,5 @@ Vseq is a set of tools for mass spectrometry (MS) spectra visualization, quality
 Python 3 is required to run Vseq. The necessary Python packages can be installed using the included `requirements.txt` file and `pip`:
 
 > `$ pip install -r requirements.txt`
+
+For more information, please see the `documentation.pdf` file.
