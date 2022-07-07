@@ -223,9 +223,10 @@ def errorMatrix(mz, theo_spec):
     terrors3 = (((mzs3 - theo_spec)/theo_spec)*1000000).abs()
     return(terrors, terrors2, terrors3, exp)
 
-def _parallelGetIons(x, parlist):
+def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11])
+    pbar.update(1)
     return(relist)
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
@@ -579,9 +580,25 @@ def main(args):
                     chunks = 100
                     if len(rowSeries) <= 500:
                         chunks = 50
-                    with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-                        vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
-                                          total=len(rowSeries)))
+                    # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                    #     # with tqdm(total=len(rowSeries)) as progress_bar:
+                    #     #     futures = {}
+                    #     #     for idx, dt in enumerate(rowSeries):
+                    #     #         future = executor.submit(_parallelGetIons, dt, itertools.repeat(parlist))
+                    #     #         futures[future] = idx
+                    #     #     vseqs = [None] * len(rowSeries)
+                    #     #     for future in concurrent.futures.as_completed(futures):
+                    #     #         idx = futures[future]
+                    #     #         vseqs[idx] = future.result()
+                    #     #         progress_bar.update(1)
+                    #     vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
+                    #                       total=len(rowSeries)))
+                    vseqs = []
+                    with tqdm(total=len(rowSeries)) as pbar:
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
+                            futures = [executor.submit(_parallelGetIons, row, parlist, pbar) for row in rowSeries]
+                            for future in concurrent.futures.as_completed(futures):
+                                vseqs.append(future.result())
                     subtquery['templist'] = vseqs
                     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
                     #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
