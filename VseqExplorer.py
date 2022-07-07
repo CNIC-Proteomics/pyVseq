@@ -374,6 +374,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery['Raw'] = str(raw)
     subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
     subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
+    subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
     subtquery = subtquery.drop('templist', axis = 1)
     ## SORT BY ions_matched ##
@@ -594,7 +595,7 @@ def main(args):
                     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
                     subtquery = subtquery.drop('templist', axis = 1)
                     ## SORT BY ions_matched ##
-                    logging.info("Sorting by " +  str(fsort_by) + "...")
+                    logging.info("\tSorting by " +  str(fsort_by) + "...")
                     try:
                         subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
                         subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
