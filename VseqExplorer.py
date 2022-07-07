@@ -451,7 +451,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     fsort_by = str(mass._sections['Parameters']['sort_by'])
-    min_hscore = float(mass._sections['Parameters']['min_hyperscore'])
+    min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
     if args.outpath:
@@ -631,7 +631,7 @@ def main(args):
                     merger = PdfFileMerger()
                     for page in pagelist:
                         merger.append(FileIO(page,"rb"))
-                    logging.info("\tFound " + str(len(pagelist)) + " candidates with hyperscore > " + str(min_hscore))
+                    logging.info("\tFound " + str(len(pagelist)) + " candidates with " + str(fsort_by) + " > " + str(min_hscore))
                     if len(pagelist) > 0:
                         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
                         with open(outmerge, 'wb') as f:

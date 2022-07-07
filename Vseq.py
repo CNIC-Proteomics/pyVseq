@@ -1079,7 +1079,7 @@ def main(args):
     min_dm = float(mass._sections['Parameters']['min_dm'])
     min_match = int(mass._sections['Parameters']['min_ions_matched'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
-    min_hscore = float(mass._sections['Parameters']['min_hyperscore'])
+    min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     int_scanrange = float(mass._sections['Parameters']['int_scanrange'])
     int_mzrange = float(mass._sections['Parameters']['int_mzrange'])
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
