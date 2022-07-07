@@ -235,7 +235,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     y_ions = []
     vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
-                                             massconfig, dograph, min_hscore, ppm_plot)
+                                             massconfig, dograph, 0, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -389,6 +389,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
     if f_subtquery.shape[0] > 0:
         # logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+        f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
         if not os.path.exists(Path(outpath3)):
             os.mkdir(Path(outpath3))
         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
@@ -403,7 +404,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                            False,
                                            mass,
                                            True,
-                                           min_hscore,
+                                           0,
                                            ppm_plot), axis = 1)
     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
     pagelist = []
@@ -606,7 +607,7 @@ def main(args):
                     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                     if f_subtquery.shape[0] > 0:
                         logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
-                        f_subtquery = f_subtquery[f_subtquery['hyperscore']>min_hscore]
+                        f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
                         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
@@ -621,7 +622,7 @@ def main(args):
                                                            False,
                                                            mass,
                                                            True,
-                                                           min_hscore,
+                                                           0,
                                                            ppm_plot), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
