@@ -715,5 +715,8 @@ if __name__ == '__main__':
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
-    main(args)
+    try:
+        main(args)
+    except:
+        logging.exception('An error occurred')
     logging.info('end script')
