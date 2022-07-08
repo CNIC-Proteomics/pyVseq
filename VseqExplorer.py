@@ -227,7 +227,7 @@ def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11])
     pbar.update(1)
-    return(relist)
+    return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot):
@@ -594,12 +594,19 @@ def main(args):
                     #     vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
                     #                       total=len(rowSeries)))
                     vseqs = []
+                    scans = []
                     with tqdm(total=len(rowSeries)) as pbar:
                         with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
                             futures = [executor.submit(_parallelGetIons, row, parlist, pbar) for row in rowSeries]
                             for future in concurrent.futures.as_completed(futures):
-                                vseqs.append(future.result())
-                    subtquery['templist'] = vseqs
+                                vseqs.append(future.result()[0])
+                                scans.append(future.result()[1])
+                    order = pd.DataFrame([vseqs, scans]).T
+                    order.columns = ['vseqs', 'FirstScan']
+                    order = order.sort_values(by='FirstScan')
+                    subtquery = subtquery.sort_values(by='FirstScan')
+                    subtquery['templist'] = list(order.vseqs)
+                    # subtquery['templist'] = vseqs
                     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
                     #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
                     subtquery['ions_total'] = len(plainseq) * 2
