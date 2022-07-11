@@ -515,23 +515,22 @@ def main(args):
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_hscore, outpath3,
                            mass, args.n_workers, parallelize, ppm_plot, outfile]
-                chunks = 100
-                if len(rowSeqs) <= 500:
-                    chunks = 50
-                with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-                    # exploredseqs = list(tqdm(p_map(_parallelSeqTable,
-                    exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
-                                                          rowSeqs,
-                                                          itertools.repeat(parlist),
-                                                          chunksize=chunks),
-                                      total=len(rowSeqs)))
-                # exploredseqs = p_map(_parallelSeqTable,
-                #                                       rowSeqs,
-                #                                       itertools.repeat(parlist),
-                #                                       num_cpus=args.n_workers)
-                # exploredseqs = pd.concat(exploredseqs)
-                # exploredseqs.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
-                #                  mode='a', header=not os.path.exists(outfile))
+                # chunks = 100
+                # if len(rowSeqs) <= 500:
+                #     chunks = 50
+                
+                with tqdm(total=len(rowSeqs)) as pbar:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
+                        futures = [executor.submit(_parallelSeqTable, rowSeqs, parlist)
+                                   for row in rowSeqs]
+                        for future in concurrent.futures.as_completed(futures):
+                            pbar.update(1)
+                # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                #     exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
+                #                                           rowSeqs,
+                #                                           itertools.repeat(parlist),
+                #                                           chunksize=chunks),
+                #                       total=len(rowSeqs)))
             elif parallelize == "candidate":
                 ## COMPARE EACH SEQUENCE ##
                 for index, query in seqtable.iterrows(): # TODO: parallelize
