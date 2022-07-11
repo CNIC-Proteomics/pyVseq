@@ -431,6 +431,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
     subtquery = subtquery[subtquery.Charge != 0]
+    subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                      mode='a', header=not os.path.exists(outfile))
     return(subtquery)
@@ -673,6 +674,7 @@ def main(args):
                         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
                     #exploredseqs.append(subtquery)
                     subtquery = subtquery[subtquery.Charge != 0]
+                    subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                                      mode='a', header=not os.path.exists(outfile))
                 
