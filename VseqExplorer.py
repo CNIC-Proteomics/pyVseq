@@ -436,11 +436,11 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     return(subtquery)
 
 def _parallelSeqTable(x, parlist):
-    result = processSeqTable(x, parlist[0], parlist[1], parlist[2], parlist[3],
-                             parlist[4], parlist[5], parlist[6], parlist[7],
-                             parlist[8], parlist[9], parlist[10], parlist[11],
-                             parlist[12], parlist[13], parlist[14], parlist[15],
-                             parlist[16], parlist[17], parlist[18])
+    result = processSeqTable(query=x[0], raw=parlist[0], tquery=parlist[1], ptol=parlist[2], ftol=parlist[3],
+                             fsort_by=parlist[4], bestn=parlist[5], fullprot=parlist[6], prot=parlist[7],
+                             mgf=parlist[8], index2=parlist[9], min_dm=parlist[10], min_match=parlist[11],
+                             min_hscore=parlist[12], outpath3=parlist[13], mass=parlist[14], n_workers=parlist[15],
+                             parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18])
     return(result)
 
 def main(args):
@@ -518,13 +518,14 @@ def main(args):
                 # chunks = 100
                 # if len(rowSeqs) <= 500:
                 #     chunks = 50
-                
+                subtqueries = []
                 with tqdm(total=len(rowSeqs)) as pbar:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
                         futures = [executor.submit(_parallelSeqTable, rowSeqs, parlist)
                                    for row in rowSeqs]
                         for future in concurrent.futures.as_completed(futures):
                             pbar.update(1)
+                            subtqueries.append(future.result())
                 # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
                 #     exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
                 #                                           rowSeqs,
