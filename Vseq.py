@@ -916,7 +916,11 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<0.8], poisson_df[poisson_df["cumsum"]>=0.8].head(1)])
     poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
     # Select experimental peaks within tolerance
-    apexonly2 = apexonly[apexonly.SUMINT>0]
+    # apexonly2 = apexonly[apexonly.SUMINT>0]
+    apexonly2 = apexonly[apexonly.APEX==True].copy()
+    if len(apexonly2) <= 0:
+        logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
+        return
     poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
     poisson_df.exp_peak = poisson_df.apply(lambda x: -1 if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
     poisson_df = poisson_df[poisson_df.exp_peak>=0]
