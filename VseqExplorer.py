@@ -509,7 +509,7 @@ def main(args):
             # if not os.path.exists(Path(outpath3)):
             #     os.mkdir(Path(outpath3))
                 
-            if parallelize == "sequence" or parallelize == "both":
+            if parallelize == "protein" or parallelize == "both":
                 indices, rowSeqs = zip(*seqtable.iterrows())
                 rowSeqs = list(rowSeqs)
                 tqdm.pandas(position=0, leave=True)
@@ -533,7 +533,7 @@ def main(args):
                 #                                           itertools.repeat(parlist),
                 #                                           chunksize=chunks),
                 #                       total=len(rowSeqs)))
-            elif parallelize == "candidate":
+            elif parallelize == "peptide":
                 ## COMPARE EACH SEQUENCE ##
                 for index, query in seqtable.iterrows(): # TODO: parallelize
                     logging.info("\tExploring sequence " + str(query.Sequence) + ", "
