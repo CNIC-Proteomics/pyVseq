@@ -1066,7 +1066,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     if standalone:
         if not args.integrate:
             logging.info("\t\t\tDone.")
-        return
+        return(vscore, escore, hscore, dm)
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
@@ -1124,20 +1124,29 @@ def main(args):
             logging.info("MGF or mzML file not found in " + str(msdata))
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
-            logging.info("\t\tScan: " + str(scan))
             subs = sql.loc[sql.FirstScan==scan]
             if len(subs) > 1:
                 logging.info("\t\tWarning: " + str(len(subs)) + " entries with the same scan number for this raw were found in input table. Results may be overwritten!")
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
-                doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                sub2 = sub.copy()
+                logging.info("\t\tScan: " + str(scan))
+                vscore, escore, hscore, dm = doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
+                sub["e-score"] = escore
+                sub["v-score"] = vscore
+                sub["hyperscore"] = hscore
+                sub["DeltaMass"] = dm
+                sub = pd.DataFrame(sub).T
+                outfile = os.path.join(pathdict["out"], "Vseq_Summary.tsv")
+                sub.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                                 mode='a', header=not os.path.exists(outfile))
                 if args.integrate:
                     if mode == "mzml":
                         logging.info("\t\t\tIntegrating scans...")
-                        plotIntegration(sub, mz, int_scanrange, int_mzrange,
+                        plotIntegration(sub2, mz, int_scanrange, int_mzrange,
                                         int_binwidth, t_poisson, msdata,
                                         pathdict["out"], int(args.n_workers)) # outside of doVseq() becuase we don't want it in VseqExplorer
                         logging.info("\t\t\tDone.")
