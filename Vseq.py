@@ -1126,6 +1126,8 @@ def main(args):
         for scan in list(sql.FirstScan.unique()):
             logging.info("\t\tScan: " + str(scan))
             subs = sql.loc[sql.FirstScan==scan]
+            if len(subs) > 1:
+                logging.info("\t\tWarning: " + str(len(subs)) + " entries with the same scan number for this raw were found in input table. Results may be overwritten!")
             for index, sub in subs.iterrows():
                 #logging.info(sub.Sequence)
                 #seq2 = sub.Sequence[::-1]
