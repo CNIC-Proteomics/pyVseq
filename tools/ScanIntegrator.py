@@ -17,12 +17,12 @@ from tqdm import tqdm
 from bisect import bisect_left
 
 def findFULL(fulls, scan, scanrange):
-    pos = bisect_left(fulls, scan)
+    pos = int(bisect_left(list(fulls), int(scan)))
     if pos == 0:
         return fulls[:pos+1+scanrange]
     if pos == len(fulls):
         return fulls[pos-1-scanrange:]
-    if fulls[pos] <= scan:
+    if int(fulls[pos]) <= int(scan):
         return fulls[pos-scanrange:pos+1+scanrange]
     else:
         return fulls[pos-1-scanrange:pos+scanrange]
