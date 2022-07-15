@@ -433,7 +433,9 @@ def asBY(deltaplot, sub, sublen):
         BDAGmax.row = 0
     YDAGmax = YDAG[YDAG.value == YDAG.value.max()]
     YDAGmax = YDAGmax.row - sublen
-    return(BDAGmax, YDAGmax)
+    bpos = BDAG.iloc[0].row
+    ypos = YDAGmax
+    return(BDAGmax, YDAGmax, bpos, ypos)
 
 def sortFrags(proofby_df):
     proofby_df["FRAGS0"] = proofby_df.FRAGS.str.extract(r'([a-zA-Z])', expand=True)
@@ -595,8 +597,8 @@ def locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone):
     return(proof)
 
 def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                  proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, min_dm,
-                  outpath, massconfig, standalone, ppm_plot):
+                  proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
+                  min_dm, outpath, massconfig, standalone, ppm_plot):
     if not standalone:
         mass = massconfig
         outplot = outpath
@@ -670,7 +672,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
             ypos = len(plainseq)
             yaa = PTMprob[-1]
         header3 = [ytable.add_cell(11,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
-        header3[0].get_text().set_text(str(PTMprob[BDAGmax.row.iloc[0]])+str(BDAGmax.row.iloc[0]+1))
+        header3[0].get_text().set_text(str(PTMprob[bpos])+str(bpos+1))
         header6 = [ytable.add_cell(11,-1, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
         header6[0].get_text().set_text("B series") 
         header4 = [ytable.add_cell(12,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="none")]
@@ -807,7 +809,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         color += ['white'] * (30-len(plainseq))
         points2 = np.ones(30)
     if dm >= min_dm:
-        color[BDAGmax.row.iloc[0]] = 'red'
+        color[bpos] = 'red'
         if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
             color[len(plainseq)-1] = 'red'
         else:
@@ -1046,7 +1048,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     pepmass = tquery[tquery.SCANS == sub.FirstScan].iloc[0]
     specpar = "MZ=" + str(round(pepmass.MZ, 6)) + ", " + "Charge=" + str(int(sub.Charge)) + "+"
     
-    BDAGmax, YDAGmax = asBY(deltaplot, sub, len(plainseq))
+    BDAGmax, YDAGmax, bpos, ypos = asBY(deltaplot, sub, len(plainseq))
     
     ## SURVEY SCAN INFORMATION ##
     # TODO: dta files required
@@ -1061,8 +1063,8 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     if dograph and vscore >= min_hscore:
         proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
         plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                      proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, min_dm,
-                      outpath, massconfig, standalone, ppm_plot)
+                      proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
+                      min_dm, outpath, massconfig, standalone, ppm_plot)
     if standalone:
         if not args.integrate:
             logging.info("\t\t\tDone.")
