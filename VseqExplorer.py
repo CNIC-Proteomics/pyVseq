@@ -126,52 +126,6 @@ def getTheoMZH(charge, sequence, mods, pos, nt, ct, mass):
     else:
         return MH
 
-def expSpectrum(fr_ns, scan):
-    '''
-    Prepare experimental spectrum.
-    '''
-    index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
-    index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
-    index3 = np.where(index2)[0]
-    index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-    try:
-        ions = fr_ns.iloc[index1+1:index3,:]
-        ions[0] = ions[0].str.strip()
-        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-        ions = ions.drop(ions.columns[0], axis=1)
-        ions = ions.apply(pd.to_numeric)
-    except ValueError:
-        ions = fr_ns.iloc[index1+4:index3,:]
-        ions[0] = ions[0].str.strip()
-        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-        ions = ions.drop(ions.columns[0], axis=1)
-        ions = ions.apply(pd.to_numeric)
-    ions["ZERO"] = 0
-    #ions["CCU"] = 0.01
-    ions["CCU"] = ions.MZ - 0.01
-    ions.reset_index(drop=True)
-    
-    #bind = pd.DataFrame(list(itertools.chain(*set(zip(list(ions['CCU']),list(ions['MZ']))))), columns=["MZ"])
-    #bind["REL_INT"] = list(itertools.chain(*set(zip(list(ions['ZERO']),list(ions['INT'])))))
-    bind = pd.DataFrame(list(itertools.chain.from_iterable(zip(list(ions['CCU']),list(ions['MZ'])))), columns=["MZ"])
-    bind["REL_INT"] = list(itertools.chain.from_iterable(zip(list(ions['ZERO']),list(ions['INT']))))
-    bind["ZERO"] = 0
-    bind["CCU"] = bind.MZ + 0.01
-    
-    spec = pd.DataFrame(list(itertools.chain.from_iterable(zip(list(bind['MZ']),list(bind['CCU'])))), columns=["MZ"])
-    spec["REL_INT"] = list(itertools.chain.from_iterable(zip(list(bind['REL_INT']),list(bind['ZERO']))))
-    
-    median_rel_int = statistics.median(ions.INT)
-    std_rel_int = np.std(ions.INT, ddof = 1)
-    ions["NORM_REL_INT"] = (ions.INT - median_rel_int) / std_rel_int
-    ions["P_REL_INT"] = scipy.stats.norm.cdf(ions.NORM_REL_INT) #, 0, 1)
-    normspec = ions.loc[ions.P_REL_INT>0.81]
-    spec_correction = max(ions.INT)/statistics.mean(normspec.INT)
-    spec["CORR_INT"] = spec.REL_INT*spec_correction
-    spec.loc[spec['CORR_INT'].idxmax()]['CORR_INT'] = max(spec.REL_INT)
-    spec["CORR_INT"] = spec.apply(lambda x: max(ions.INT)-13 if x["CORR_INT"]>max(ions.INT) else x["CORR_INT"], axis=1)
-    return(spec, ions, spec_correction)
-
 def theoSpectrum(seq, mods, pos, len_ions, dm, mass):
     '''
     Prepare theoretical fragment matrix.
