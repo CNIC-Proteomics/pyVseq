@@ -355,18 +355,20 @@ def main(config):
     logging.info(f'Protein sequences were read: {len(so)} proteins')
 
     # Read Unimod
-    logging.info('Reading UniMod table')
-    full_unim, unim = readUnimod(params['unimod_path'])
+    unim = pd.DataFrame([], columns=['Title', 'mono_mass', 'site'])
+    if int(params['modnumber']) > 0:
+        logging.info('Reading UniMod table')
+        full_unim, unim = readUnimod(params['unimod_path'])
 
-    # Filter unim
-    aafilter = [i.strip() for i in params['aa'].split(',') if i != '']
-    modfilter = [i.strip().upper() for i in params['mod'].split(',') if i != '']
+        # Filter unim
+        aafilter = [i.strip() for i in params['aa'].split(',') if i != '']
+        modfilter = [i.strip().upper() for i in params['mod'].split(',') if i != '']
 
-    if len(aafilter) > 0:
-        unim = unim.loc[np.isin(unim['site'], aafilter), :]
+        if len(aafilter) > 0:
+            unim = unim.loc[np.isin(unim['site'], aafilter), :]
 
-    if len(modfilter) > 0:
-        unim = unim.loc[[i.upper() in modfilter for i in unim['Title'].to_list()], :]
+        if len(modfilter) > 0:
+            unim = unim.loc[[i.upper() in modfilter for i in unim['Title'].to_list()], :]
 
     # Parallelize at protein level
     logging.info(f'Tryiptic digestion')
