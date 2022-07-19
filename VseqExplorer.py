@@ -77,6 +77,23 @@ def getTquery(fr_ns):
     tquery = tquery.apply(pd.to_numeric)
     return tquery
 
+def getOffset(fr_ns):
+    def _check(can):
+        try:
+            a = list(map(float, can))
+            return 0
+        except ValueError:
+            return 1
+    fs = fr_ns[fr_ns[0].str.contains("SCANS=")].iloc[0].name
+    ls = fr_ns[fr_ns[0].str.contains("END IONS")].iloc[0].name
+    for i in range(fs, ls+1):
+        can = fr_ns[0].iloc[i].split(" ")
+        if len(can)==2 and _check(can)==0:
+            fi = i
+            break
+    index_offset = fi - fs
+    return index_offset
+
 def getTheoMZH(charge, sequence, mods, pos, nt, ct, mass):
     '''    
     Calculate theoretical MZ using the PSM sequence.
@@ -225,16 +242,18 @@ def errorMatrix(mz, theo_spec):
 
 def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
-                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11])
+                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
+                     parlist[12])
     pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
-            standalone, massconfig, dograph, min_hscore, ppm_plot):
+            standalone, massconfig, dograph, min_hscore, ppm_plot,
+            index_offset):
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq("mgf", x, tquery, mgf, index2, min_dm, # TODO mzML
+    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq("mgf", index_offset, x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, 0, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -245,7 +264,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     if ppmfinal.any().any():
         b_ions = b_ions + [x for x in list(ppmfinal.index.values) if "b" in x]
         y_ions = y_ions + [x for x in list(ppmfinal.index.values) if "y" in x]
-    ions_matched = len(b_ions) + len(y_ions)
+    # ions_matched = len(b_ions) + len(y_ions)
     return([nions, ions_exp, bions, yions, vscore, escore, hscore])
 
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
@@ -299,7 +318,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_hscore, outpath3,
-                    mass, n_workers, parallelize, ppm_plot, outfile):
+                    mass, n_workers, parallelize, ppm_plot, outfile, index_offset):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
     #              + str(query.Charge))
@@ -340,7 +359,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset]
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
@@ -364,7 +383,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                                                   mass,
                                                                   False,
                                                                   min_hscore,
-                                                                  ppm_plot)
+                                                                  ppm_plot,
+                                                                  index_offset)
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
@@ -395,6 +415,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         if not os.path.exists(Path(outpath3)):
             os.mkdir(Path(outpath3))
         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+                                           index_offset,
                                            x,
                                            tquery,
                                            mgf,
@@ -441,7 +462,7 @@ def _parallelSeqTable(x, parlist):
                              fsort_by=parlist[4], bestn=parlist[5], fullprot=parlist[6], prot=parlist[7],
                              mgf=parlist[8], index2=parlist[9], min_dm=parlist[10], min_match=parlist[11],
                              min_hscore=parlist[12], outpath3=parlist[13], mass=parlist[14], n_workers=parlist[15],
-                             parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18])
+                             parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18], index_offset=parlist[19])
     return(result)
 
 def main(args):
@@ -491,6 +512,7 @@ def main(args):
         # mgf = Path(mgf.iloc[0][0])
         logging.info("RAW: " + str(mgf))
         mgf = pd.read_csv(mgf, header=None, sep="\t") # TODO add mzML mode and mode arg to doVseq call
+        index_offset = getOffset(mgf)
         index2 = mgf.to_numpy() == 'END IONS'
         tquery = getTquery(mgf)
         tquery = tquery.drop_duplicates(subset=['SCANS'])
@@ -515,7 +537,7 @@ def main(args):
                 tqdm.pandas(position=0, leave=True)
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_hscore, outpath3,
-                           mass, args.n_workers, parallelize, ppm_plot, outfile]
+                           mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset]
                 # chunks = 100
                 # if len(rowSeqs) <= 500:
                 #     chunks = 50
@@ -574,13 +596,13 @@ def main(args):
                     subtquery["RawCharge"] = subtquery.Charge
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
-                               False, mass, False, min_hscore, ppm_plot]
+                               False, mass, False, min_hscore, ppm_plot, index_offset]
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
-                    chunks = 100
-                    if len(rowSeries) <= 500:
-                        chunks = 50
+                    # chunks = 100
+                    # if len(rowSeries) <= 500:
+                    #     chunks = 50
                     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
                     #     # with tqdm(total=len(rowSeries)) as progress_bar:
                     #     #     futures = {}
@@ -637,6 +659,7 @@ def main(args):
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
                         f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+                                                           index_offset,
                                                            x,
                                                            tquery,
                                                            mgf,

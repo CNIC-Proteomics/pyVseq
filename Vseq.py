@@ -53,6 +53,23 @@ def prepareWorkspace(exp, msdatapath, outpath):
                 "var_name": var_name_path}
     return pathdict
 
+def getOffset(fr_ns):
+    def _check(can):
+        try:
+            a = list(map(float, can))
+            return 0
+        except ValueError:
+            return 1
+    fs = fr_ns[fr_ns[0].str.contains("SCANS=")].iloc[0].name
+    ls = fr_ns[fr_ns[0].str.contains("END IONS")].iloc[0].name
+    for i in range(fs, ls+1):
+        can = fr_ns[0].iloc[i].split(" ")
+        if len(can)==2 and _check(can)==0:
+            fi = i
+            break
+    index_offset = fi - fs
+    return index_offset
+
 def getTquery(fr_ns, mode):
     if mode == "mgf":
         squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
@@ -126,7 +143,7 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, scan, index2, mode):
+def expSpectrum(fr_ns, index_offset, scan, index2, mode):
     '''
     Prepare experimental spectrum.
     '''
@@ -136,22 +153,22 @@ def expSpectrum(fr_ns, scan, index2, mode):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         # index1 = np.where(index1)[0][0]
-        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
+        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
         index3 = np.where(index2)[0]
         index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
         
-        try:
-            ions = fr_ns.iloc[index1+1:index3,:]
-            ions[0] = ions[0].str.strip()
-            ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-            ions = ions.drop(ions.columns[0], axis=1)
-            ions = ions.apply(pd.to_numeric)
-        except ValueError:
-            ions = fr_ns.iloc[index1+4:index3,:]
-            ions[0] = ions[0].str.strip()
-            ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-            ions = ions.drop(ions.columns[0], axis=1)
-            ions = ions.apply(pd.to_numeric)
+        # try:
+        ions = fr_ns.iloc[index1:index3,:]
+        ions[0] = ions[0].str.strip()
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
+        # except ValueError:
+        #     ions = fr_ns.iloc[index1+4:index3,:]
+        #     ions[0] = ions[0].str.strip()
+        #     ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        #     ions = ions.drop(ions.columns[0], axis=1)
+        #     ions = ions.apply(pd.to_numeric)
     elif mode == "mzml":
         s = fr_ns.getSpectrum(scan-1)
         ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
@@ -934,7 +951,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 
-def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
+def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_hscore, ppm_plot):
     if not standalone:
         mass = massconfig
@@ -961,7 +978,7 @@ def doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
     #parentaldm = parental + dm
     #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, sub.FirstScan, index2, mode)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
     theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)
@@ -1115,6 +1132,7 @@ def main(args):
             pyopenms.MzMLFile().load(msdata, fr_ns)
             index2 = 0
             tquery = getTquery(fr_ns, mode)
+            index_offset = 0
         elif os.path.isfile(os.path.join(pathdict["msdata"], exp + ".mgf")):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
             mode = "mgf"
@@ -1122,6 +1140,7 @@ def main(args):
             fr_ns = pd.read_csv(msdata, header=None)
             index2 = fr_ns.to_numpy() == 'END IONS'
             tquery = getTquery(fr_ns, mode)
+            index_offset = getOffset(fr_ns)
         else:
             logging.info("MGF or mzML file not found in " + str(msdata))
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
@@ -1134,7 +1153,7 @@ def main(args):
                 #seq2 = sub.Sequence[::-1]
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
-                vscore, escore, hscore, dm = doVseq(mode, sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                vscore, escore, hscore, dm = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
