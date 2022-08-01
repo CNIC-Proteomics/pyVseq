@@ -1,6 +1,7 @@
 import pyopenms
 import argparse
 import concurrent.futures
+import configparser
 import itertools
 import logging
 import math
@@ -11,7 +12,8 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
-from scipy.stats import chi2_contingency
+import re
+from scipy.stats import chi2_contingency, poisson
 import sys
 from tqdm import tqdm
 from bisect import bisect_left
@@ -136,8 +138,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     plt.title("Integrated Scans", fontsize=20)
     plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=4)
     plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="salmon", zorder=3)
-    plt.axvline(x=mz, color='orange', ls="--", zorder=2)
-    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
+    plt.axvline(x=mz, color='orange', ls="--", zorder=2) # Chosen peak
+    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1) # Monoisotopic peak
     ax1.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
     ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
                loc="upper right")
@@ -162,6 +164,86 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
     fig.savefig(outplot)
     fig.clear()
     plt.close(fig)
+    return
+
+def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
+    '''    
+    Calculate theoretical MH using the PSM sequence.
+    '''
+    mass = massconfig
+    AAs = dict(mass._sections['Aminoacids'])
+    MODs = dict(mass._sections['Fixed Modifications'])
+    m_proton = mass.getfloat('Masses', 'm_proton')
+    m_hydrogen = mass.getfloat('Masses', 'm_hydrogen')
+    m_oxygen = mass.getfloat('Masses', 'm_oxygen')
+    total_aas = 2*m_hydrogen + m_oxygen
+    total_aas += charge*m_proton
+    #total_aas += float(MODs['nt']) + float(MODs['ct'])
+    if nt:
+        total_aas += float(MODs['nt'])
+    if ct:
+        total_aas += float(MODs['ct'])
+    for i, aa in enumerate(sequence):
+        if aa.lower() in AAs:
+            total_aas += float(AAs[aa.lower()])
+        if aa.lower() in MODs:
+            total_aas += float(MODs[aa.lower()])
+        # if aa.islower():
+        #     total_aas += float(MODs['isolab'])
+        if i in pos:
+            total_aas += float(mods[pos.index(i)])
+    MH = total_aas - (charge-1)*m_proton
+    return MH
+
+def prePlotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath, out, n_workers):
+    ''' Integrate and save apex list and plot to files. '''
+    outpath = os.path.join(out, str(sub.Raw) +
+                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                           + "_ch" + str(sub.Charge) + "_Integration.csv")
+    outplot = os.path.join(out, str(sub.Raw) +
+                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
+                           + "_ch" + str(sub.Charge) + "_Integration.pdf")
+    apex_list, apexonly = Integrate(sub.FirstScan, mz, scanrange, mzrange,
+                                    bin_width, mzmlpath, n_workers)
+    apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
+    
+    # Isotopic envelope theoretical distribution (Poisson)
+    massconfig = configparser.ConfigParser(inline_comment_prefixes='#')
+    massconfig.read(args.config)
+    plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
+    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
+    pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
+    parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
+    mim = sub.MH
+    dm = mim - parental
+    theomh = parental + dm + (sub.Charge-1)*massconfig.getfloat('Masses', 'm_proton')
+    # mean_aa = np.mean([float(dict(mass._sections['Aminoacids'])[aa] )for aa in dict(mass._sections['Aminoacids'])])
+    avg_aa = 111.1254 # Dalton
+    C13 = 1.003355 # Dalton
+    est_C13 = (0.000594 * theomh) - 0.03091
+    poisson_df = pd.DataFrame(list(range(0,9)))
+    poisson_df.columns = ["n"]
+    poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
+    poisson_df["theomz"] = poisson_df.theomh / sub.Charge
+    poisson_df["Poisson"] = poisson_df.apply(lambda x: poisson.pmf(x.n, est_C13), axis=1)
+    poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
+    poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<0.8], poisson_df[poisson_df["cumsum"]>=0.8].head(1)])
+    poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
+    # Select experimental peaks within tolerance
+    # apexonly2 = apexonly[apexonly.SUMINT>0]
+    apexonly2 = apexonly[apexonly.APEX==True].copy()
+    if len(apexonly2) <= 0:
+        logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
+        return
+    poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+    # poisson_df.exp_peak = poisson_df.apply(lambda x: -1 if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
+    poisson_df = poisson_df[poisson_df.exp_peak>=0]
+    poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+    int_total = poisson_df.exp_int.sum()
+    poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
+    # poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
+    # Plots
+    PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 
 def main(args):
