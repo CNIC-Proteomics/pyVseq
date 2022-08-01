@@ -217,7 +217,6 @@ def prePlotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpa
     mim = sub.MH
     dm = mim - parental
     theomh = parental + dm + (sub.Charge-1)*massconfig.getfloat('Masses', 'm_proton')
-    # mean_aa = np.mean([float(dict(mass._sections['Aminoacids'])[aa] )for aa in dict(mass._sections['Aminoacids'])])
     avg_aa = 111.1254 # Dalton
     C13 = 1.003355 # Dalton
     est_C13 = (0.000594 * theomh) - 0.03091
@@ -250,11 +249,11 @@ def main(args):
     '''
     Main function
     '''
-    ## PARAMETERS ##
-    srange = int(args.scanrange)
-    drange = float(args.mzrange)
-    bin_width = float(args.bin)
-    t_poisson = float(args.poisson)
+    ## PARAMETERS ##    
+    srange = float(mass._sections['Parameters']['scanrange'])
+    drange = float(mass._sections['Parameters']['mzrange'])
+    bin_width = float(mass._sections['Parameters']['binwidth'])
+    t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
     
     # infile = r"\\Tierra\SC\U_Proteomica\UNIDAD\DatosCrudos\JorgeAlegreCebollada\Glyco_Titin\experiment_Oct21\8870\Titin_glyco.51762.51762.0.dta"
     logging.info("Scan range: ±" + str(srange))
@@ -390,6 +389,18 @@ if __name__ == '__main__':
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
+    
+    # parse config
+    mass = configparser.ConfigParser(inline_comment_prefixes='#')
+    mass.read(args.config)
+    if args.scanrange is not None:
+        mass.set('Parameters', 'scanrange', str(args.scanrange))
+    if args.mzrange is not None:
+        mass.set('Parameters', 'mzrange', str(args.mzrange))
+    if args.binwidth is not None:
+        mass.set('Parameters', 'binwidth', str(args.binwidth))
+    if args.t_poisson is not None:
+        mass.set('Parameters', 't_poisson', str(args.t_poisson))
 
     # logging debug level. By default, info level
     log_file = outfile = args.infile[:-4] + 'ScanIntegrator_log.txt'
