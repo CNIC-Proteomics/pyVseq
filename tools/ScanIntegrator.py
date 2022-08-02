@@ -250,25 +250,25 @@ def main(args):
     Main function
     '''
     ## PARAMETERS ##    
-    srange = float(mass._sections['Parameters']['scanrange'])
-    drange = float(mass._sections['Parameters']['mzrange'])
-    bin_width = float(mass._sections['Parameters']['binwidth'])
-    t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
+    srange = float(mass._sections['Parameters']['int_scanrange'])
+    drange = float(mass._sections['Parameters']['int_mzrange'])
+    bin_width = float(mass._sections['Parameters']['int_binwidth'])
+    t_poisson = float(mass._sections['Parameters']['int_poisson_threshold'])
     
     # infile = r"\\Tierra\SC\U_Proteomica\UNIDAD\DatosCrudos\JorgeAlegreCebollada\Glyco_Titin\experiment_Oct21\8870\Titin_glyco.51762.51762.0.dta"
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
     logging.info("Bin width: " + str(bin_width) + " Th")
     logging.info("Reading input table...")
-    query = pd.read_table(Path(args.infile), index_col=None, header=0, delimiter="\t", names=["SCAN", "MZ"])
-    logging.info("Looking for .dta files...")
-    dtafiles = os.listdir(Path(args.dta))
-    dtafiles = [i for i in dtafiles if i[-6:]=='.0.dta'] # Full Scans
-    logging.info(str(len(dtafiles)) + " Full Scan .dta files found.")
-    dtadf = pd.DataFrame(dtafiles)
-    dtadf.columns = ["FILENAME"]
-    dtadf["SCAN"] = dtadf.FILENAME.str.split(".").str[-3].astype(int)
-    dtadf = dtadf.sort_values(by="SCAN", ignore_index=True)
+    query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
+    logging.info("Looking for .mzML files...")
+    mzmlfiles = os.listdir(Path(args.raw))
+    mzmlfiles = [i[:-5] for i in mzmlfiles if i[-5:].lower()=='.mzml']
+    logging.info(str(len(mzmlfiles)) + " mzML files found.")
+    missing = list(set(list(query.Raw.unique())) - set(mzmlfiles))
+    if missing:
+        logging.info("mzML files missing!" + str(missing))
+        sys.exit()
 
     for i, q in query.iterrows():
         logging.info("QUERY=" + str(i+1) + " SCAN=" + str(int(q.SCAN)) + " MZ=" + str(q.MZ)+"Th")
@@ -380,7 +380,7 @@ if __name__ == '__main__':
         ''')
     
     parser.add_argument('-i',  '--infile', required=True, help='Table of scans to search')
-    parser.add_argument('-d',  '--dta', required=True, help='Directory containing .DTA files')
+    parser.add_argument('-r',  '--raw', required=True, help='Directory containing .mzML files')
     parser.add_argument('-s',  '--scanrange', default=6, help='± full scans to use')
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
