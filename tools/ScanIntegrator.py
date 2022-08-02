@@ -226,7 +226,7 @@ def prePlotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpa
     poisson_df["theomz"] = poisson_df.theomh / sub.Charge
     poisson_df["Poisson"] = poisson_df.apply(lambda x: poisson.pmf(x.n, est_C13), axis=1)
     poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
-    poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<0.8], poisson_df[poisson_df["cumsum"]>=0.8].head(1)])
+    poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<t_poisson], poisson_df[poisson_df["cumsum"]>=t_poisson].head(1)])
     poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
     # Select experimental peaks within tolerance
     # apexonly2 = apexonly[apexonly.SUMINT>0]
