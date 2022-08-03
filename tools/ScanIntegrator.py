@@ -119,7 +119,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot):
+def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None):
     fig = plt.figure()
     fig.set_size_inches(20, 15)
     
@@ -255,8 +255,7 @@ def main(args):
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['int_poisson_threshold'])
-    
-    # infile = r"\\Tierra\SC\U_Proteomica\UNIDAD\DatosCrudos\JorgeAlegreCebollada\Glyco_Titin\experiment_Oct21\8870\Titin_glyco.51762.51762.0.dta"
+
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
     logging.info("Bin width: " + str(bin_width) + " Th")
@@ -270,6 +269,9 @@ def main(args):
     if missing:
         logging.info("mzML files missing!" + str(missing))
         sys.exit()
+    
+    Path(args.outpath).mkdir(parents=True, exist_ok=True)
+    outpath = os.path.join(args.outpath, "Integration.csv")
 
     for mzml in mzmlfiles:
         logging.info("Reading file " + str(mzml) + ".mzML...")
@@ -337,66 +339,42 @@ def main(args):
                 apexonly.loc[apexonly.shape[0]] = after
             apexonly.sort_values(by=['BIN'], inplace=True)
             apexonly.reset_index(drop=True, inplace=True)
+            outplot = os.path.join(args.outpath, str(q.Raw) + "_" + str(q.FirstScan)
+                                   + "_ch" + str(q.Charge) + "_Integration.pdf")
+            ## THEORETICAL ISOTOPIC ENVELOPE (POISSON) ##
+            plainseq = ''.join(re.findall("[A-Z]+", q.Sequence))
+            mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", q.Sequence) if i]
+            pos = [int(j)-1 for j, k in enumerate(q.Sequence) if k.lower() == '[']
+            parental = getTheoMH(q.Charge, plainseq, mods, pos, True, True, mass, False)
+            mim = q.MH
+            dm = mim - parental
+            theomh = parental + dm + (q.Charge-1)*mass.getfloat('Masses', 'm_proton')
+            C13 = 1.003355 # Dalton
+            est_C13 = (0.000594 * theomh) - 0.03091
+            poisson_df = pd.DataFrame(list(range(0,9)))
+            poisson_df.columns = ["n"]
+            poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
+            poisson_df["theomz"] = poisson_df.theomh / q.Charge
+            poisson_df["Poisson"] = poisson_df.apply(lambda x: poisson.pmf(x.n, est_C13), axis=1)
+            poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
+            poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<t_poisson], poisson_df[poisson_df["cumsum"]>=t_poisson].head(1)])
+            poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
+            # Select experimental peaks within tolerance
+            apexonly2 = apexonly[apexonly.APEX==True].copy()
+            if len(apexonly2) <= 0:
+                logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
+                return
+            poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+            poisson_df = poisson_df[poisson_df.exp_peak>=0]
+            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+            int_total = poisson_df.exp_int.sum()
+            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
+            PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.RecomMZ)
             
             
         
     for i, q in query.iterrows():
         logging.info("QUERY=" + str(i+1) + " SCAN=" + str(int(q.SCAN)) + " MZ=" + str(q.MZ)+"Th")
-        ## JOIN DTAS ##
-        qfull = min(list(dtadf.SCAN), key = lambda x : abs(x - q.SCAN))
-        dta = dtadf[dtadf.SCAN == qfull].index.values[0]
-        dta = dtadf.iloc[dtadf[dtadf.SCAN == qfull].index.values[0]-srange:dtadf[dtadf.SCAN == qfull].index.values[0]+srange+1]
-        dtas = pd.concat([pd.read_table(os.path.join(args.dta, f.FILENAME), index_col=None, header=0, delimiter=" ", names=["MZ", "INT"]) for i, f in dta.iterrows()])
-        dtas = dtas.sort_values(by="MZ", ignore_index=True)
-        
-        ## BINNING ##
-        bins = list(np.arange(q.MZ-drange, q.MZ+drange, bin_width))
-        bins = [round(x, _decimal_places(bin_width)) for x in bins]
-        # bins_df = pd.DataFrame([[0]*len(bins)]*len(dtas), columns=bins)
-        bins_df = pd.DataFrame([bins]*len(dtas))
-        # dtas = pd.concat([dtas, temp_bins], axis=1)
-        
-        ## CALCULATE INTENSITY ##
-        logging.info("Integrating scans...")
-        indices, row_series = zip(*bins_df.iterrows())
-        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-            temp_bins_df = list(tqdm(executor.map(InInt, row_series, itertools.repeat(dtas), chunksize=500),
-                                     total=len(row_series)))
-        bins_df = pd.concat(temp_bins_df, axis=1).T
-        # bins_df = bins_df.apply(lambda x: InInt(x, dtas), axis=1)
-        # TODO in bins_df do cumsum and divide by nscans (srange*2+1) then pick the apex to save to dtas
-        logging.info("Finding peaks...")
-        apex_list = pd.DataFrame(bins_df.sum() / (srange*2+1), columns=["SUMINT"])
-        apex_list["APEX"] = apex_list.SUMINT.diff(-1)
-        apex_list.APEX[apex_list.APEX>0] = True
-        apex_list.APEX[apex_list.APEX<=0] = False
-        apex_list["APEX_B"] = apex_list["APEX"]
-        for i, j in apex_list.iterrows():
-            try:
-                if j.APEX_B == True and apex_list.iloc[i-1].APEX_B == True:
-                    apex_list.at[i, "APEX"] = False
-            except KeyError:
-                continue
-        apex_list.at[len(apex_list)-1, "APEX"] = False
-        apex_list = apex_list.drop("APEX_B", axis=1)
-        apex_list["BIN"] = bins
-        # dtas["SUMINT"] = bins_df.sum(axis=1)
-        
-        ## FILTER APEX ##
-        apexonly = pd.concat([apex_list[apex_list.APEX==True], apex_list[apex_list.SUMINT==0]])
-        apexonly.sort_values(by=['BIN'], inplace=True)
-        ## DUMMY MZ VALUES ##
-        apexonly.reset_index(drop=True, inplace=True)
-        for index, row in apexonly.iterrows():
-            before = pd.Series([0]*row.shape[0], index=row.index)
-            after = pd.Series([0]*row.shape[0], index=row.index)
-            before.BIN = row.BIN - bin_width/10
-            after.BIN = row.BIN + bin_width/10
-            apexonly.loc[apexonly.shape[0]] = before
-            apexonly.loc[apexonly.shape[0]] = after
-        apexonly.sort_values(by=['BIN'], inplace=True)
-        apexonly.reset_index(drop=True, inplace=True)
-        
         ## PLOTS ##
         fig = plt.figure()
         fig.set_size_inches(20, 15)
