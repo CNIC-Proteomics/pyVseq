@@ -82,7 +82,8 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     # Binning #
     bins = list(np.arange(mz-drange, mz+drange, bin_width))
     bins = [round(x, _decimal_places(bin_width)) for x in bins]
-    bins_df = pd.DataFrame([bins]*len(dtas))
+    bins_df = pd.DataFrame([bins])
+    bins_df = bins_df.loc[bins_df.index.repeat(len(dtas))]
     # Calculate intensity #
     indices, row_series = zip(*bins_df.iterrows())
     with concurrent.futures.ProcessPoolExecutor(n_workers) as executor:
@@ -289,16 +290,54 @@ def main(args):
                 qfull = ref[qpos]
             mz = msdata.getSpectrum(int(q.FirstScan)-1).getPrecursors()[0].getMZ() # Experimental
             ## GET FULL SCANS ##
-            spectra = pd.DataFrame(columns=["SCAN", "IONS"])
+            spectra = pd.DataFrame(columns=["MZ", "INT"])
             fulls = ref[qpos-srange:qpos+srange+1]
             for f in fulls:
                 s = msdata.getSpectrum(f-1)
                 ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
                 ions.columns = ["MZ", "INT"]
-                spectrum = pd.DataFrame([f, ions]).T
-                spectrum.columns = ["SCAN", "IONS"]
-                spectra = pd.concat([spectra, spectrum])
+                spectra = pd.concat([spectra, ions])
+            spectra =  spectra.sort_values(by="MZ", ignore_index=True)
             ## BINNING ##
+            bins = list(np.arange(mz-drange, mz+drange, bin_width))
+            bins = [round(x, _decimal_places(bin_width)) for x in bins]
+            bins_df = pd.DataFrame([bins])
+            bins_df = bins_df.loc[bins_df.index.repeat(len(spectra))]
+            ## CALCULATE INTENSITY ##
+            indices, row_series = zip(*bins_df.iterrows())
+            with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                temp_bins_df = list(tqdm(executor.map(InInt, row_series, itertools.repeat(spectra), chunksize=500),
+                                         total=len(row_series)))
+            bins_df = pd.concat(temp_bins_df, axis=1).T
+            apex_list = pd.DataFrame(bins_df.sum() / (srange*2+1), columns=["SUMINT"])
+            apex_list["APEX"] = apex_list.SUMINT.diff(-1)
+            apex_list.APEX[apex_list.APEX>0] = True
+            apex_list.APEX[apex_list.APEX<=0] = False
+            apex_list["APEX_B"] = apex_list["APEX"]
+            for i, j in apex_list.iterrows():
+                try:
+                    if j.APEX_B == True and apex_list.iloc[i-1].APEX_B == True:
+                        apex_list.at[i, "APEX"] = False
+                except KeyError:
+                    continue
+            apex_list.at[len(apex_list)-1, "APEX"] = False
+            apex_list = apex_list.drop("APEX_B", axis=1)
+            apex_list["BIN"] = bins
+            ## FILTER APEX ##
+            apexonly = pd.concat([apex_list[apex_list.APEX==True], apex_list[apex_list.SUMINT==0]])
+            apexonly.sort_values(by=['BIN'], inplace=True)
+            ## DUMMY MZ VALUES ##
+            apexonly.reset_index(drop=True, inplace=True)
+            for index, row in apexonly.iterrows():
+                before = pd.Series([0]*row.shape[0], index=row.index)
+                after = pd.Series([0]*row.shape[0], index=row.index)
+                before.BIN = row.BIN - bin_width/10
+                after.BIN = row.BIN + bin_width/10
+                apexonly.loc[apexonly.shape[0]] = before
+                apexonly.loc[apexonly.shape[0]] = after
+            apexonly.sort_values(by=['BIN'], inplace=True)
+            apexonly.reset_index(drop=True, inplace=True)
+            
             
         
     for i, q in query.iterrows():
