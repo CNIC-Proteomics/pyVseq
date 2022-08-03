@@ -287,14 +287,18 @@ def main(args):
             if qfull > q.FirstScan:
                 qpos -= 1
                 qfull = ref[qpos]
-            s = msdata.getSpectrum(int(qfull)-1)
-            mz = s.getPrecursors()[0].getMZ() # Experimental
-            ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
-            ions.columns = ["MZ", "INT"]
-            ## Get spectrum and adjacents (srange)
-            spectra = pd.DataFrame([q.FirstScan, mz, ions]).T
-            spectra.columns = ["SCAN", "MZ", "IONS"]
-            
+            mz = msdata.getSpectrum(int(q.FirstScan)-1).getPrecursors()[0].getMZ() # Experimental
+            ## GET FULL SCANS ##
+            spectra = pd.DataFrame(columns=["SCAN", "IONS"])
+            fulls = ref[qpos-srange:qpos+srange+1]
+            for f in fulls:
+                s = msdata.getSpectrum(f-1)
+                ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+                ions.columns = ["MZ", "INT"]
+                spectrum = pd.DataFrame([f, ions]).T
+                spectrum.columns = ["SCAN", "IONS"]
+                spectra = pd.concat([spectra, spectrum])
+            ## BINNING ##
             
         
     for i, q in query.iterrows():
