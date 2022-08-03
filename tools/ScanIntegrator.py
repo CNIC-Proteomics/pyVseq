@@ -1,4 +1,3 @@
-import pyopenms
 import argparse
 import concurrent.futures
 import configparser
@@ -12,6 +11,7 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+import pyopenms
 import re
 from scipy.stats import chi2_contingency, poisson
 import sys
@@ -250,7 +250,7 @@ def main(args):
     Main function
     '''
     ## PARAMETERS ##    
-    srange = float(mass._sections['Parameters']['int_scanrange'])
+    srange = int(mass._sections['Parameters']['int_scanrange'])
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['int_poisson_threshold'])
@@ -270,17 +270,41 @@ def main(args):
         logging.info("mzML files missing!" + str(missing))
         sys.exit()
 
+    for mzml in mzmlfiles:
+        logging.info("Reading file " + str(mzml) + ".mzML...")
+        msdata = pyopenms.MSExperiment()
+        pyopenms.MzMLFile().load(mzml, msdata)
+        ref = []
+        for r in msdata.getSpectra():
+            if r.getMSLevel() == 1: # FULL
+                ref.append(int(r.getNativeID().split(' ')[-1][5:]))
+        # GetSubQuery
+        sub = query[query.Raw==mzml].copy()
+        for i, q in sub.iterrows():
+            logging.info("\tIntegrating SCAN=" + str(q.FirstScan) + "...")
+            qfull = min(ref, key=lambda x:abs(x-q.FirstScan))
+            qpos = ref.index(qfull)
+            if qfull > q.FirstScan:
+                qpos -= 1
+                qfull = ref[qpos]
+            s = msdata.getSpectrum(int(qfull)-1)
+            mz = s.getPrecursors()[0].getMZ() # Experimental
+            ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+            ions.columns = ["MZ", "INT"]
+            ## Get spectrum and adjacents (srange)
+            spectra = pd.DataFrame([q.FirstScan, mz, ions]).T
+            spectra.columns = ["SCAN", "MZ", "IONS"]
+            
+            
+        
     for i, q in query.iterrows():
         logging.info("QUERY=" + str(i+1) + " SCAN=" + str(int(q.SCAN)) + " MZ=" + str(q.MZ)+"Th")
         ## JOIN DTAS ##
         qfull = min(list(dtadf.SCAN), key = lambda x : abs(x - q.SCAN))
         dta = dtadf[dtadf.SCAN == qfull].index.values[0]
         dta = dtadf.iloc[dtadf[dtadf.SCAN == qfull].index.values[0]-srange:dtadf[dtadf.SCAN == qfull].index.values[0]+srange+1]
-        # dtas = [[i, pd.read_table(os.path.join(args.infile, f.FILENAME), index_col=None, header=0, delimiter=" ", names=["MZ", "INT"])] for i, f in dta.iterrows()]
         dtas = pd.concat([pd.read_table(os.path.join(args.dta, f.FILENAME), index_col=None, header=0, delimiter=" ", names=["MZ", "INT"]) for i, f in dta.iterrows()])
         dtas = dtas.sort_values(by="MZ", ignore_index=True)
-        # dtas["PW"] = 10**-6 * dtas.MZ**1.5027
-        # dtas["SIGMA"] = 40**-7 * dtas.MZ**1.5027
         
         ## BINNING ##
         bins = list(np.arange(q.MZ-drange, q.MZ+drange, bin_width))
