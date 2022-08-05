@@ -943,7 +943,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     if len(apexonly2) <= 0:
         logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
         return
-    poisson_filtered["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+    poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
     poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
     poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
     int_total = poisson_filtered.exp_int.sum()
