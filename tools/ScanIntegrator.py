@@ -120,7 +120,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None):
+def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, poisson_df2=None):
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
     fig = plt.figure()
@@ -147,6 +147,10 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None):
     ax1.annotate(str(round(mz,3)) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
+    text_box = AnchoredText("Chi2:     " + str(round(chi2, 2)) + "\nP-value: " + str(p) + "\nDoF:       " + str(dof),
+                            frameon=True, loc='upper left', pad=0.5)
+    plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+    ax1.add_artist(text_box) # TODO check
     ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
                loc="upper right")
 
@@ -204,55 +208,7 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def prePlotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath, out, n_workers):
-    ''' Integrate and save apex list and plot to files. '''
-    outpath = os.path.join(out, str(sub.Raw) +
-                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
-                           + "_ch" + str(sub.Charge) + "_Integration.csv")
-    outplot = os.path.join(out, str(sub.Raw) +
-                           "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
-                           + "_ch" + str(sub.Charge) + "_Integration.pdf")
-    apex_list, apexonly = Integrate(sub.FirstScan, mz, scanrange, mzrange,
-                                    bin_width, mzmlpath, n_workers)
-    apex_list.to_csv(outpath, index=False, sep=',', encoding='utf-8')
-    
-    # Isotopic envelope theoretical distribution (Poisson)
-    massconfig = configparser.ConfigParser(inline_comment_prefixes='#')
-    massconfig.read(args.config)
-    plainseq = ''.join(re.findall("[A-Z]+", sub.Sequence))
-    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", sub.Sequence) if i]
-    pos = [int(j)-1 for j, k in enumerate(sub.Sequence) if k.lower() == '[']
-    parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, False)
-    mim = sub.MH
-    dm = mim - parental
-    theomh = parental + dm + (sub.Charge-1)*massconfig.getfloat('Masses', 'm_proton')
-    avg_aa = 111.1254 # Dalton
-    C13 = 1.003355 # Dalton
-    est_C13 = (0.000594 * theomh) - 0.03091
-    poisson_df = pd.DataFrame(list(range(0,9)))
-    poisson_df.columns = ["n"]
-    poisson_df["theomh"] = np.arange(theomh, theomh+8.5*C13, C13)
-    poisson_df["theomz"] = poisson_df.theomh / sub.Charge
-    poisson_df["Poisson"] = poisson_df.apply(lambda x: poisson.pmf(x.n, est_C13), axis=1)
-    poisson_df["cumsum"] = poisson_df.Poisson.cumsum()
-    poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<t_poisson], poisson_df[poisson_df["cumsum"]>=t_poisson].head(1)])
-    poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
-    # Select experimental peaks within tolerance
-    # apexonly2 = apexonly[apexonly.SUMINT>0]
-    apexonly2 = apexonly[apexonly.APEX==True].copy()
-    if len(apexonly2) <= 0:
-        logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
-        return
-    poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-    # poisson_df.exp_peak = poisson_df.apply(lambda x: -1 if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
-    poisson_df = poisson_df[poisson_df.exp_peak>=0]
-    poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-    int_total = poisson_df.exp_int.sum()
-    poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
-    # poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
-    # Plots
-    PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
-    return
+
 
 def main(args):
     '''
@@ -271,6 +227,9 @@ def main(args):
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
     query["chi2"] = None
     query["p_value"] = None
+    if 'alt_peak' in query.columns: # Recom
+        query["chi2_alt_peak"] = None
+        query["p_value_alt_peak"] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
     mzmlfiles = [i[:-5] for i in mzmlfiles if i[-5:].lower()=='.mzml']
@@ -379,55 +338,57 @@ def main(args):
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
-            poisson_filtered["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+            poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
             poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
             int_total = poisson_filtered.exp_int.sum()
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
+            # TODO exp_peak is missing
+            poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
-            chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.RecomMZ)
-            sub.iloc[i].chi2 = chi2
-            sub.iloc[i].p_value = p
+            if 'alt_peak' in query.columns: # Recom
+                mz2 = q.alt_peak
+                poisson_df2 = pd.DataFrame(list(range(0,9)))
+                poisson_df2.columns = ["n"]
+                poisson_df2["theomz"] = np.arange(q.alt_peak, q.alt_peak+(8.5*C13)/q.Charge, C13/q.Charge)
+                poisson_df2["Poisson"] = poisson_df2.apply(lambda x: poisson.pmf(x.n, est_C13), axis=1)
+                poisson_df2["cumsum"] = poisson_df2.Poisson.cumsum()
+                poisson_df2 = pd.concat([poisson_df2[poisson_df2["cumsum"]<t_poisson], poisson_df2[poisson_df2["cumsum"]>=t_poisson].head(1)])
+                poisson_df2["n_poisson"] = poisson_df2.Poisson/poisson_df2.Poisson.sum()
+                poisson_df2["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df2.theomz)] # filter only those close to n_poisson
+                poisson_df2["dist"] = abs(poisson_df2.theomz - poisson_df2.closest) 
+                poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
+                poisson_filtered2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+                poisson_filtered2 = poisson_filtered2[poisson_filtered2.exp_peak>=0]
+                poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+                int_total2 = poisson_filtered2.exp_int.sum()
+                poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
+                poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
+                
+                chi2, p, chi2_alt_peak, p_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2)
+                sub.iloc[i].chi2 = chi2
+                sub.iloc[i].p_value = p
+                sub.iloc[i].chi2_alt_peak = chi2_alt_peak
+                sub.iloc[i].p_value_alt_peak = p_alt_peak
+            else:
+                chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
+                sub.iloc[i].chi2 = chi2
+                sub.iloc[i].p_value = p
         #TODO here write sub to file (mode = append)
-            
-        
-    for i, q in query.iterrows():
-        logging.info("QUERY=" + str(i+1) + " SCAN=" + str(int(q.SCAN)) + " MZ=" + str(q.MZ)+"Th")
-        ## PLOTS ##
-        fig = plt.figure()
-        fig.set_size_inches(20, 15)
-        
-        ax1 = fig.add_subplot(2,1,1)
-        apex_list["COLOR"] = 'darkblue'
-        apex_list.loc[apex_list.APEX == True, 'COLOR'] = 'red'
-        plt.xlabel("M/Z", fontsize=15)
-        plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
-        plt.title("Integrated Scans", fontsize=20)
-        plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue")
-        plt.axvline(x=q.MZ, color='orange', ls="--")
-        ax1.annotate(str(q.MZ) + " Th", (q.MZ,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-
-        ax2 = fig.add_subplot(2,1,2)
-        plt.xlabel("M/Z", fontsize=15)
-        plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
-        plt.title("Integrated Scans (apexes only)", fontsize=20)
-        plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue")
-        plt.axvline(x=q.MZ, color='orange', ls="--")
-        ax2.annotate(str(q.MZ) + " Th", (q.MZ,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-        # ax2.annotate(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', (391.5,max(apex_list.FINALINT)-0.1*max(apex_list.FINALINT)), color='black', fontsize=20, ha="left")
-        # apex_list.astype(str).to_csv(r"output.tsv", index=False, sep='\t', encoding='utf-8')
-
-        ## SAVE OUTPUT ##
-        outplot = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".pdf")
-        fig.savefig(outplot)
-        fig.clear()
-        plt.close(fig)
-        apex_list = apex_list.rename(columns={"SUMINT": "INTENSITY", "BIN": "MZ"})
-        apex_list = apex_list.drop("COLOR", axis=1)
-        apex_list = apex_list[apex_list.columns.tolist()[-1:] + apex_list.columns.tolist()[:-1]]
-        outfile = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".tsv")
-        apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     return
+        
+    # for i, q in query.iterrows():
+    #     ## SAVE OUTPUT ##
+    #     outplot = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".pdf")
+    #     fig.savefig(outplot)
+    #     fig.clear()
+    #     plt.close(fig)
+    #     apex_list = apex_list.rename(columns={"SUMINT": "INTENSITY", "BIN": "MZ"})
+    #     apex_list = apex_list.drop("COLOR", axis=1)
+    #     apex_list = apex_list[apex_list.columns.tolist()[-1:] + apex_list.columns.tolist()[:-1]]
+    #     outfile = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".tsv")
+    #     apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    # return
 
 if __name__ == '__main__':
 
