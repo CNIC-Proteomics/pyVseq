@@ -120,19 +120,23 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, poisson_df2=None):
+def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_dist2=None, out=False):
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
     fig = plt.figure()
-    fig.set_size_inches(20, 15)
+    if mz2:
+        fig.set_size_inches(20, 15)
+    else:
+        fig.set_size_inches(20, 7.5)
     
     custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                 Line2D([0], [0], color="salmon", lw=2),
-                Line2D([0], [0], color="orange", lw=2, ls="--"),
-                Line2D([0], [0], color="green", lw=2, ls="dotted")]
+                Line2D([0], [0], color="orange", lw=2, ls="--")]
     
-    chi2, p, dof, ex = chi2_contingency(np.array([list(theo_dist.exp_int), list(theo_dist.P_compare)]))
-    # TODO ADD RECOM PEAK TO GRAPH
+    cont_table = pd.crosstab(index=list(theo_dist.exp_int),columns=list(theo_dist.P_compare))
+    # chi2, p, dof, ex = chi2_contingency(np.array([list(theo_dist.exp_int), list(theo_dist.P_compare)]))
+    chi2, p, dof, ex = chi2_contingency(cont_table)
+
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
     apex_list.loc[apex_list.APEX == True, 'COLOR'] = 'red'
@@ -143,39 +147,54 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, poiss
     plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=4)
     plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="salmon", zorder=3)
     plt.axvline(x=mz, color='orange', ls="--", zorder=2) # Chosen peak
-    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1) # Monoisotopic peak
-    ax1.annotate(str(round(mz,3)) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
+    ax1.annotate(str(round(mz,3)) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)),
+                 style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-    text_box = AnchoredText("Chi2:     " + str(round(chi2, 2)) + "\nP-value: " + str(p) + "\nDoF:       " + str(dof),
+    text_box = AnchoredText("Chi2:     " + str(round(chi2, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p, 4)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box) # TODO check
-    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
+    ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'],
                loc="upper right")
-
-    ax2 = fig.add_subplot(2,1,2)
-    plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
-    plt.xlabel("M/Z", fontsize=15)
-    plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
-    plt.title("Integrated Scans (corrected precursor)", fontsize=20)
-    plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=4)
-    plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="salmon", zorder=3)
-    plt.axvline(x=mz, color='orange', ls="--", zorder=2)
-    plt.axvline(x=theo_dist.theomz.min(), color='green', ls="dotted", zorder=1)
-    ax2.annotate(str(mz) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)), color='black', fontsize=10, ha="left")
-    text_box = AnchoredText("Chi2:     " + str(round(chi2, 2)) + "\nP-value: " + str(p) + "\nDoF:       " + str(dof),
-                            frameon=True, loc='upper left', pad=0.5)
-    plt.setp(text_box.patch, facecolor='white', alpha=0.5)
-    ax2.add_artist(text_box) # TODO check
-    ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak', 'Monoisotopic peak'],
-               loc="upper right")
+    
+    ## RECOM GRAPH ##
+    if mz2: # TODO chi2 not working bc it needs contingency table
+        custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
+                    Line2D([0], [0], color="salmon", lw=2),
+                    Line2D([0], [0], color="green", lw=2, ls="dotted")]
+        cont_table2 = pd.crosstab(index=list(theo_dist2.exp_int),columns=list(theo_dist2.P_compare))
+        # chi2_alt_peak, p_alt_peak, dof, ex = chi2_contingency(np.array([list(theo_dist2.exp_int), list(theo_dist2.P_compare)]))
+        chi2_alt_peak, p_alt_peak, dof, ex = chi2_contingency(cont_table2)
+        ax2 = fig.add_subplot(2,1,2)
+        plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
+        plt.xlabel("M/Z", fontsize=15)
+        plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
+        plt.title("Integrated Scans (corrected precursor)", fontsize=20)
+        # plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=4)
+        plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=4)
+        plt.bar(theo_dist2.theomz, theo_dist2.P_compare, width=0.008, color="salmon", zorder=3)
+        plt.axvline(x=theo_dist2.theomz.min(), color='green', ls="dotted", zorder=1) # Corrected peak
+        ax2.annotate(str(round(mz2,3)) + " Th", (mz2,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)),
+                     style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
+        for i,j in apexannot.iterrows():
+            ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
+        text_box = AnchoredText("Chi2:     " + str(round(chi2_alt_peak, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p_alt_peak, 4)),
+                                frameon=True, loc='upper left', pad=0.5)
+        plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+        ax2.add_artist(text_box) # TODO check
+        ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
+                   loc="upper right")
     
     fig.savefig(outplot)
     fig.clear()
     plt.close(fig)
-    if mz2:
-        return(chi2, p)
+    
+    if out:
+        if mz2:
+            return(chi2, p, chi2_alt_peak, p_alt_peak)
+        else:
+            return(chi2, p)
     else:
         return
 
@@ -347,7 +366,6 @@ def main(args):
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
             if 'alt_peak' in query.columns: # Recom
-                mz2 = q.alt_peak
                 poisson_df2 = pd.DataFrame(list(range(0,9)))
                 poisson_df2.columns = ["n"]
                 poisson_df2["theomz"] = np.arange(q.alt_peak, q.alt_peak+(8.5*C13)/q.Charge, C13/q.Charge)
@@ -363,15 +381,15 @@ def main(args):
                 poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
                 int_total2 = poisson_filtered2.exp_int.sum()
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
+                poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
-                
-                chi2, p, chi2_alt_peak, p_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2)
+                chi2, p, chi2_alt_peak, p_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
                 sub.iloc[i].chi2 = chi2
                 sub.iloc[i].p_value = p
                 sub.iloc[i].chi2_alt_peak = chi2_alt_peak
                 sub.iloc[i].p_value_alt_peak = p_alt_peak
-            else:
-                chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
+            else: # TODO fix list of INT given to chi2
+                chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
                 sub.iloc[i].chi2 = chi2
                 sub.iloc[i].p_value = p
         #TODO here write sub to file (mode = append)
