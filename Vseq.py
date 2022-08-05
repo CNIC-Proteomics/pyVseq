@@ -937,16 +937,17 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     # Select experimental peaks within tolerance
     # apexonly2 = apexonly[apexonly.SUMINT>0]
     apexonly2 = apexonly[apexonly.APEX==True].copy()
+    poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
+    poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
+    poisson_filtered = poisson_df[poisson_df.dist<=bin_width*4].copy()
     if len(apexonly2) <= 0:
         logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
         return
-    poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-    # poisson_df.exp_peak = poisson_df.apply(lambda x: -1 if abs(x.exp_peak-x.theomz)>2*bin_width else x.exp_peak, axis=1)
-    poisson_df = poisson_df[poisson_df.exp_peak>=0]
-    poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-    int_total = poisson_df.exp_int.sum()
-    poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
-    # poisson_df["P_compare"] = poisson_df.apply(lambda x: (x.Poisson/poisson_df.Poisson.max())*apexonly.SUMINT.max(), axis=1)
+    poisson_filtered["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+    poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
+    poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+    int_total = poisson_filtered.exp_int.sum()
+    poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
     # Plots
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
