@@ -84,6 +84,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     bins = [round(x, _decimal_places(bin_width)) for x in bins]
     bins_df = pd.DataFrame([bins])
     bins_df = bins_df.loc[bins_df.index.repeat(len(dtas))]
+    bins_df.reset_index(drop=True, inplace=True)
     # Calculate intensity #
     indices, row_series = zip(*bins_df.iterrows())
     with concurrent.futures.ProcessPoolExecutor(n_workers) as executor:
@@ -165,7 +166,10 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None):
     fig.savefig(outplot)
     fig.clear()
     plt.close(fig)
-    return
+    if mz2:
+        return(chi2, p)
+    else:
+        return
 
 def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     '''    
@@ -261,6 +265,8 @@ def main(args):
     logging.info("Bin width: " + str(bin_width) + " Th")
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
+    query["chi2"] = None
+    query["p_value"] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
     mzmlfiles = [i[:-5] for i in mzmlfiles if i[-5:].lower()=='.mzml']
@@ -305,6 +311,7 @@ def main(args):
             bins = [round(x, _decimal_places(bin_width)) for x in bins]
             bins_df = pd.DataFrame([bins])
             bins_df = bins_df.loc[bins_df.index.repeat(len(spectra))]
+            bins_df.reset_index(drop=True, inplace=True)
             ## CALCULATE INTENSITY ##
             indices, row_series = zip(*bins_df.iterrows())
             with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
@@ -360,17 +367,23 @@ def main(args):
             poisson_df = pd.concat([poisson_df[poisson_df["cumsum"]<t_poisson], poisson_df[poisson_df["cumsum"]>=t_poisson].head(1)])
             poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
             # Select experimental peaks within tolerance
-            apexonly2 = apexonly[apexonly.APEX==True].copy()
+            apexonly2 = apexonly[apexonly.APEX==True].copy() 
+            poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
+            poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
+            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*4].copy()
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
-            poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-            poisson_df = poisson_df[poisson_df.exp_peak>=0]
-            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-            int_total = poisson_df.exp_int.sum()
-            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO check
-            PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.RecomMZ)
-            
+            poisson_filtered["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+            poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
+            poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+            int_total = poisson_filtered.exp_int.sum()
+            # TODO bin around theo. dist., sum intensity, and calc chi2
+            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO recalculate int_total with closesttopoisson
+            chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.RecomMZ)
+            sub.iloc[i].chi2 = chi2
+            sub.iloc[i].p_value = p
+        #TODO here write sub to file (mode = append)
             
         
     for i, q in query.iterrows():
