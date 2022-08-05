@@ -370,7 +370,8 @@ def main(args):
             apexonly2 = apexonly[apexonly.APEX==True].copy() 
             poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
             poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
-            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*4].copy()
+            # poisson_df["match"] = poisson_df.apply(lambda x: True if x.dist<=bin_width*4 else False, axis=1) 
+            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
@@ -378,8 +379,8 @@ def main(args):
             poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
             poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
             int_total = poisson_filtered.exp_int.sum()
-            # TODO bin around theo. dist., sum intensity, and calc chi2
-            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1) # TODO recalculate int_total with closesttopoisson
+            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
+            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
             chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.RecomMZ)
             sub.iloc[i].chi2 = chi2
             sub.iloc[i].p_value = p
