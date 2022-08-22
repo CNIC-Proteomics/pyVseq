@@ -251,20 +251,21 @@ def main(args):
         query["p_value_alt_peak"] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
-    mzmlfiles = [i[:-5] for i in mzmlfiles if i[-5:].lower()=='.mzml']
+    mzmlfiles = [i for i in mzmlfiles if i[-5:].lower()=='.mzml']
+    check = [i[:-5] for i in mzmlfiles if i[-5:].lower()=='.mzml']
     logging.info(str(len(mzmlfiles)) + " mzML files found.")
-    missing = list(set(list(query.Raw.unique())) - set(mzmlfiles))
+    missing = list(set(list(query.Raw.unique())) - set(check))
     if missing:
         logging.info("mzML files missing!" + str(missing))
         sys.exit()
-    
-    Path(args.outpath).mkdir(parents=True, exist_ok=True)
+
     outpath = os.path.join(args.outpath, "Integration.tsv")
 
     for mzml in mzmlfiles:
-        logging.info("Reading file " + str(mzml) + ".mzML...")
+        logging.info("Reading file " + str(mzml))
         msdata = pyopenms.MSExperiment()
-        pyopenms.MzMLFile().load(mzml, msdata)
+        pyopenms.MzMLFile().load(os.path.join(Path(args.raw), mzml), msdata)
+        mzml = mzml[:-5]
         ref = []
         for r in msdata.getSpectra():
             if r.getMSLevel() == 1: # FULL
@@ -366,6 +367,7 @@ def main(args):
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
             if 'alt_peak' in query.columns: # Recom
+                q.alt_peak = (mz*q.Charge-q.DeltaMass+q.alt_peak)/q.Charge
                 poisson_df2 = pd.DataFrame(list(range(0,9)))
                 poisson_df2.columns = ["n"]
                 poisson_df2["theomz"] = np.arange(q.alt_peak, q.alt_peak+(8.5*C13)/q.Charge, C13/q.Charge)
@@ -393,8 +395,8 @@ def main(args):
                 sub.iloc[i].chi2 = chi2
                 sub.iloc[i].p_value = p
         # Save stats to table
-        sub.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
-                   mode='a', header=not os.path.exists(outfile))
+        sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
+                   mode='a', header=not os.path.exists(outpath))
     return
         
     # for i, q in query.iterrows():
@@ -432,7 +434,7 @@ if __name__ == '__main__':
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-o', '--outpath', help='Path to save results')
+    parser.add_argument('-o', '--outpath', required=True, help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
@@ -450,8 +452,9 @@ if __name__ == '__main__':
         mass.set('Parameters', 'poisson_threshold', str(args.poisson))
 
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + 'ScanIntegrator_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + 'ScanIntegrator_log_debug.txt'
+    Path(args.outpath).mkdir(parents=True, exist_ok=True)
+    log_file = os.path.join(args.outpath, 'ScanIntegrator_log.txt')
+    log_file_debug = os.path.join(args.outpath, 'ScanIntegrator_log_debug.txt')
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
