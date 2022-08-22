@@ -17,6 +17,7 @@ from scipy.stats import chi2_contingency, poisson
 import sys
 from tqdm import tqdm
 from bisect import bisect_left
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def findFULL(fulls, scan, scanrange):
     pos = int(bisect_left(list(fulls), int(scan)))
@@ -306,10 +307,10 @@ def main(args):
             apex_list.APEX[apex_list.APEX>0] = True
             apex_list.APEX[apex_list.APEX<=0] = False
             apex_list["APEX_B"] = apex_list["APEX"]
-            for i, j in apex_list.iterrows():
+            for h, j in apex_list.iterrows():
                 try:
-                    if j.APEX_B == True and apex_list.iloc[i-1].APEX_B == True:
-                        apex_list.at[i, "APEX"] = False
+                    if j.APEX_B == True and apex_list.iloc[h-1].APEX_B == True:
+                        apex_list.at[h, "APEX"] = False
                 except KeyError:
                     continue
             apex_list.at[len(apex_list)-1, "APEX"] = False
@@ -386,14 +387,14 @@ def main(args):
                 poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
                 chi2, p, chi2_alt_peak, p_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
-                sub.iloc[i].chi2 = chi2
-                sub.iloc[i].p_value = p
-                sub.iloc[i].chi2_alt_peak = chi2_alt_peak
-                sub.iloc[i].p_value_alt_peak = p_alt_peak
+                sub.loc[i, 'chi2'] = chi2
+                sub.loc[i, 'p_value'] = p
+                sub.loc[i, 'chi2_alt_peak'] = chi2_alt_peak
+                sub.loc[i, 'p_value_alt_peak'] = p_alt_peak
             else: # TODO fix list of INT given to chi2
                 chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
-                sub.iloc[i].chi2 = chi2
-                sub.iloc[i].p_value = p
+                sub.loc[i, 'chi2'] = chi2
+                sub.loc[i, 'p_value'] = p
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
