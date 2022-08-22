@@ -237,7 +237,7 @@ def main(args):
     srange = int(mass._sections['Parameters']['int_scanrange'])
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
-    t_poisson = float(mass._sections['Parameters']['int_poisson_threshold'])
+    t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
 
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
@@ -422,6 +422,8 @@ if __name__ == '__main__':
             python VseqExplorer.py
 
         ''')
+        
+    defaultconfig = os.path.join(os.path.dirname(__file__), "ScanIntegrator.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Table of scans to search')
     parser.add_argument('-r',  '--raw', required=True, help='Directory containing .mzML files')
@@ -429,6 +431,7 @@ if __name__ == '__main__':
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
+    parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-o', '--outpath', help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
@@ -438,13 +441,13 @@ if __name__ == '__main__':
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     mass.read(args.config)
     if args.scanrange is not None:
-        mass.set('Parameters', 'scanrange', str(args.scanrange))
+        mass.set('Parameters', 'int_scanrange', str(args.scanrange))
     if args.mzrange is not None:
-        mass.set('Parameters', 'mzrange', str(args.mzrange))
-    if args.binwidth is not None:
-        mass.set('Parameters', 'binwidth', str(args.binwidth))
-    if args.t_poisson is not None:
-        mass.set('Parameters', 't_poisson', str(args.t_poisson))
+        mass.set('Parameters', 'int_mzrange', str(args.mzrange))
+    if args.bin is not None:
+        mass.set('Parameters', 'int_binwidth', str(args.bin))
+    if args.poisson is not None:
+        mass.set('Parameters', 'poisson_threshold', str(args.poisson))
 
     # logging debug level. By default, info level
     log_file = outfile = args.infile[:-4] + 'ScanIntegrator_log.txt'
