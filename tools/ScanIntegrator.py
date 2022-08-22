@@ -259,7 +259,7 @@ def main(args):
         sys.exit()
     
     Path(args.outpath).mkdir(parents=True, exist_ok=True)
-    outpath = os.path.join(args.outpath, "Integration.csv")
+    outpath = os.path.join(args.outpath, "Integration.tsv")
 
     for mzml in mzmlfiles:
         logging.info("Reading file " + str(mzml) + ".mzML...")
@@ -392,7 +392,9 @@ def main(args):
                 chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
                 sub.iloc[i].chi2 = chi2
                 sub.iloc[i].p_value = p
-        #TODO here write sub to file (mode = append)
+        # Save stats to table
+        sub.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                   mode='a', header=not os.path.exists(outfile))
     return
         
     # for i, q in query.iterrows():
