@@ -263,6 +263,10 @@ def main(args):
     outpath = os.path.join(args.outpath, "Integration.tsv")
 
     for mzml in mzmlfiles:
+        # GetSubQuery
+        sub = query[query.Raw==mzml[:-5]].copy()
+        if len(sub) <= 0: # Skip reading mzml if there are no scans to search
+            continue
         logging.info("Reading file " + str(mzml))
         msdata = pyopenms.MSExperiment()
         pyopenms.MzMLFile().load(os.path.join(Path(args.raw), mzml), msdata)
@@ -271,8 +275,6 @@ def main(args):
         for r in msdata.getSpectra():
             if r.getMSLevel() == 1: # FULL
                 ref.append(int(r.getNativeID().split(' ')[-1][5:]))
-        # GetSubQuery
-        sub = query[query.Raw==mzml].copy()
         for i, q in sub.iterrows():
             logging.info("\tIntegrating SCAN=" + str(q.FirstScan) + "...")
             qfull = min(ref, key=lambda x:abs(x-q.FirstScan))
