@@ -186,6 +186,19 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
         ax2.add_artist(text_box) # TODO check
         ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
                    loc="upper right")
+        
+    # TODO: calculate ratio between max intensity theo and exp
+    # or calculare ratio for each peak and return the mean or median
+    theo_dist['ratio'] = theo_dist.P_compare / theo_dist.exp_int
+    theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
+    theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
+    theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
+    ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
+    ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
+    ratio_mean = np.mean(theo_dist.ratio)
+    ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
+    ratio_median = np.median(theo_dist.ratio)
+    ratio_median_alt_peak = np.median(theo_dist2.ratio)
     
     fig.savefig(outplot)
     fig.clear()
@@ -193,9 +206,11 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
     
     if out:
         if mz2:
-            return(chi2, p, chi2_alt_peak, p_alt_peak)
+            return(chi2, p, ratio_max, ratio_mean, ratio_median,
+                   chi2_alt_peak, p_alt_peak, ratio_max_alt_peak,
+                   ratio_mean_alt_peak, ratio_median_alt_peak)
         else:
-            return(chi2, p)
+            return(chi2, p, ratio_max, ratio_mean, ratio_median)
     else:
         return
 
@@ -245,11 +260,17 @@ def main(args):
     logging.info("Bin width: " + str(bin_width) + " Th")
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
-    query["chi2"] = None
-    query["p_value"] = None
+    query['chi2'] = None
+    query['p_value'] = None
+    query['ratio_max'] = None
+    query['ratio_mean'] = None
+    query['ratio_median'] = None
     if 'alt_peak' in query.columns: # Recom
-        query["chi2_alt_peak"] = None
-        query["p_value_alt_peak"] = None
+        query['chi2_alt_peak'] = None
+        query['p_value_alt_peak'] = None
+        query['ratio_max_alt_peak'] = None
+        query['ratio_mean_alt_peak'] = None
+        query['ratio_median_alt_peak'] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
     mzmlfiles = [i for i in mzmlfiles if i[-5:].lower()=='.mzml']
@@ -388,15 +409,24 @@ def main(args):
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
                 poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
-                chi2, p, chi2_alt_peak, p_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
+                chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
+                sub.loc[i, 'ratio_max'] = ratio_max
+                sub.loc[i, 'ratio_mean'] = ratio_mean
+                sub.loc[i, 'ratio_median'] = ratio_median
                 sub.loc[i, 'chi2_alt_peak'] = chi2_alt_peak
                 sub.loc[i, 'p_value_alt_peak'] = p_alt_peak
+                sub.loc[i, 'ratio_max_alt_peak'] = ratio_max_alt_peak
+                sub.loc[i, 'ratio_mean_alt_peak'] = ratio_mean_alt_peak
+                sub.loc[i, 'ratio_median_alt_peak'] = ratio_median_alt_peak
             else: # TODO fix list of INT given to chi2
-                chi2, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
+                chi2, p, ratio_max, ratio_mean, ratio_median = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
+                sub.loc[i, 'ratio_max'] = ratio_max
+                sub.loc[i, 'ratio_mean'] = ratio_mean
+                sub.loc[i, 'ratio_median'] = ratio_median
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
