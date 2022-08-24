@@ -160,7 +160,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
                loc="upper right")
     
     ## RECOM GRAPH ##
-    if mz2: # TODO chi2 not working bc it needs contingency table
+    if mz2:
         custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                     Line2D([0], [0], color="salmon", lw=2),
                     Line2D([0], [0], color="green", lw=2, ls="dotted")]
@@ -187,8 +187,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
         ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
                    loc="upper right")
         
-    # TODO: calculate ratio between max intensity theo and exp
-    # or calculare ratio for each peak and return the mean or median
+    # TODO: show ratios in plot
     theo_dist['ratio'] = theo_dist.P_compare / theo_dist.exp_int
     theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
@@ -384,10 +383,13 @@ def main(args):
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
-            poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-            poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
-            poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-            int_total = poisson_filtered.exp_int.sum()
+            try:
+                poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+                poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
+                poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+                int_total = poisson_filtered.exp_int.sum()
+            except ValueError: # no peaks
+                int_total = 0
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
             # TODO exp_peak is missing
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
@@ -403,11 +405,14 @@ def main(args):
                 poisson_df2["n_poisson"] = poisson_df2.Poisson/poisson_df2.Poisson.sum()
                 poisson_df2["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df2.theomz)] # filter only those close to n_poisson
                 poisson_df2["dist"] = abs(poisson_df2.theomz - poisson_df2.closest) 
-                poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
-                poisson_filtered2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-                poisson_filtered2 = poisson_filtered2[poisson_filtered2.exp_peak>=0]
-                poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
-                int_total2 = poisson_filtered2.exp_int.sum()
+                try:
+                    poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
+                    poisson_filtered2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+                    poisson_filtered2 = poisson_filtered2[poisson_filtered2.exp_peak>=0]
+                    poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+                    int_total2 = poisson_filtered2.exp_int.sum()
+                except ValueError: # no peaks
+                    int_total2 = 0
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
                 poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
