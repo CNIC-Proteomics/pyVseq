@@ -155,7 +155,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
     text_box = AnchoredText("Chi2:     " + str(round(chi2, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p, 4)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
-    ax1.add_artist(text_box) # TODO check
+    ax1.add_artist(text_box)
     ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'],
                loc="upper right")
     
@@ -183,7 +183,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
         text_box = AnchoredText("Chi2:     " + str(round(chi2_alt_peak, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p_alt_peak, 4)),
                                 frameon=True, loc='upper left', pad=0.5)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
-        ax2.add_artist(text_box) # TODO check
+        ax2.add_artist(text_box)
         ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
                    loc="upper right")
         
@@ -254,6 +254,7 @@ def main(args):
     srange = int(mass._sections['Parameters']['int_scanrange'])
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
+    match_width = int(mass._sections['Parameters']['int_matchwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
 
     logging.info("Scan range: ±" + str(srange))
@@ -379,7 +380,7 @@ def main(args):
             poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
             poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
             # poisson_df["match"] = poisson_df.apply(lambda x: True if x.dist<=bin_width*4 else False, axis=1) 
-            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
+            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*match_width].copy()
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
@@ -391,7 +392,6 @@ def main(args):
             except ValueError: # no peaks
                 int_total = 0
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
-            # TODO exp_peak is missing
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
             if 'alt_peak' in query.columns: # Recom
@@ -406,7 +406,7 @@ def main(args):
                 poisson_df2["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df2.theomz)] # filter only those close to n_poisson
                 poisson_df2["dist"] = abs(poisson_df2.theomz - poisson_df2.closest) 
                 try:
-                    poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*4].copy() # TODO: make 4 an adjustable param
+                    poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*match_width].copy()
                     poisson_filtered2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                     poisson_filtered2 = poisson_filtered2[poisson_filtered2.exp_peak>=0]
                     poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
@@ -438,19 +438,6 @@ def main(args):
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
     return
-        
-    # for i, q in query.iterrows():
-    #     ## SAVE OUTPUT ##
-    #     outplot = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".pdf")
-    #     fig.savefig(outplot)
-    #     fig.clear()
-    #     plt.close(fig)
-    #     apex_list = apex_list.rename(columns={"SUMINT": "INTENSITY", "BIN": "MZ"})
-    #     apex_list = apex_list.drop("COLOR", axis=1)
-    #     apex_list = apex_list[apex_list.columns.tolist()[-1:] + apex_list.columns.tolist()[:-1]]
-    #     outfile = Path(args.infile[:-4] + "_"+ str(int(q.SCAN)) + "_" + str(q.MZ) + ".tsv")
-    #     apex_list.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
-    # return
 
 if __name__ == '__main__':
 
@@ -473,6 +460,7 @@ if __name__ == '__main__':
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
+    parser.add_argument('-e',  '--match_width', default=4, help='± Bins to match experimental and theoretical isotopic envelopes')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-o', '--outpath', required=True, help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
