@@ -121,7 +121,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_dist2=None, out=False):
+def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None, theo_dist2=None, out=False):
     ## RATIO STATS ##
     theo_dist['ratio'] = theo_dist.P_compare / theo_dist.exp_int
     theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
@@ -139,6 +139,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
     fig = plt.figure()
+    fig.suptitle(title, fontsize=20, fontweight='bold')
     if mz2:
         fig.set_size_inches(20, 15)
     else:
@@ -165,7 +166,13 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
                  style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-    text_box = AnchoredText("Chi2:     " + str(round(chi2, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p, 4)),
+    # text_box = AnchoredText("Chi2:          " + str(round(chi2, 4)) + "\nDoF:            " + str(dof) +
+    #                         "\nP-value:      " + str(round(p, 4)) + "\nMax. Ratio:   " + str(round(ratio_max, 4)) +
+    #                         "\nMean Ratio:   " + str(round(ratio_mean, 4)) + "\nMedian Ratio: " + str(round(ratio_median, 4)),
+    #                         frameon=True, loc='upper left', pad=0.5)
+    text_box = AnchoredText("Max. Ratio:   " + str(round(ratio_max, 4)) +
+                            "\nMean Ratio:   " + str(round(ratio_mean, 4)) +
+                            "\nMedian Ratio: " + str(round(ratio_median, 4)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box)
@@ -191,7 +198,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
                      style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-        text_box = AnchoredText("Chi2:     " + str(round(chi2_alt_peak, 4)) + "\nDoF:       " + str(dof) + "\nP-value: " + str(round(p_alt_peak, 4)),
+        text_box = AnchoredText("Max. Ratio:   " + str(round(ratio_max_alt_peak, 4)) +
+                                "\nMean Ratio:   " + str(round(ratio_mean_alt_peak, 4)) +
+                                "\nMedian Ratio: " + str(round(ratio_median_alt_peak, 4)),
                                 frameon=True, loc='upper left', pad=0.5)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         ax2.add_artist(text_box)
@@ -297,6 +306,7 @@ def main(args):
                 ref.append(int(r.getNativeID().split(' ')[-1][5:]))
         for i, q in sub.iterrows():
             logging.info("\tIntegrating SCAN=" + str(q.FirstScan) + "...")
+            title = 'Scan=' + str(q.FirstScan) + '     Charge=' + str(q.Charge) + '+     Raw=' + str(q.Raw)
             qfull = min(ref, key=lambda x:abs(x-q.FirstScan))
             qpos = ref.index(qfull)
             if qfull > q.FirstScan:
@@ -417,7 +427,7 @@ def main(args):
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
                 # normalize with first peak to fix mixed peaks problem
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0]), axis=1)
-                chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
+                chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, q.alt_peak, poisson_df2, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
                 sub.loc[i, 'ratio_max'] = ratio_max
@@ -429,7 +439,7 @@ def main(args):
                 sub.loc[i, 'ratio_mean_alt_peak'] = ratio_mean_alt_peak
                 sub.loc[i, 'ratio_median_alt_peak'] = ratio_median_alt_peak
             else: # TODO fix list of INT given to chi2
-                chi2, p, ratio_max, ratio_mean, ratio_median = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, out=True)
+                chi2, p, ratio_max, ratio_mean, ratio_median = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
                 sub.loc[i, 'ratio_max'] = ratio_max
