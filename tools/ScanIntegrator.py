@@ -122,6 +122,20 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     return(apex_list, apexonly)
 
 def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_dist2=None, out=False):
+    ## RATIO STATS ##
+    theo_dist['ratio'] = theo_dist.P_compare / theo_dist.exp_int
+    theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
+    if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
+    else: ratio_max = 0
+    ratio_mean = np.mean(theo_dist.ratio)
+    ratio_median = np.median(theo_dist.ratio)
+    theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
+    theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
+    if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
+    else: ratio_max_alt_peak = 0
+    ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
+    ratio_median_alt_peak = np.median(theo_dist2.ratio)
+    ## PLOTS ##
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
     fig = plt.figure()
@@ -135,7 +149,6 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
                 Line2D([0], [0], color="orange", lw=2, ls="--")]
     
     cont_table = pd.crosstab(index=list(theo_dist.exp_int),columns=list(theo_dist.P_compare))
-    # chi2, p, dof, ex = chi2_contingency(np.array([list(theo_dist.exp_int), list(theo_dist.P_compare)]))
     chi2, p, dof, ex = chi2_contingency(cont_table)
 
     ax1 = fig.add_subplot(2,1,1)
@@ -158,14 +171,12 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
     ax1.add_artist(text_box)
     ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'],
                loc="upper right")
-    
     ## RECOM GRAPH ##
     if mz2:
         custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                     Line2D([0], [0], color="salmon", lw=2),
                     Line2D([0], [0], color="green", lw=2, ls="dotted")]
         cont_table2 = pd.crosstab(index=list(theo_dist2.exp_int),columns=list(theo_dist2.P_compare))
-        # chi2_alt_peak, p_alt_peak, dof, ex = chi2_contingency(np.array([list(theo_dist2.exp_int), list(theo_dist2.P_compare)]))
         chi2_alt_peak, p_alt_peak, dof, ex = chi2_contingency(cont_table2)
         ax2 = fig.add_subplot(2,1,2)
         plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
@@ -186,20 +197,6 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, mz2=None, theo_
         ax2.add_artist(text_box)
         ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
                    loc="upper right")
-        
-    # TODO: show ratios in plot
-    theo_dist['ratio'] = theo_dist.P_compare / theo_dist.exp_int
-    theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
-    theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
-    theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
-    if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
-    else: ratio_max = 0
-    if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
-    else: ratio_max_alt_peak = 0
-    ratio_mean = np.mean(theo_dist.ratio)
-    ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
-    ratio_median = np.median(theo_dist.ratio)
-    ratio_median_alt_peak = np.median(theo_dist2.ratio)
     
     fig.savefig(outplot)
     fig.clear()
@@ -393,7 +390,9 @@ def main(args):
                 int_total = 0
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
+            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
+            # normalize with first peak to fix mixed peaks problem
+            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0]), axis=1)
             if 'alt_peak' in query.columns: # Recom
                 q.alt_peak = (mz*q.Charge-q.DeltaMass+q.alt_peak)/q.Charge
                 poisson_df2 = pd.DataFrame(list(range(0,9)))
@@ -415,7 +414,9 @@ def main(args):
                     int_total2 = 0
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
                 poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-                poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*4 else 0, axis=1)
+                poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
+                # normalize with first peak to fix mixed peaks problem
+                poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0]), axis=1)
                 chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, q.alt_peak, poisson_df2, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
