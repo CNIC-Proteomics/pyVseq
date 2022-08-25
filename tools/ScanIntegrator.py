@@ -127,14 +127,22 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None
     theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
     else: ratio_max = 0
-    ratio_mean = np.mean(theo_dist.ratio)
-    ratio_median = np.median(theo_dist.ratio)
+    if np.isnan(np.mean(theo_dist.ratio)):
+        ratio_mean = 0
+        ratio_median = 0
+    else:
+        ratio_mean = np.mean(theo_dist.ratio)
+        ratio_median = np.median(theo_dist.ratio)
     theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
     theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
     else: ratio_max_alt_peak = 0
-    ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
-    ratio_median_alt_peak = np.median(theo_dist2.ratio)
+    if np.isnan(np.mean(theo_dist2.ratio)):
+        ratio_mean_alt_peak = 0
+        ratio_median_alt_peak = 0
+    else:
+        ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
+        ratio_median_alt_peak = np.median(theo_dist2.ratio)
     ## PLOTS ##
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
@@ -389,7 +397,7 @@ def main(args):
             poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
             poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
             # poisson_df["match"] = poisson_df.apply(lambda x: True if x.dist<=bin_width*4 else False, axis=1) 
-            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*match_width].copy()
+            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*match_width].copy() # TODO: instead of filtering apexonly use full apexlist and take whatever INT is there
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
@@ -404,7 +412,7 @@ def main(args):
             poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
             poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
             # normalize with first peak to fix mixed peaks problem
-            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0]), axis=1)
+            poisson_df["P_compare"] = poisson_df.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0] if poisson_df.P_compare[0]>0 else 0), axis=1)
             if 'alt_peak' in query.columns: # Recom
                 q.alt_peak = (mz*q.Charge-q.DeltaMass+q.alt_peak)/q.Charge
                 poisson_df2 = pd.DataFrame(list(range(0,9)))
@@ -428,7 +436,8 @@ def main(args):
                 poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
                 # normalize with first peak to fix mixed peaks problem
-                poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0]), axis=1)
+                poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0] if poisson_df2.P_compare[0]>0 else 0), axis=1)
+                # TODO: what to do when P_compare is emtpy
                 chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, q.alt_peak, poisson_df2, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
@@ -441,6 +450,7 @@ def main(args):
                 sub.loc[i, 'ratio_mean_alt_peak'] = ratio_mean_alt_peak
                 sub.loc[i, 'ratio_median_alt_peak'] = ratio_median_alt_peak
             else: # TODO fix list of INT given to chi2
+                # TODO: what to do when P_compare is emtpy
                 chi2, p, ratio_max, ratio_mean, ratio_median = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
