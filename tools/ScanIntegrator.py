@@ -266,6 +266,8 @@ def main(args):
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
     logging.info("Bin width: " + str(bin_width) + " Th")
+    logging.info("Match width: ±" + str(match_width) + " bins")
+    logging.info("Poisson coverage: " + str(t_poisson*100) + "%")
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
     query['chi2'] = None
@@ -471,7 +473,7 @@ if __name__ == '__main__':
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
-    parser.add_argument('-e',  '--match_width', default=4, help='± Bins to match experimental and theoretical isotopic envelopes')
+    parser.add_argument('-e',  '--match_width', default=10, help='± Bins to match experimental and theoretical isotopic envelopes')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-o', '--outpath', required=True, help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
@@ -481,14 +483,16 @@ if __name__ == '__main__':
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     mass.read(args.config)
-    if args.scanrange is not None:
+    if args.scanrange != 6:
         mass.set('Parameters', 'int_scanrange', str(args.scanrange))
-    if args.mzrange is not None:
+    if args.mzrange != 2:
         mass.set('Parameters', 'int_mzrange', str(args.mzrange))
-    if args.bin is not None:
+    if args.bin != 0.001:
         mass.set('Parameters', 'int_binwidth', str(args.bin))
-    if args.poisson is not None:
+    if args.poisson != 0.8:
         mass.set('Parameters', 'poisson_threshold', str(args.poisson))
+    if args.match_width != 10:
+        mass.set('Parameters', 'int_matchwidth', str(args.match_width))
 
     # logging debug level. By default, info level
     Path(args.outpath).mkdir(parents=True, exist_ok=True)
@@ -506,7 +510,6 @@ if __name__ == '__main__':
                             datefmt='%m/%d/%Y %I:%M:%S %p',
                             handlers=[logging.FileHandler(log_file),
                                       logging.StreamHandler()])
-
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
     main(args)
