@@ -268,13 +268,11 @@ def main(args):
     srange = int(mass._sections['Parameters']['int_scanrange'])
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
-    match_width = int(mass._sections['Parameters']['int_matchwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
 
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
     logging.info("Bin width: " + str(bin_width) + " Th")
-    logging.info("Match width: ±" + str(match_width) + " bins")
     logging.info("Poisson coverage: " + str(t_poisson*100) + "%")
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
@@ -394,23 +392,22 @@ def main(args):
             poisson_df["n_poisson"] = poisson_df.Poisson/poisson_df.Poisson.sum()
             # Select experimental peaks within tolerance
             apexonly2 = apexonly[apexonly.APEX==True].copy() 
-            poisson_df["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
+            poisson_df["closest"] = [min(apex_list.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df.theomz)] # filter only those close to n_poisson
             poisson_df["dist"] = abs(poisson_df.theomz - poisson_df.closest)
-            # poisson_df["match"] = poisson_df.apply(lambda x: True if x.dist<=bin_width*4 else False, axis=1) 
-            poisson_filtered = poisson_df[poisson_df.dist<=bin_width*match_width].copy() # TODO: instead of filtering apexonly use full apexlist and take whatever INT is there
+            poisson_filtered = poisson_df
             if len(apexonly2) <= 0:
                 logging.info("\t\t\t\tNot enough information in the spectrum! 0 apexes found.")
                 return
             try:
-                poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+                poisson_filtered["exp_peak"] = poisson_filtered.apply(lambda x: min(list(apex_list.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                 poisson_filtered = poisson_filtered[poisson_filtered.exp_peak>=0]
-                poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
+                poisson_filtered["exp_int"] = poisson_filtered.apply(lambda x: float(apex_list[apex_list.BIN==x.exp_peak].SUMINT), axis=1)
                 int_total = poisson_filtered.exp_int.sum()
             except ValueError: # no peaks
                 int_total = 0
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.n_poisson*int_total, axis=1)
-            poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
+            poisson_df["exp_peak"] = poisson_df.apply(lambda x: min(list(apex_list.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+            poisson_df["exp_int"] = poisson_df.apply(lambda x: float(apex_list[apex_list.BIN==x.exp_peak].SUMINT), axis=1)
             # normalize with first peak to fix mixed peaks problem
             poisson_df["P_compare"] = poisson_df.apply(lambda x: x.P_compare*(poisson_df.exp_int[0]/poisson_df.P_compare[0] if poisson_df.P_compare[0]>0 else 0), axis=1)
             if 'alt_peak' in query.columns: # Recom
@@ -422,10 +419,10 @@ def main(args):
                 poisson_df2["cumsum"] = poisson_df2.Poisson.cumsum()
                 poisson_df2 = pd.concat([poisson_df2[poisson_df2["cumsum"]<t_poisson], poisson_df2[poisson_df2["cumsum"]>=t_poisson].head(1)])
                 poisson_df2["n_poisson"] = poisson_df2.Poisson/poisson_df2.Poisson.sum()
-                poisson_df2["closest"] = [min(apexonly2.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df2.theomz)] # filter only those close to n_poisson
+                poisson_df2["closest"] = [min(apex_list.BIN, key=lambda x:abs(x-i)) for i in list(poisson_df2.theomz)] # filter only those close to n_poisson
                 poisson_df2["dist"] = abs(poisson_df2.theomz - poisson_df2.closest) 
                 try:
-                    poisson_filtered2 = poisson_df2[poisson_df2.dist<=bin_width*match_width].copy()
+                    poisson_filtered2 = poisson_df2
                     poisson_filtered2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
                     poisson_filtered2 = poisson_filtered2[poisson_filtered2.exp_peak>=0]
                     poisson_filtered2["exp_int"] = poisson_filtered2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT), axis=1)
@@ -433,8 +430,8 @@ def main(args):
                 except ValueError: # no peaks
                     int_total2 = 0
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.n_poisson*int_total2, axis=1)
-                poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apexonly2.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
-                poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apexonly2[apexonly2.BIN==x.exp_peak].SUMINT) if x.dist<=bin_width*match_width else 0, axis=1)
+                poisson_df2["exp_peak"] = poisson_df2.apply(lambda x: min(list(apex_list.BIN), key=lambda y:abs(y-x.theomz)), axis=1)
+                poisson_df2["exp_int"] = poisson_df2.apply(lambda x: float(apex_list[apex_list.BIN==x.exp_peak].SUMINT), axis=1)
                 # normalize with first peak to fix mixed peaks problem
                 poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0] if poisson_df2.P_compare[0]>0 else 0), axis=1)
                 # TODO: what to do when P_compare is emtpy
@@ -483,7 +480,6 @@ if __name__ == '__main__':
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
-    parser.add_argument('-e',  '--match_width', default=10, help='± Bins to match experimental and theoretical isotopic envelopes')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-o', '--outpath', required=True, help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
@@ -501,8 +497,6 @@ if __name__ == '__main__':
         mass.set('Parameters', 'int_binwidth', str(args.bin))
     if args.poisson != 0.8:
         mass.set('Parameters', 'poisson_threshold', str(args.poisson))
-    if args.match_width != 10:
-        mass.set('Parameters', 'int_matchwidth', str(args.match_width))
 
     # logging debug level. By default, info level
     Path(args.outpath).mkdir(parents=True, exist_ok=True)
