@@ -127,37 +127,25 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None
     theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
     else: ratio_max = 0
-    if ratio_max > 10:
-        ratio_max = 10
     if np.isnan(np.mean(theo_dist.ratio)):
         ratio_mean = 0
         ratio_median = 0
     else:
         ratio_mean = np.mean(theo_dist.ratio)
-        if ratio_mean > 10:
-            ratio_mean = 10
         ratio_median = np.median(theo_dist.ratio)
-        if ratio_median > 10:
-            ratio_median = 10
     theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
     theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
     else: ratio_max_alt_peak = 0
-    if ratio_max_alt_peak > 10:
-        ratio_max_alt_peak = 10
     if np.isnan(np.mean(theo_dist2.ratio)):
         ratio_mean_alt_peak = 0
         ratio_median_alt_peak = 0
     else:
         ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
-        if ratio_max_alt_peak > 10:
-            ratio_max_alt_peak = 10
         ratio_median_alt_peak = np.median(theo_dist2.ratio)
-        if ratio_max_alt_peak > 10:
-            ratio_max_alt_peak = 10
     ## PLOTS ##
     def _format(ratio):
-        round(ratio, 4)
+        ratio = round(ratio, 4)
         if ratio > 10:
             ratio = 10
             return(">"+str(ratio))
