@@ -127,23 +127,42 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None
     theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
     else: ratio_max = 0
+    if ratio_max > 10:
+        ratio_max = 10
     if np.isnan(np.mean(theo_dist.ratio)):
         ratio_mean = 0
         ratio_median = 0
     else:
         ratio_mean = np.mean(theo_dist.ratio)
+        if ratio_mean > 10:
+            ratio_mean = 10
         ratio_median = np.median(theo_dist.ratio)
+        if ratio_median > 10:
+            ratio_median = 10
     theo_dist2['ratio'] = theo_dist2.P_compare / theo_dist2.exp_int
     theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
     if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
     else: ratio_max_alt_peak = 0
+    if ratio_max_alt_peak > 10:
+        ratio_max_alt_peak = 10
     if np.isnan(np.mean(theo_dist2.ratio)):
         ratio_mean_alt_peak = 0
         ratio_median_alt_peak = 0
     else:
         ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
+        if ratio_max_alt_peak > 10:
+            ratio_max_alt_peak = 10
         ratio_median_alt_peak = np.median(theo_dist2.ratio)
+        if ratio_max_alt_peak > 10:
+            ratio_max_alt_peak = 10
     ## PLOTS ##
+    def _format(ratio):
+        round(ratio, 4)
+        if ratio > 10:
+            ratio = 10
+            return(">"+str(ratio))
+        else:
+            return(str(ratio))
     apexannot = apexonly[apexonly.APEX==True].copy()
     apexannot = apexannot[apexannot.SUMINT>=apexannot.SUMINT.max()*0.1] # don't annotate small peaks to reduce clutter
     fig = plt.figure()
@@ -178,9 +197,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None
     #                         "\nP-value:      " + str(round(p, 4)) + "\nMax. Ratio:   " + str(round(ratio_max, 4)) +
     #                         "\nMean Ratio:   " + str(round(ratio_mean, 4)) + "\nMedian Ratio: " + str(round(ratio_median, 4)),
     #                         frameon=True, loc='upper left', pad=0.5)
-    text_box = AnchoredText("Max. Ratio:   " + str(round(ratio_max, 4)) +
-                            "\nMean Ratio:   " + str(round(ratio_mean, 4)) +
-                            "\nMedian Ratio: " + str(round(ratio_median, 4)),
+    text_box = AnchoredText("Max. Ratio:   " + _format(ratio_max) +
+                            "\nMean Ratio:   " + _format(ratio_mean) +
+                            "\nMedian Ratio: " + _format(ratio_median),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box)
@@ -206,9 +225,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, mz2=None
                      style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-        text_box = AnchoredText("Max. Ratio:   " + str(round(ratio_max_alt_peak, 4)) +
-                                "\nMean Ratio:   " + str(round(ratio_mean_alt_peak, 4)) +
-                                "\nMedian Ratio: " + str(round(ratio_median_alt_peak, 4)),
+        text_box = AnchoredText("Max. Ratio:   " + _format(ratio_max_alt_peak) +
+                                "\nMean Ratio:   " + _format(ratio_mean_alt_peak) +
+                                "\nMedian Ratio: " + _format(ratio_median_alt_peak),
                                 frameon=True, loc='upper left', pad=0.5)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         ax2.add_artist(text_box)
@@ -438,21 +457,39 @@ def main(args):
                 chi2, p, ratio_max, ratio_mean, ratio_median, chi2_alt_peak, p_alt_peak, ratio_max_alt_peak, ratio_mean_alt_peak, ratio_median_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, q.alt_peak, poisson_df2, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
+                if ratio_max > 10:
+                    ratio_max = 10
                 sub.loc[i, 'ratio_max'] = ratio_max
+                if ratio_mean > 10:
+                    ratio_mean = 10
                 sub.loc[i, 'ratio_mean'] = ratio_mean
+                if ratio_median > 10:
+                    ratio_median = 10
                 sub.loc[i, 'ratio_median'] = ratio_median
                 sub.loc[i, 'chi2_alt_peak'] = chi2_alt_peak
                 sub.loc[i, 'p_value_alt_peak'] = p_alt_peak
+                if ratio_max_alt_peak > 10:
+                    ratio_max_alt_peak = 10
                 sub.loc[i, 'ratio_max_alt_peak'] = ratio_max_alt_peak
+                if ratio_mean_alt_peak > 10:
+                    ratio_mean_alt_peak = 10
                 sub.loc[i, 'ratio_mean_alt_peak'] = ratio_mean_alt_peak
+                if ratio_median_alt_peak > 10:
+                    ratio_median_alt_peak = 10
                 sub.loc[i, 'ratio_median_alt_peak'] = ratio_median_alt_peak
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
                 chi2, p, ratio_max, ratio_mean, ratio_median = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, out=True)
                 sub.loc[i, 'chi2'] = chi2
                 sub.loc[i, 'p_value'] = p
+                if ratio_max > 10:
+                    ratio_max = 10
                 sub.loc[i, 'ratio_max'] = ratio_max
+                if ratio_mean > 10:
+                    ratio_mean = 10
                 sub.loc[i, 'ratio_mean'] = ratio_mean
+                if ratio_median > 10:
+                    ratio_median = 10
                 sub.loc[i, 'ratio_median'] = ratio_median
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
