@@ -262,17 +262,12 @@ def main(args):
     logging.info("Poisson coverage: " + str(t_poisson*100) + "%")
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
-    query['chi2'] = None
-    query['p_value'] = None
-    query['ratio_max'] = None
-    query['ratio_mean'] = None
-    query['ratio_median'] = None
+    query['RMSD'] = None
     if 'alt_peak' in query.columns: # Recom
-        query['chi2_alt_peak'] = None
-        query['p_value_alt_peak'] = None
-        query['ratio_max_alt_peak'] = None
-        query['ratio_mean_alt_peak'] = None
-        query['ratio_median_alt_peak'] = None
+        query['RMSD2'] = None
+        query['RMSD'] = None
+        query['F-value'] = None
+        query['p-value'] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
     mzmlfiles = [i for i in mzmlfiles if i[-5:].lower()=='.mzml']
@@ -423,43 +418,15 @@ def main(args):
                 # normalize with first peak to fix mixed peaks problem
                 # poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0] if poisson_df2.P_compare[0]>0 else 0), axis=1)
                 # TODO: what to do when P_compare is emtpy
-                chi2, p, ratio_log, chi2_alt_peak, p_alt_peak, ratio_log_alt_peak = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1, alpha2], q.alt_peak, poisson_df2, out=True)
-                sub.loc[i, 'chi2'] = chi2
+                RMSD, RMSD2, F, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1, alpha2], q.alt_peak, poisson_df2, out=True)
+                sub.loc[i, 'RMSD'] = RMSD
+                sub.loc[i, 'RMSD2'] = RMSD2
+                sub.loc[i, 'F-value'] = F
                 sub.loc[i, 'p_value'] = p
-                if ratio_max > 10:
-                    ratio_max = 10
-                sub.loc[i, 'ratio_max'] = ratio_max
-                if ratio_mean > 10:
-                    ratio_mean = 10
-                sub.loc[i, 'ratio_mean'] = ratio_mean
-                if ratio_median > 10:
-                    ratio_median = 10
-                sub.loc[i, 'ratio_median'] = ratio_median
-                sub.loc[i, 'chi2_alt_peak'] = chi2_alt_peak
-                sub.loc[i, 'p_value_alt_peak'] = p_alt_peak
-                if ratio_max_alt_peak > 10:
-                    ratio_max_alt_peak = 10
-                sub.loc[i, 'ratio_max_alt_peak'] = ratio_max_alt_peak
-                if ratio_mean_alt_peak > 10:
-                    ratio_mean_alt_peak = 10
-                sub.loc[i, 'ratio_mean_alt_peak'] = ratio_mean_alt_peak
-                if ratio_median_alt_peak > 10:
-                    ratio_median_alt_peak = 10
-                sub.loc[i, 'ratio_median_alt_peak'] = ratio_median_alt_peak
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
-                chi2, p, ratio_log = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1], out=True)
-                sub.loc[i, 'chi2'] = chi2
-                sub.loc[i, 'p_value'] = p
-                if ratio_max > 10:
-                    ratio_max = 10
-                sub.loc[i, 'ratio_max'] = ratio_max
-                if ratio_mean > 10:
-                    ratio_mean = 10
-                sub.loc[i, 'ratio_mean'] = ratio_mean
-                if ratio_median > 10:
-                    ratio_median = 10
-                sub.loc[i, 'ratio_median'] = ratio_median
+                RMSD = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1], out=True)
+                sub.loc[i, 'RMSD'] = RMSD
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
