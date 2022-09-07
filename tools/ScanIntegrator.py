@@ -122,7 +122,7 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, mz2=None, theo_dist2=None, out=False):
+def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, mz2=None, theo_dist2=None, alpha2 = None, out=False):
     ## RATIO STATS ##
     theo_dist['ratio_log2'] = theo_dist.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
     RMSD = math.sqrt(((theo_dist.ratio_log2)**2).sum()/len(theo_dist)) # no need to substract the expected because it is 0
@@ -131,7 +131,7 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
         theo_dist2['ratio_log2'] = theo_dist2.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
         RMSD2 = math.sqrt(((theo_dist2.ratio_log2)**2).sum()/len(theo_dist2)) # no need to substract the expected because it is 0
         SS2 = ((theo_dist2.exp_int-theo_dist2.P_compare)**2).sum()
-        F = (SS1/alpha[0]**2)/(SS2/alpha[1]**2)
+        F = (SS1/alpha1**2)/(SS2/alpha2**2)
         p = 1 - scipy.stats.f.cdf(F, len(theo_dist)-1, len(theo_dist)-1)
 
     ## PLOTS ##
@@ -171,7 +171,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
                  style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-    text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD, 2),
+    text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD, 2) +
+                            "\nalpha:        " + "{:.2e}".format(alpha1),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box)
@@ -195,8 +196,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
         text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD2, 2) +
-                                "\nF-value:   " + round(F, 2) +
-                                "\np-value: " + round(p, 6),
+                                "\nalpha:        " + "{:.2e}".format(alpha2) +
+                                "\nF-value:      " + round(F, 2) +
+                                "\np-value:      " + round(p, 6),
                                 frameon=True, loc='upper left', pad=0.5)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         ax2.add_artist(text_box)
@@ -263,9 +265,12 @@ def main(args):
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
     query['RMSD'] = None
+    query['alpha'] = None
     if 'alt_peak' in query.columns: # Recom
-        query['RMSD2'] = None
         query['RMSD'] = None
+        query['RMSD2'] = None
+        query['alpha'] = None
+        query['alpha2'] = None
         query['F-value'] = None
         query['p-value'] = None
     logging.info("Looking for .mzML files...")
@@ -418,15 +423,18 @@ def main(args):
                 # normalize with first peak to fix mixed peaks problem
                 # poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0] if poisson_df2.P_compare[0]>0 else 0), axis=1)
                 # TODO: what to do when P_compare is emtpy
-                RMSD, RMSD2, F, p = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1, alpha2], q.alt_peak, poisson_df2, out=True)
+                RMSD, RMSD2, F, p = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, q.alt_peak, poisson_df2, alpha2, out=True)
                 sub.loc[i, 'RMSD'] = RMSD
                 sub.loc[i, 'RMSD2'] = RMSD2
+                sub.loc[i, 'alpha'] = alpha1
+                sub.loc[i, 'alpha2'] = alpha2
                 sub.loc[i, 'F-value'] = F
                 sub.loc[i, 'p_value'] = p
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
-                RMSD = PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot, title, [alpha1], out=True)
+                RMSD = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, out=True)
                 sub.loc[i, 'RMSD'] = RMSD
+                sub.loc[i, 'alpha'] = alpha1
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
