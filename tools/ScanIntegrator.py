@@ -124,38 +124,16 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
 
 def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, mz2=None, theo_dist2=None, out=False):
     ## RATIO STATS ##
-    # theo_dist['chi'] = ((theo_dist.P_compare-theo_dist.exp_int)**2)/theo_dist.P_compare
     theo_dist['ratio_log2'] = theo_dist.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
-    # theo_dist.ratio.replace([np.inf, -np.inf], 0, inplace=True)
-    # if theo_dist.exp_int.max() > 0: ratio_max = theo_dist.P_compare.max() / theo_dist.exp_int.max()
-    # else: ratio_max = 0
-    # if np.isnan(np.mean(theo_dist.ratio)):
-    #     ratio_mean = 0
-    #     ratio_median = 0
-    # else:
-    #     ratio_mean = np.mean(theo_dist.ratio)
-    #     ratio_median = np.median(theo_dist.ratio)
-    # theo_dist2['chi'] = ((theo_dist2.P_compare-theo_dist2.exp_int)**2)/theo_dist2.P_compare
-    theo_dist2['ratio_log2'] = theo_dist2.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
-    # theo_dist2.ratio.replace([np.inf, -np.inf], 0, inplace=True)
-    # if theo_dist2.exp_int.max() > 0: ratio_max_alt_peak = theo_dist2.P_compare.max() / theo_dist2.exp_int.max()
-    # else: ratio_max_alt_peak = 0
-    # if np.isnan(np.mean(theo_dist2.ratio)):
-    #     ratio_mean_alt_peak = 0
-    #     ratio_median_alt_peak = 0
-    # else:
-    #     ratio_mean_alt_peak = np.mean(theo_dist2.ratio)
-    #     ratio_median_alt_peak = np.median(theo_dist2.ratio)
     RMSD = math.sqrt(((theo_dist.ratio_log2)**2).sum()/len(theo_dist)) # no need to substract the expected because it is 0
-    RMSD2 = math.sqrt(((theo_dist2.ratio_log2)**2).sum()/len(theo_dist2)) # no need to substract the expected because it is 0
     SS1 = ((theo_dist.exp_int-theo_dist.P_compare)**2).sum()
-    SS2 = ((theo_dist2.exp_int-theo_dist2.P_compare)**2).sum()
     if mz2:
+        theo_dist2['ratio_log2'] = theo_dist2.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
+        RMSD2 = math.sqrt(((theo_dist2.ratio_log2)**2).sum()/len(theo_dist2)) # no need to substract the expected because it is 0
+        SS2 = ((theo_dist2.exp_int-theo_dist2.P_compare)**2).sum()
         F = (SS1/alpha[0]**2)/(SS2/alpha[1]**2)
         p = 1 - scipy.stats.f.cdf(F, len(theo_dist)-1, len(theo_dist)-1)
-    # chi2 = theo_dist.chi.sum()
-    # chi2_alt_peak = theo_dist2.chi.sum()
-    # chi2_ratio =  chi2 / chi2_alt_peak # TODO RETURN THIS
+
     ## PLOTS ##
     def _format(ratio):
         ratio = round(ratio, 4)
@@ -176,24 +154,8 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
     custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                 Line2D([0], [0], color="salmon", lw=2),
                 Line2D([0], [0], color="orange", lw=2, ls="--")]
-    
-    # TODO chi as in excel. p-value wait. normalize without first peak.
+
     # TODO SHIFTS add rawfile column. move suffix names into config. check if we can use raw for modeller, fdrer, and get rid of filename
-    theo_dist['RSS'] = np.square(theo_dist.P_compare - theo_dist.exp_int)
-    theo_dist2['RSS'] = np.square(theo_dist2.P_compare - theo_dist2.exp_int)
-    theo_dist_RSS = np.sum(np.square(theo_dist.P_compare - theo_dist.exp_int))
-    theo_dist2_RSS = np.sum(np.square(theo_dist2.P_compare - theo_dist2.exp_int))
-    # f = np.var(np.array(theo_dist['RSS']), ddof=1)/np.var(np.array(theo_dist2['RSS']), ddof=1)
-    theo_dist_f = np.var(np.array(theo_dist.exp_int), ddof=1)/np.var(np.array(theo_dist.P_compare), ddof=1)
-    theo_dist2_f = np.var(np.array(theo_dist2.exp_int), ddof=1)/np.var(np.array(theo_dist2.P_compare), ddof=1)
-    theo_dist_p = 1 - scipy.stats.f.cdf(theo_dist_f, len(theo_dist)-1, len(theo_dist)-1)
-    theo_dist2_p = 1 - scipy.stats.f.cdf(theo_dist2_f, len(theo_dist)-1, len(theo_dist)-1)
-    # cont_table = pd.crosstab(index=list(theo_dist.exp_int),columns=list(theo_dist.P_compare))
-    # chi2, p, dof, ex = chi2_contingency(cont_table)
-    # scipy.stats.mstats.chisquare(f_obs=theo_dist.exp_int, f_exp=theo_dist.P_compare)
-    # theo_dist["chi2"] = (theo_dist.exp_int-theo_dist.P_compare)**2/theo_dist.P_compare
-    # chi2 = theo_dist.chi2.sum()
-    # p = 1 - scipy.stats.chi2.cdf(chi2, len(theo_dist) - 1)
 
     ax1 = fig.add_subplot(2,1,1)
     apex_list["COLOR"] = 'darkblue'
@@ -209,16 +171,10 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
                  style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-    # text_box = AnchoredText("Chi2:          " + str(round(chi2, 4)) + "\nDoF:            " + str(dof) +
-    #                         "\nP-value:      " + str(round(p, 4)) + "\nMax. Ratio:   " + str(round(ratio_max, 4)) +
-    #                         "\nMean Ratio:   " + str(round(ratio_mean, 4)) + "\nMedian Ratio: " + str(round(ratio_median, 4)),
-    #                         frameon=True, loc='upper left', pad=0.5)
-    # text_box = AnchoredText("Max. Ratio:   " + _format(ratio_max) +
-    #                         "\nMean Ratio:   " + _format(ratio_mean) +
-    #                         "\nMedian Ratio: " + _format(ratio_median),
-    #                         frameon=True, loc='upper left', pad=0.5)
-    # plt.setp(text_box.patch, facecolor='white', alpha=0.5)
-    # ax1.add_artist(text_box)
+    text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD, 2),
+                            frameon=True, loc='upper left', pad=0.5)
+    plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+    ax1.add_artist(text_box)
     ax1.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Chosen peak'],
                loc="upper right")
     ## RECOM GRAPH ##
@@ -226,14 +182,11 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
         custom_lines = [Line2D([0], [0], color="darkblue", lw=2),
                     Line2D([0], [0], color="salmon", lw=2),
                     Line2D([0], [0], color="green", lw=2, ls="dotted")]
-        # cont_table2 = pd.crosstab(index=list(theo_dist2.exp_int),columns=list(theo_dist2.P_compare))
-        # chi2_alt_peak, p_alt_peak, dof, ex = chi2_contingency(cont_table2)
         ax2 = fig.add_subplot(2,1,2)
         plt.xlim(apex_list.BIN.min(), apex_list.BIN.max())
         plt.xlabel("M/Z", fontsize=15)
         plt.ylabel(r'$\sum_{n=0}^{n_{peaks}} Intensity_n \times e^{-\frac{1}{2}\times\frac{(BinMZ-PeakMZ)^2}{\sigma^2}} $', fontsize=15)
         plt.title("Integrated Scans (corrected precursor)", fontsize=20)
-        # plt.plot(apexonly.BIN, apexonly.SUMINT, linewidth=1, color="darkblue", zorder=4)
         plt.plot(apex_list.BIN, apex_list.SUMINT, linewidth=1, color="darkblue", zorder=4)
         plt.bar(theo_dist2.theomz, theo_dist2.P_compare, width=0.008, color="salmon", zorder=3)
         plt.axvline(x=theo_dist2.theomz.min(), color='green', ls="dotted", zorder=1) # Corrected peak
@@ -241,12 +194,12 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
                      style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-        # text_box = AnchoredText("Max. Ratio:   " + _format(ratio_max_alt_peak) +
-        #                         "\nMean Ratio:   " + _format(ratio_mean_alt_peak) +
-        #                         "\nMedian Ratio: " + _format(ratio_median_alt_peak),
-        #                         frameon=True, loc='upper left', pad=0.5)
-        # plt.setp(text_box.patch, facecolor='white', alpha=0.5)
-        # ax2.add_artist(text_box)
+        text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD2, 2) +
+                                "\nF-value:   " + round(F, 2) +
+                                "\np-value: " + round(p, 6),
+                                frameon=True, loc='upper left', pad=0.5)
+        plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+        ax2.add_artist(text_box)
         ax2.legend(custom_lines, ['Experimental peaks', 'Theoretical peaks', 'Corrected peak'],
                    loc="upper right")
     
@@ -256,11 +209,9 @@ def PlotIntegration(theo_dist, mz, apex_list, apexonly, outplot, title, alpha, m
     
     if out:
         if mz2:
-            return(chi2, p, ratio_max, ratio_mean, ratio_median,
-                   chi2_alt_peak, p_alt_peak, ratio_max_alt_peak,
-                   ratio_mean_alt_peak, ratio_median_alt_peak)
+            return(RMSD, RMSD2, F, p)
         else:
-            return(chi2, p, ratio_max, ratio_mean, ratio_median)
+            return(RMSD)
     else:
         return
 
