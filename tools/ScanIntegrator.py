@@ -127,12 +127,12 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
     theo_dist['ratio_log2'] = theo_dist.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
     RMSD = math.sqrt(((theo_dist.ratio_log2)**2).sum()/len(theo_dist)) # no need to substract the expected because it is 0
     SS1 = ((theo_dist.exp_int-theo_dist.P_compare)**2).sum()
-    var1 = (SS1/len(theo_dist)-1)/alpha1
+    var1 = (SS1/len(theo_dist)-1)/alpha1**2
     if mz2:
         theo_dist2['ratio_log2'] = theo_dist2.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
         RMSD2 = math.sqrt(((theo_dist2.ratio_log2)**2).sum()/len(theo_dist2)) # no need to substract the expected because it is 0
         SS2 = ((theo_dist2.exp_int-theo_dist2.P_compare)**2).sum()
-        var2 = (SS2/len(theo_dist2)-1)/alpha2
+        var2 = (SS2/len(theo_dist2)-1)/alpha2**2
         F = (SS1/alpha1**2)/(SS2/alpha2**2)
         p = 1 - scipy.stats.f.cdf(F, len(theo_dist)-1, len(theo_dist)-1)
 
@@ -173,9 +173,9 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
                  style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-    text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD, 2) +
-                            "\nalpha:        " + "{:.2e}".format(alpha1) +
-                            "\n\u03C3:       " + "{:.2e}".format(var1),
+    text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD, 2)) +
+                            "\nalpha:                     " + "{:.2e}".format(alpha1) +
+                            "\n\u03C3\u00b2:                           " + str(round(var1, 6)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box)
@@ -198,11 +198,11 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
                      style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
-        text_box = AnchoredText("log2(ratio) RMSD:   " + round(RMSD2, 2) +
-                                "\nalpha:        " + "{:.2e}".format(alpha2) +
-                                "\n\u03C3:       " + "{:.2e}".format(var2) +
-                                "\nF-value:      " + round(F, 2) +
-                                "\np-value:      " + round(p, 6),
+        text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD2, 2)) +
+                                "\nalpha:                     " + "{:.2e}".format(alpha2) +
+                                "\n\u03C3\u00b2:                           " + str(round(var2, 6)) +
+                                "\nF-value:                  " + str(round(F, 2)) +
+                                "\np-value:                  " + str(round(p, 6)),
                                 frameon=True, loc='upper left', pad=0.5)
         plt.setp(text_box.patch, facecolor='white', alpha=0.5)
         ax2.add_artist(text_box)
