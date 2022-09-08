@@ -272,11 +272,8 @@ def main(args):
     query['alpha'] = None
     query['variance'] = None
     if 'alt_peak' in query.columns: # Recom
-        query['RMSD'] = None
         query['RMSD2'] = None
-        query['alpha'] = None
         query['alpha2'] = None
-        query['variance'] = None
         query['variance2'] = None
         query['F-value'] = None
         query['p-value'] = None
@@ -438,7 +435,7 @@ def main(args):
                 sub.loc[i, 'variance'] = var1
                 sub.loc[i, 'variance2'] = var2
                 sub.loc[i, 'F-value'] = F
-                sub.loc[i, 'p_value'] = p
+                sub.loc[i, 'p-value'] = p
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
                 RMSD, var1 = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, out=True)
