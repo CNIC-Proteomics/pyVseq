@@ -261,6 +261,7 @@ def main(args):
     drange = float(mass._sections['Parameters']['int_mzrange'])
     bin_width = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
+    exp_var = float(mass._sections['Parameters']['expected_variance'])
 
     logging.info("Scan range: ±" + str(srange))
     logging.info("MZ range: ±" + str(drange) + " Th")
@@ -271,12 +272,16 @@ def main(args):
     query['RMSD'] = None
     query['alpha'] = None
     query['variance'] = None
+    query['fit_chi'] = None
+    query['fit_p-value'] = None
     if 'alt_peak' in query.columns: # Recom
         query['RMSD2'] = None
         query['alpha2'] = None
         query['variance2'] = None
-        query['F-value'] = None
-        query['p-value'] = None
+        query['fit_chi2'] = None
+        query['fit_p-value2'] = None
+        query['comparison_F-value'] = None
+        query['comparison_p-value'] = None
     logging.info("Looking for .mzML files...")
     mzmlfiles = os.listdir(Path(args.raw))
     mzmlfiles = [i for i in mzmlfiles if i[-5:].lower()=='.mzml']
@@ -434,14 +439,20 @@ def main(args):
                 sub.loc[i, 'alpha2'] = alpha2
                 sub.loc[i, 'variance'] = var1
                 sub.loc[i, 'variance2'] = var2
-                sub.loc[i, 'F-value'] = F
-                sub.loc[i, 'p-value'] = p
+                sub.loc[i, 'fit_chi'] = var1/exp_var
+                sub.loc[i, 'fit_chi2'] = var2/exp_var
+                sub.loc[i, 'fit_p-value'] = 1 - scipy.stats.chi2.cdf(var1/exp_var, len(poisson_df)-1)
+                sub.loc[i, 'fit_p-value2'] = 1 - scipy.stats.chi2.cdf(var2/exp_var, len(poisson_df2)-1)
+                sub.loc[i, 'comparison_F-value'] = F
+                sub.loc[i, 'comparison_p-value'] = p
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
                 RMSD, var1 = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, out=True)
                 sub.loc[i, 'RMSD'] = RMSD
                 sub.loc[i, 'alpha'] = alpha1
                 sub.loc[i, 'variance'] = var1
+                sub.loc[i, 'fit_chi'] = var1/exp_var
+                sub.loc[i, 'fit_p-value'] = 1 - scipy.stats.chi2.cdf(var1/exp_var, len(poisson_df)-1)
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
@@ -468,6 +479,7 @@ if __name__ == '__main__':
     parser.add_argument('-m',  '--mzrange', default=2, help='± MZ window to use')
     parser.add_argument('-b',  '--bin', default=0.001, help='Bin width to use')
     parser.add_argument('-p',  '--poisson', default=0.8, help='Poisson coverage threshold')
+    parser.add_argument('-e',  '--exp_var', default=0.005, help='Expected variance')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
     parser.add_argument('-o', '--outpath', required=True, help='Path to save results')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
@@ -485,6 +497,8 @@ if __name__ == '__main__':
         mass.set('Parameters', 'int_binwidth', str(args.bin))
     if args.poisson != 0.8:
         mass.set('Parameters', 'poisson_threshold', str(args.poisson))
+    if args.exp_var != 0.005:
+        mass.set('Parameters', 'expected_variance', str(args.exp_var))
 
     # logging debug level. By default, info level
     Path(args.outpath).mkdir(parents=True, exist_ok=True)
