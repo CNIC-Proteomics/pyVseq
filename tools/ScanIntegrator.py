@@ -175,13 +175,13 @@ def PlotIntegration(exp_var, theo_dist, mz, alpha1, apex_list, apexonly, outplot
     plt.bar(theo_dist.theomz, theo_dist.P_compare, width=0.008, color="salmon", zorder=3)
     plt.axvline(x=mz, color='orange', ls="--", zorder=2) # Chosen peak
     ax1.annotate(str(round(mz,3)) + " Th", (mz,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)),
-                 style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="left")
+                 style='italic', color='black', backgroundcolor='orange', fontsize=10, ha="right")
     for i,j in apexannot.iterrows():
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
     text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD, 2)) +
                             "\nalpha:                     " + "{:.2e}".format(alpha1) +
                             "\n\u03C3\u00b2:                           " + str(round(var1, 6)) +
-                            "\n\u03C7\u00b2:                          " + str(round(fit_chi, 6)) +
+                            "\n\u03C7\u00b2:                           " + str(round(fit_chi, 6)) +
                             "\np-value:                  " + str(round(fit_p, 6)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
@@ -202,13 +202,13 @@ def PlotIntegration(exp_var, theo_dist, mz, alpha1, apex_list, apexonly, outplot
         plt.bar(theo_dist2.theomz, theo_dist2.P_compare, width=0.008, color="salmon", zorder=3)
         plt.axvline(x=theo_dist2.theomz.min(), color='green', ls="dotted", zorder=1) # Corrected peak
         ax2.annotate(str(round(mz2,3)) + " Th", (mz2,max(apex_list.SUMINT)-0.05*max(apex_list.SUMINT)),
-                     style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="left")
+                     style='italic', color='black', backgroundcolor='lightgreen', fontsize=10, ha="right")
         for i,j in apexannot.iterrows():
             ax2.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
         text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD2, 2)) +
                                 "\nalpha:                     " + "{:.2e}".format(alpha2) +
                                 "\n\u03C3\u00b2:                           " + str(round(var2, 6)) +
-                                "\n\u03C7\u00b2:                          " + str(round(fit_chi2, 6)) +
+                                "\n\u03C7\u00b2:                           " + str(round(fit_chi2, 6)) +
                                 "\np-value:                  " + str(round(fit_p2, 6)) +
                                 "\nComparison with previous fit:" +
                                 "\nF-value:                  " + str(round(F, 2)) +
