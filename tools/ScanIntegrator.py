@@ -122,12 +122,15 @@ def Integrate(scan, mz, scanrange, mzrange, bin_width, mzmlpath, n_workers):
     apexonly.reset_index(drop=True, inplace=True)
     return(apex_list, apexonly)
 
-def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, mz2=None, theo_dist2=None, alpha2 = None, out=False):
+def PlotIntegration(exp_var, theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, mz2=None, theo_dist2=None, alpha2 = None, out=False):
     ## RATIO STATS ##
     theo_dist['ratio_log2'] = theo_dist.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
     RMSD = math.sqrt(((theo_dist.ratio_log2)**2).sum()/len(theo_dist)) # no need to substract the expected because it is 0
     SS1 = ((theo_dist.exp_int-theo_dist.P_compare)**2).sum()
     var1 = (SS1/len(theo_dist)-1)/alpha1**2
+    fit_chi = var1/exp_var
+    fit_p = 1 - scipy.stats.chi2.cdf(fit_chi, len(theo_dist)-1)
+    
     if mz2:
         theo_dist2['ratio_log2'] = theo_dist2.apply(lambda x: math.log(x.P_compare / x.exp_int, 2), axis=1)
         RMSD2 = math.sqrt(((theo_dist2.ratio_log2)**2).sum()/len(theo_dist2)) # no need to substract the expected because it is 0
@@ -135,6 +138,8 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
         var2 = (SS2/len(theo_dist2)-1)/alpha2**2
         F = (SS1/alpha1**2)/(SS2/alpha2**2)
         p = 1 - scipy.stats.f.cdf(F, len(theo_dist)-1, len(theo_dist)-1)
+        fit_chi2 = var2/exp_var
+        fit_p2 = 1 - scipy.stats.chi2.cdf(fit_chi2, len(theo_dist2)-1)
 
     ## PLOTS ##
     def _format(ratio):
@@ -175,7 +180,9 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
         ax1.annotate(str(round(j.BIN,3)), (j.BIN, j.SUMINT))
     text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD, 2)) +
                             "\nalpha:                     " + "{:.2e}".format(alpha1) +
-                            "\n\u03C3\u00b2:                           " + str(round(var1, 6)),
+                            "\n\u03C3\u00b2:                           " + str(round(var1, 6)) +
+                            "\n\u03C7\u00b2:                          " + str(round(fit_chi, 6)) +
+                            "\np-value:                  " + str(round(fit_p, 6)),
                             frameon=True, loc='upper left', pad=0.5)
     plt.setp(text_box.patch, facecolor='white', alpha=0.5)
     ax1.add_artist(text_box)
@@ -201,6 +208,9 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
         text_box = AnchoredText("log2(ratio) RMSD:   " + str(round(RMSD2, 2)) +
                                 "\nalpha:                     " + "{:.2e}".format(alpha2) +
                                 "\n\u03C3\u00b2:                           " + str(round(var2, 6)) +
+                                "\n\u03C7\u00b2:                          " + str(round(fit_chi2, 6)) +
+                                "\np-value:                  " + str(round(fit_p2, 6)) +
+                                "\nComparison with previous fit:" +
                                 "\nF-value:                  " + str(round(F, 2)) +
                                 "\np-value:                  " + str(round(p, 6)),
                                 frameon=True, loc='upper left', pad=0.5)
@@ -215,9 +225,9 @@ def PlotIntegration(theo_dist, mz, alpha1, apex_list, apexonly, outplot, title, 
     
     if out:
         if mz2:
-            return(RMSD, RMSD2, var1, var2, F, p)
+            return(RMSD, RMSD2, var1, var2, fit_chi, fit_chi2, fit_p, fit_p2, F, p)
         else:
-            return(RMSD, var1)
+            return(RMSD, var1, fit_chi, fit_p)
     else:
         return
 
@@ -267,6 +277,7 @@ def main(args):
     logging.info("MZ range: ±" + str(drange) + " Th")
     logging.info("Bin width: " + str(bin_width) + " Th")
     logging.info("Poisson coverage: " + str(t_poisson*100) + "%")
+    logging.info("Expected variance: " + str(exp_var))
     logging.info("Reading input table...")
     query = pd.read_table(Path(args.infile), index_col=None, delimiter="\t")
     query['RMSD'] = None
@@ -432,27 +443,31 @@ def main(args):
                 # normalize with first peak to fix mixed peaks problem
                 # poisson_df2["P_compare"] = poisson_df2.apply(lambda x: x.P_compare*(poisson_df2.exp_int[0]/poisson_df2.P_compare[0] if poisson_df2.P_compare[0]>0 else 0), axis=1)
                 # TODO: what to do when P_compare is emtpy
-                RMSD, RMSD2, var1, var2, F, p = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, q.alt_peak, poisson_df2, alpha2, out=True)
+                RMSD, RMSD2, var1, var2, fit_chi, fit_chi2, fit_p, fit_p2, F, p = PlotIntegration(exp_var, poisson_df, mz, alpha1,
+                                                                                                  apex_list, apexonly, outplot, title,
+                                                                                                  q.alt_peak, poisson_df2, alpha2, out=True)
                 sub.loc[i, 'RMSD'] = RMSD
                 sub.loc[i, 'RMSD2'] = RMSD2
                 sub.loc[i, 'alpha'] = alpha1
                 sub.loc[i, 'alpha2'] = alpha2
                 sub.loc[i, 'variance'] = var1
                 sub.loc[i, 'variance2'] = var2
-                sub.loc[i, 'fit_chi'] = var1/exp_var
-                sub.loc[i, 'fit_chi2'] = var2/exp_var
-                sub.loc[i, 'fit_p-value'] = 1 - scipy.stats.chi2.cdf(var1/exp_var, len(poisson_df)-1)
-                sub.loc[i, 'fit_p-value2'] = 1 - scipy.stats.chi2.cdf(var2/exp_var, len(poisson_df2)-1)
+                sub.loc[i, 'fit_chi'] = fit_chi
+                sub.loc[i, 'fit_chi2'] = fit_chi2
+                sub.loc[i, 'fit_p-value'] = fit_p
+                sub.loc[i, 'fit_p-value2'] = fit_p2
                 sub.loc[i, 'comparison_F-value'] = F
                 sub.loc[i, 'comparison_p-value'] = p
             else: # TODO fix list of INT given to chi2
                 # TODO: what to do when P_compare is emtpy
-                RMSD, var1 = PlotIntegration(poisson_df, mz, alpha1, apex_list, apexonly, outplot, title, out=True)
+                RMSD, var1, fit_chi, fit_p = PlotIntegration(exp_var, poisson_df, mz, alpha1,
+                                             apex_list, apexonly, outplot, title,
+                                             out=True)
                 sub.loc[i, 'RMSD'] = RMSD
                 sub.loc[i, 'alpha'] = alpha1
                 sub.loc[i, 'variance'] = var1
-                sub.loc[i, 'fit_chi'] = var1/exp_var
-                sub.loc[i, 'fit_p-value'] = 1 - scipy.stats.chi2.cdf(var1/exp_var, len(poisson_df)-1)
+                sub.loc[i, 'fit_chi'] = fit_chi
+                sub.loc[i, 'fit_p-value'] = fit_p
         # Save stats to table
         sub.to_csv(outpath, index=False, sep='\t', encoding='utf-8',
                    mode='a', header=not os.path.exists(outpath))
