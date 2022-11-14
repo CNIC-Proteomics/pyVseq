@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 
 def main(args):
-    logging.info("Looking for .dta files...")
+    logging.info("Looking for .msf files...")
     msffiles = os.listdir(Path(args.dir))
     msffiles = [i for i in msffiles if i[-4:]=='.msf']
     logging.info(str(len(msffiles)) + " .msf files found. Converting to .tsv...")
@@ -23,6 +23,12 @@ def main(args):
     for i, j in enumerate(msffiles):
         logging.info(str(i) + " out of " + str(len(msffiles)) + "...")
         con = sqlite3.connect(os.path.join(args.dir, j))
+        # Get tables
+        # cursor = con.cursor()
+        # cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        # Get columns
+        # cursor.execute("SELECT * FROM Peptides_decoy")
+        # print(cursor.fetchall())
         if int(args.sequest) == 0: # SEQUEST
             surveys_df = pd.read_sql_query("SELECT P.sequence,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND PeptideScores.ScoreID=9;", con)
         elif int(args.sequest) == 1: # SEQUEST-HT
@@ -36,6 +42,9 @@ def main(args):
                 decoys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,P.searchenginerank,P.xcorr,P.FirstScan from DecoyPsms as P", con)
                 decoys_df["TYPE"] = "Decoy"
                 surveys_df = pd.concat([targets_df, decoys_df])
+            elif int(args.pd) == 2:
+                surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=9;", con)
+                surveys_df["Label"] = surveys_df.apply(lambda x: 'Decoy' if x['Description'][:6]==">DECOY" else "Target", axis = 1)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
         surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         surveys_df["FILE"] = str(j)
