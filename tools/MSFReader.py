@@ -43,7 +43,7 @@ def main(args):
                 decoys_df["TYPE"] = "Decoy"
                 surveys_df = pd.concat([targets_df, decoys_df])
             elif int(args.pd) == 2:
-                surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=9;", con)
+                surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan,S.Charge from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=9;", con)
                 surveys_df["sp_score"] = pd.read_sql_query("SELECT PeptideScores.ScoreValue from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=10;", con)
                 surveys_df["Label"] = surveys_df.apply(lambda x: 'Decoy' if x['Description'][:6]==">DECOY" else "Target", axis = 1)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
