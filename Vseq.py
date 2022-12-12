@@ -10,6 +10,7 @@ Created on Wed Mar  2 14:10:14 2022
 # seq2 = kLETEVMq
 
 # import modules
+import io
 import os
 import sys
 import argparse
@@ -1201,7 +1202,8 @@ if __name__ == '__main__':
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
-    mass.read(args.config)
+    with io.open(args.config, "r", encoding="utf-8") as my_config:
+        mass.readfp(my_config)
     if args.error is not None:
         mass.set('Parameters', 'ppm_error', str(args.error))
     if args.deltamass is not None:

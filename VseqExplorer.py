@@ -8,6 +8,7 @@ Created on Tue Mar 29 10:42:30 2022
 # import modules
 import shutup
 shutup.please()
+import io
 import os
 import sys
 import argparse
@@ -695,7 +696,8 @@ if __name__ == '__main__':
     
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
-    mass.read(args.config)
+    with io.open(args.config, "r", encoding="utf-8") as my_config:
+        mass.readfp(my_config)
     # if something is changed, write a copy of ini
     if mass.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.infile) + '/Vseq.ini', 'w') as newconfig:
