@@ -620,6 +620,16 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     if not standalone:
         mass = massconfig
         outplot = outpath
+        if len(str(outplot)) >= 250: # try to shorten very long paths
+            fn, ext = os.path.splitext(Path(outplot))
+            fn = fn.split("\\")
+            fn[-1] = fn[-1][:-len(str(outplot))-250]
+            if len(fn[-1]) == 0:
+                fn[-1] = "plot"
+            counter = 1
+            while os.path.exists(Path(outplot)):
+                outplot = Path(fn + " (" + str(counter) + ")" + ext)
+                counter += 1
     else:
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
         mass.read(args.config)
@@ -630,6 +640,17 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         outplot = os.path.join(outpath, str(sub.Raw) +
                                "_" + str(sub.Sequence) + "_" + str(sub.FirstScan)
                                + "_ch" + str(sub.Charge) + ".pdf")
+        if len(str(outplot)) >= 250:
+            outplot = os.path.join(outpath, str(sub.Raw) +
+                                   "_" + str(sub.Sequence)[:len(str(sub.Sequence))//2] + "_trunc_" + str(sub.FirstScan)
+                                   + "_ch" + str(sub.Charge) + ".pdf")
+            counter = 0
+            while os.path.isfile(outplot):
+                counter += 1
+                outplot = os.path.join(outpath, str(sub.Raw) +
+                                       "_" + str(sub.Sequence)[:len(str(sub.Sequence))//2] + "_trunc_" + str(sub.FirstScan)
+                                       + "_ch" + str(sub.Charge) + "_" + str(counter) + ".pdf")
+            
     fppm.index = list(frags.by)
     if not hasattr(sub, 'DeltaMassLabel'):
         sub.DeltaMassLabel = "'N/A'"
