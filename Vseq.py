@@ -10,19 +10,17 @@ Created on Wed Mar  2 14:10:14 2022
 # seq2 = kLETEVMq
 
 # import modules
-import io
-import os
-import sys
 import argparse
 import configparser
+import io
 import itertools
 import logging
 import math
 import matplotlib
-matplotlib.use('pdf')
-from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 import pyopenms
@@ -31,10 +29,13 @@ import re
 import seaborn as sns
 import scipy.stats
 import statistics
-import numpy as np
-pd.options.mode.chained_assignment = None  # default='warn'
+import sys
+# import custom modules
 import tools.Hyperscore as Hyperscore
 import tools.ScanIntegrator as ScanIntegrator
+# module config
+matplotlib.use('pdf')
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def prepareWorkspace(exp, msdatapath, outpath):
     msdata = Path(msdatapath)

@@ -6,36 +6,29 @@ Created on Tue Mar 29 10:42:30 2022
 """
 
 # import modules
-import shutup
-shutup.please()
-import io
-import os
-import sys
 import argparse
 import concurrent.futures
 import configparser
-from io import FileIO
+import io
 import itertools
 import logging
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('pdf')
 import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 from PyPDF2 import PdfFileMerger
 import re
-import scipy.stats
-import statistics
+import shutup
+shutup.please()
+import sys
 from tqdm import tqdm
-# from p_tqdm import p_map
-import warnings
-pd.options.mode.chained_assignment = None  # default='warn'
-
+# import custom modules
 from Vseq import doVseq
-# infile= r"C:\Users\alaguillog\GitHub\eca\Sadek_fr8.mgf"
-# table = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\vseqexplorer_input_data.csv'
-# config = 'C:\\Users\\alaguillog\\GitHub\\CNICpyVseq\\Vseq.ini'
+# module config
+matplotlib.use('pdf')
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def checkMGFs(mgfs, mgflist):
     checklist = list(mgfs.groups.keys())
@@ -99,7 +92,7 @@ def getTquery(fr_ns):
 def getOffset(fr_ns):
     def _check(can):
         try:
-            a = list(map(float, can))
+            list(map(float, can))
             return 0
         except ValueError:
             return 1
@@ -409,7 +402,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
             pagelist.append(f)
     merger = PdfFileMerger()
     for page in pagelist:
-        merger.append(FileIO(page,"rb"))
+        merger.append(io.FileIO(page,"rb"))
     # logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_hscore))
     if len(pagelist) > 0:
         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
@@ -655,7 +648,7 @@ def main(args):
                             pagelist.append(f)
                     merger = PdfFileMerger()
                     for page in pagelist:
-                        merger.append(FileIO(page,"rb"))
+                        merger.append(io.FileIO(page,"rb"))
                     logging.info("\tFound " + str(len(pagelist)) + " candidates with " + str(fsort_by) + " > " + str(min_hscore))
                     if len(pagelist) > 0:
                         outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
@@ -738,6 +731,7 @@ if __name__ == '__main__':
                             datefmt='%m/%d/%Y %I:%M:%S %p',
                             handlers=[logging.FileHandler(log_file),
                                       logging.StreamHandler()])
+    logging._defaultFormatter = logging.Formatter(u"%(message)s")
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
