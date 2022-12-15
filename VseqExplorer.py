@@ -397,7 +397,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
         if not os.path.exists(Path(outpath3)):
             os.mkdir(Path(outpath3))
-        f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+        f_subtquery.apply(lambda x: doVseq(mode,
                                            index_offset,
                                            x,
                                            tquery,
@@ -483,7 +483,7 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
-        if raw[-4:].lower() == "mzml": # TODO add mzML mode and mode arg to doVseq call
+        if raw[-4:].lower() == "mzml":
             mode = "mzml"
             mgf = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(raw, mgf)
@@ -652,7 +652,7 @@ def main(args):
                         f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
-                        f_subtquery.apply(lambda x: doVseq("mgf", # TODO mzML
+                        f_subtquery.apply(lambda x: doVseq(mode,
                                                            index_offset,
                                                            x,
                                                            tquery,
