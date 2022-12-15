@@ -495,8 +495,7 @@ def main(args):
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         else:
             mode = "mgf"
-            mgf = Path(raw)
-            mgf = pd.read_csv(mgf, header=None, sep="\t")
+            mgf = pd.read_csv(Path(raw), header=None, sep="\t")
             logging.info("RAW: " + str(mgf))
             index_offset = getOffset(mgf)
             index2 = mgf.to_numpy() == 'END IONS'
@@ -506,13 +505,6 @@ def main(args):
         outpath2 = os.path.join(outpath, str(raw))
         if not os.path.exists(Path(outpath2)):
             os.mkdir(Path(outpath2))
-        # mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
-        # mgf.reset_index(drop=True, inplace=True)
-        # mgf = Path(mgf.iloc[0][0])
-        # exploredseqs = []
-        # outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
-        # with open(outfile, 'w') as f: # Create empty file
-        #     pass
         for fullprot, seqtable in prots:
             try:
                 prot = re.search(r'(?<=\|)[a-zA-Z0-9-_]+(?=\|)', fullprot).group(0)
