@@ -9,6 +9,7 @@ Created on Tue Mar 29 10:42:30 2022
 import argparse
 import concurrent.futures
 import configparser
+import glob
 import io
 import itertools
 import logging
@@ -91,7 +92,7 @@ def getTquery(fr_ns, mode):
         tquery = tquery.apply(pd.to_numeric)
     elif mode == "mzml":
         tquery = []
-        for s in fr_ns.getSpectra(): # TODO this is slow
+        for s in fr_ns.getSpectra():
             if s.getMSLevel() == 2:
                 df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
                           s.getPrecursors()[0].getCharge(), # Precursor Charge
@@ -234,7 +235,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, min_dm, # TODO mzML
+    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, min_dm,
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, 0, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -470,16 +471,17 @@ def main(args):
     if not os.path.exists(Path(outpath)):
         os.mkdir(Path(outpath))
     ## INPUT ##
-    logging.info("Reading input table")
+    logging.info("Reading sequence table")
     seqtable = pd.read_csv(args.table, sep='\t')
     seqtable = seqtable[seqtable.Sequence.notna()]
     prots = seqtable.groupby("q")
     #raws = seqtable.groupby("Raw")
-    logging.info("Reading input file")
-    mgftable = pd.read_csv(args.infile, header=None)
+    logging.info("Reading MS file(s)")
+    if '*' in args.infile: # wildcard
+        mgftable = pd.DataFrame(glob.glob(args.infile))
+    else:
+        mgftable = pd.read_csv(args.infile, header=None)
     raws = mgftable.groupby(0)
-    #mgflist = list(mgflist[0])
-    #mgftable = pd.DataFrame(mgflist) # [Path(i) for i in mgflist]
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
