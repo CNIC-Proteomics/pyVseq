@@ -63,7 +63,7 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
                                    "_cand" + str(cand) + "_" + str(counter) + ".pdf")
     return(outplot)
 
-def getTquery(fr_ns, mode="mgf"):
+def getTquery(fr_ns, mode):
     if mode == "mgf":
         squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
         squery = squery[0].str.replace("SCANS=","")
@@ -224,17 +224,17 @@ def errorMatrix(mz, theo_spec):
 def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
-                     parlist[12])
+                     parlist[12], parlist[13])
     pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot,
-            index_offset):
+            index_offset, mode):
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq("mgf", index_offset, x, tquery, mgf, index2, min_dm, # TODO mzML
+    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, min_dm, # TODO mzML
                                              min_match, ftol, outpath, standalone,
                                              massconfig, dograph, 0, ppm_plot)
     ppmfinal = ppmfinal.drop("minv", axis=1)
@@ -299,7 +299,8 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_hscore, outpath3,
-                    mass, n_workers, parallelize, ppm_plot, outfile, index_offset):
+                    mass, n_workers, parallelize, ppm_plot, outfile, index_offset,
+                    mode):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
     #              + str(query.Charge))
@@ -340,7 +341,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode]
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
@@ -365,7 +366,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                                                   False,
                                                                   min_hscore,
                                                                   ppm_plot,
-                                                                  index_offset)
+                                                                  index_offset,
+                                                                  mode)
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
@@ -443,7 +445,8 @@ def _parallelSeqTable(x, parlist):
                              fsort_by=parlist[4], bestn=parlist[5], fullprot=parlist[6], prot=parlist[7],
                              mgf=parlist[8], index2=parlist[9], min_dm=parlist[10], min_match=parlist[11],
                              min_hscore=parlist[12], outpath3=parlist[13], mass=parlist[14], n_workers=parlist[15],
-                             parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18], index_offset=parlist[19])
+                             parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18], index_offset=parlist[19],
+                             mode=parlist[20])
     return(result)
 
 def main(args):
@@ -480,14 +483,23 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
-        # mode = "mgf"
-        if raw[-4:] == "mzML": ### WIP! ###
+        if raw[-4:].lower() == "mzml": # TODO add mzML mode and mode arg to doVseq call
+            mode = "mzml"
             mgf = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(raw, mgf)
-            index2 = 0
-            tquery = getTquery(mgf, mode="mzml")
             index_offset = 0
-        mgf = Path(raw)
+            index2 = 0
+            tquery = getTquery(mgf, mode)
+            tquery = tquery.drop_duplicates(subset=['SCANS'])
+        else:
+            mode = "mgf"
+            mgf = Path(raw)
+            mgf = pd.read_csv(mgf, header=None, sep="\t")
+            logging.info("RAW: " + str(mgf))
+            index_offset = getOffset(mgf)
+            index2 = mgf.to_numpy() == 'END IONS'
+            tquery = getTquery(mgf, mode)
+            tquery = tquery.drop_duplicates(subset=['SCANS'])
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
         if not os.path.exists(Path(outpath2)):
@@ -495,12 +507,6 @@ def main(args):
         # mgf = mgftable.loc[mgftable[0].str.contains(str(raw) + ".mgf", case=False)]
         # mgf.reset_index(drop=True, inplace=True)
         # mgf = Path(mgf.iloc[0][0])
-        logging.info("RAW: " + str(mgf))
-        mgf = pd.read_csv(mgf, header=None, sep="\t") # TODO add mzML mode and mode arg to doVseq call
-        index_offset = getOffset(mgf)
-        index2 = mgf.to_numpy() == 'END IONS'
-        tquery = getTquery(mgf)
-        tquery = tquery.drop_duplicates(subset=['SCANS'])
         # exploredseqs = []
         # outfile = os.path.join(outpath2, str(Path(raw).stem) + "_EXPLORER.tsv")
         # with open(outfile, 'w') as f: # Create empty file
@@ -522,7 +528,8 @@ def main(args):
                 tqdm.pandas(position=0, leave=True)
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_hscore, outpath3,
-                           mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset]
+                           mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset,
+                           mode]
                 # chunks = 100
                 # if len(rowSeqs) <= 500:
                 #     chunks = 50
