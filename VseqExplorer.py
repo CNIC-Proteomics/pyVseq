@@ -18,6 +18,7 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
+import pyopenms
 from PyPDF2 import PdfFileMerger
 import re
 import shutup
@@ -62,31 +63,45 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
                                    "_cand" + str(cand) + "_" + str(counter) + ".pdf")
     return(outplot)
 
-def getTquery(fr_ns):
-    squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
-    squery = squery[0].str.replace("SCANS=","")
-    squery.reset_index(inplace=True, drop=True)
-    mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
-    mquery = mquery[0].str.replace("PEPMASS=","")
-    mquery.reset_index(inplace=True, drop=True)
-    cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
-    cquery = cquery[0].str.replace("CHARGE=","")
-    cquery.reset_index(inplace=True, drop=True)
-    rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
-    rquery = rquery[0].str.replace("RTINSECONDS=","")
-    rquery.reset_index(inplace=True, drop=True)
-    tquery = pd.concat([squery.rename('SCANS'),
-                        mquery.rename('PEPMASS'),
-                        cquery.rename('CHARGE'),
-                        rquery.rename('RT')],
-                       axis=1)
-    try:
-        tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
-    except ValueError:
-        tquery['MZ'] = tquery.PEPMASS
-    tquery['CHARGE'] = tquery.CHARGE.str[:-1]
-    tquery = tquery.drop("PEPMASS", axis=1)
-    tquery = tquery.apply(pd.to_numeric)
+def getTquery(fr_ns, mode="mgf"):
+    if mode == "mgf":
+        squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
+        squery = squery[0].str.replace("SCANS=","")
+        squery.reset_index(inplace=True, drop=True)
+        mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
+        mquery = mquery[0].str.replace("PEPMASS=","")
+        mquery.reset_index(inplace=True, drop=True)
+        cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
+        cquery = cquery[0].str.replace("CHARGE=","")
+        cquery.reset_index(inplace=True, drop=True)
+        rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
+        rquery = rquery[0].str.replace("RTINSECONDS=","")
+        rquery.reset_index(inplace=True, drop=True)
+        tquery = pd.concat([squery.rename('SCANS'),
+                            mquery.rename('PEPMASS'),
+                            cquery.rename('CHARGE'),
+                            rquery.rename('RT')],
+                           axis=1)
+        try:
+            tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+        except ValueError:
+            tquery['MZ'] = tquery.PEPMASS
+        tquery['CHARGE'] = tquery.CHARGE.str[:-1]
+        tquery = tquery.drop("PEPMASS", axis=1)
+        tquery = tquery.apply(pd.to_numeric)
+    elif mode == "mzml":
+        tquery = []
+        for s in fr_ns.getSpectra(): # TODO this is slow
+            if s.getMSLevel() == 2:
+                df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
+                          s.getPrecursors()[0].getCharge(), # Precursor Charge
+                          s.getRT(), # Precursor Retention Time
+                          s.getPrecursors()[0].getMZ(), # Precursor MZ
+                          s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
+                df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
+                tquery.append(df)
+        tquery = pd.concat(tquery)
+        tquery = tquery.apply(pd.to_numeric)
     return tquery
 
 def getOffset(fr_ns):
@@ -465,9 +480,13 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
-        mode = "mgf"
-        if raw[-4:] == "mzML":
-            mode = "mzml"
+        # mode = "mgf"
+        if raw[-4:] == "mzML": ### WIP! ###
+            mgf = pyopenms.MSExperiment()
+            pyopenms.MzMLFile().load(raw, mgf)
+            index2 = 0
+            tquery = getTquery(mgf, mode="mzml")
+            index_offset = 0
         mgf = Path(raw)
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
