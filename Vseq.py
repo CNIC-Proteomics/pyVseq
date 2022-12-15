@@ -100,9 +100,10 @@ def getTquery(fr_ns, mode):
             if s.getMSLevel() == 2:
                 df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
                           s.getPrecursors()[0].getCharge(), # Precursor Charge
+                          s.getRT(), # Precursor Retention Time
                           s.getPrecursors()[0].getMZ(), # Precursor MZ
                           s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
-                df.columns = ["SCANS", "CHARGE", "MZ", "INT"]
+                df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
                 tquery.append(df)
         tquery = pd.concat(tquery)
         tquery = tquery.apply(pd.to_numeric)
