@@ -577,7 +577,7 @@ def main(args):
                     subtquery["RawCharge"] = subtquery.Charge
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
-                               False, mass, False, min_hscore, ppm_plot, index_offset]
+                               False, mass, False, min_hscore, ppm_plot, index_offset, mode]
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
