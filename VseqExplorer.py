@@ -464,12 +464,7 @@ def main(args):
     min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
-    if args.outpath:
-        outpath = os.path.join(Path(args.outpath),"Vseq_Results")
-    else:
-        outpath = os.path.join(os.path.dirname(Path(args.infile)),"Vseq_Results")
-    if not os.path.exists(Path(outpath)):
-        os.mkdir(Path(outpath))
+    outpath = Path(args.outpath)
     ## INPUT ##
     logging.info("Reading sequence table")
     seqtable = pd.read_csv(args.table, sep='\t')
@@ -733,12 +728,20 @@ if __name__ == '__main__':
         mass.readfp(my_config)
     # if something is changed, write a copy of ini
     if mass.getint('Logging', 'create_ini') == 1:
-        with open(os.path.dirname(args.infile) + '/Vseq.ini', 'w') as newconfig:
+        with open(os.path.dirname(args.table) + '/Vseq.ini', 'w') as newconfig:
             mass.write(newconfig)
+    
+    # make outdir
+    if args.outpath:
+        args.outpath = os.path.join(Path(args.outpath),"Vseq_Results")
+    else:
+        args.outpath = os.path.join(os.path.dirname(Path(args.table)),"Vseq_Results")
+    if not os.path.exists(args.outpath):
+        Path(args.outpath).mkdir(parents=True, exist_ok=True)
 
     # logging debug level. By default, info level
-    log_file = outfile = args.infile[:-4] + 'VseqExplorer_log.txt'
-    log_file_debug = outfile = args.infile[:-4] + 'VseqExplorer_log_debug.txt'
+    log_file = os.path.join(Path(args.outpath), 'VseqExplorer_log.txt')
+    log_file_debug = os.path.join(Path(args.outpath), 'VseqExplorer_log_debug.txt')
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(message)s',
