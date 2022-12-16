@@ -103,6 +103,8 @@ def getTquery(fr_ns, mode):
                 tquery.append(df)
         tquery = pd.concat(tquery)
         tquery = tquery.apply(pd.to_numeric)
+        tquery.SCANS = tquery.SCANS.astype(int)
+        tquery.CHARGE = tquery.CHARGE.astype(int)
     return tquery
 
 def getOffset(fr_ns):
