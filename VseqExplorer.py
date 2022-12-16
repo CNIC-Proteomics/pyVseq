@@ -713,7 +713,7 @@ if __name__ == '__main__':
 
         ''')
         
-    defaultconfig = os.path.join(os.path.dirname(__file__), "config/VseqExplorer.ini")
+    defaultconfig = os.path.join(os.path.dirname(__file__), "Vseq.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Table of MGFs to search')
     parser.add_argument('-t',  '--table', required=True, help='Table of sequences to compare')
