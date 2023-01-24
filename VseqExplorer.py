@@ -192,7 +192,7 @@ def theoSpectrum(seq, mods, pos, len_ions, dm, mass):
 
 def eScore(ppmfinal, int2, err):
     int2.reset_index(inplace=True, drop=True)
-    ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
+    ppmfinal["minv"] = ppmfinal.min(axis=1)
     qscore = pd.DataFrame(ppmfinal["minv"])
     qscore[qscore > err] = 0
     qscore["INT"] = int2

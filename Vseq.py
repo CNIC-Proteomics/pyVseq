@@ -385,7 +385,7 @@ def deltaPlot(parcialdm, parcial, ppmfinal):
 
 def qeScore(ppmfinal, int2, err):
     int2.reset_index(inplace=True, drop=True)
-    ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
+    ppmfinal["minv"] = ppmfinal.min(axis=1)
     qscore = pd.DataFrame(ppmfinal["minv"])
     qscore[qscore > err] = 0
     qscore["INT"] = int2
@@ -1044,7 +1044,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
         if dm != 0: ppmfinal = pd.DataFrame(np.array([terrors, terrors2, terrors3, dmterrors, dmterrors2, dmterrors3]).min(0))
     else:
         sys.exit('ERROR: Invalid charge value!')
-    ppmfinal["minv"] = ppmfinal.apply(lambda x: x.min() , axis = 1)
+    ppmfinal["minv"] = ppmfinal.min(axis=1)
     zoom = ppmfinal.apply(lambda x: random.randint(50, 90) if x.minv > 50 else x.minv , axis = 1)
     minv = ppmfinal["minv"]
     ppmfinal = ppmfinal.drop("minv", axis=1)
