@@ -332,16 +332,15 @@ def makeAblines(texp, minv, assign, ions, min_match):
         matches = pd.DataFrame([[1,3],[2,4]])
         proof = pd.DataFrame([[0,0,0,0]])
         proof.columns = ["MZ","FRAGS","PPM","INT"]
-        return(proof, False)    
-    matches_ions = pd.DataFrame(list(itertools.product(list(range(0, len(matches))), list(range(0, len(assign))))))
-    matches_ions.columns = ["mi", "ci"]
-    matches_ions["temp_ci"] = list(assign.iloc[matches_ions.ci,0])
-    matches_ions["temp_mi"] = list(matches.iloc[matches_ions.mi,0])
-    matches_ions["temp_ci1"] = list(assign.iloc[matches_ions.ci,1])
-    matches_ions["temp_mi1"] = list(matches.iloc[matches_ions.mi,1])
+        return(proof, False) 
+    matches_ions = pd.DataFrame(np.repeat(list(matches[0]), len(assign)))
+    matches_ions.columns = ["temp_mi"]
+    matches_ions["temp_ci1"] = np.tile(np.array(assign.FRAGS), len(matches))
+    matches_ions["temp_mi1"] = np.repeat(list(matches["minv"]), len(assign))
+    matches_ions["temp_ci"] = np.tile(np.array(assign.MZ), len(matches))
     matches_ions["check"] = abs(matches_ions.temp_mi-matches_ions.temp_ci)/matches_ions.temp_ci*1000000
     matches_ions = matches_ions[matches_ions.check<=51]
-    matches_ions = matches_ions.drop(["mi", "ci", "temp_ci", "check"], axis = 1)
+    matches_ions = matches_ions.drop(["temp_ci", "check"], axis = 1)
     matches_ions.columns = ["MZ","FRAGS","PPM"]
     # for mi in list(range(0,len(matches))):
     #     for ci in list(range(0, len(assign))):
@@ -353,12 +352,12 @@ def makeAblines(texp, minv, assign, ions, min_match):
     if matches_ions.empty:
         proof = pd.DataFrame([[0,0,0,0]])
         proof.columns = ["MZ","FRAGS","PPM","INT"]
-        return(proof, False) 
-    # matches_ions.columns = ["MZ","FRAGS","PPM"]
-    proof = pd.merge(matches_ions, ions[['MZ','INT']], how="left", on="MZ")
+        return(proof, False)
+    proof = matches_ions.set_index('MZ').join(ions[['MZ','INT']].set_index('MZ'))
     if len(proof)==0:
         mzcycle = itertools.cycle([ions.MZ.iloc[0], ions.MZ.iloc[1]])
         proof = pd.concat([matches_ions, pd.Series([next(mzcycle) for count in range(len(matches_ions))], name="INT")], axis=1)
+    proof = proof.reset_index()
     return(proof, True)
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
