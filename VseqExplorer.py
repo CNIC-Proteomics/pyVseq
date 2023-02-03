@@ -312,9 +312,11 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
     mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", query.Sequence) if i]
     pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
+    acc_pos = 0
     for i, p in enumerate(pos):
         if i > 0:
-            pos[i] = p - 2 - len(str(mods[i-1]))
+            pos[i] = p - 2 - len(str(mods[i-1])) - acc_pos
+            acc_pos += len(str(mods[i-1])) + 2
     ## MZ and MH ##
     query['expMH'] = query.MH
     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
