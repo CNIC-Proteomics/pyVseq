@@ -1100,6 +1100,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
     hscore, nions, bions, yions = Hyperscore.hyperscore(ions, proof, err)
+    intions = ions.INT.sum()
     
     ## PLOTS ##
     if standalone:
@@ -1112,7 +1113,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     if standalone:
         if not args.integrate:
             logging.info("\t\t\tDone.")
-        return(vscore, escore, hscore, dm)
+        return(vscore, escore, hscore, dm, intions)
     elif dograph and not standalone:
         return
     elif not dograph and not standalone:
@@ -1180,13 +1181,14 @@ def main(args):
                 #seq2 = sub.Sequence[::-1]
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
-                vscore, escore, hscore, dm = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
                 sub["v-score"] = vscore
                 sub["hyperscore"] = hscore
                 sub["DeltaMass"] = dm
+                sub["MatchedIonIntensity"] = intions
                 sub = pd.DataFrame(sub).T
                 outfile = os.path.join(pathdict["out"], "Vseq_Summary.tsv")
                 sub.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
