@@ -44,6 +44,7 @@ def prepareWorkspace(exp, msdatapath, outpath):
     var_name_path = os.path.join(outpath, exp)
     # Create output directory
     if not os.path.exists(outpath):
+        os.mkdir(outpath)
         os.mkdir(var_name_path)
     logging.info("Experiment: " + exp)
     logging.info("msdatapath: " + str(msdata))
@@ -1182,7 +1183,7 @@ def main(args):
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
                 vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
-                       pathdict["out"], True, False, True, min_hscore, ppm_plot)
+                       pathdict["var_name"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
                 sub["v-score"] = vscore
