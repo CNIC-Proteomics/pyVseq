@@ -7,6 +7,7 @@ Created on Thu May  5 15:07:16 2022
 
 import argparse
 import sqlite3
+import numpy as np
 import pandas as pd
 import logging
 import os
@@ -45,6 +46,11 @@ def main(args):
                 surveys_df = pd.concat([targets_df, decoys_df])
             elif int(args.pd) == 2:
                 surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan,S.Charge from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=9;", con)
+                surveys_df[['DeltaMass', 'Abbreviation', 'Position']] = pd.read_sql_query("SELECT A.DeltaMass, A.Abbreviation, M.Position FROM PeptidesAminoAcidModifications as M, AminoAcidModifications as A WHERE M.AminoAcidModificationID = A.AminoAcidModificationID", con)
+                surveys_df.DeltaMass = surveys_df.DeltaMass.replace(np.nan, 0)
+                surveys_df.Abbreviation = surveys_df.Abbreviation.replace(np.nan, "Non-modified")
+                surveys_df.Position = surveys_df.Position.replace(np.nan, 0)
+                surveys_df.Position = surveys_df.Position.astype("int")
                 surveys_df["sp_score"] = pd.read_sql_query("SELECT PeptideScores.ScoreValue from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=10;", con)
                 surveys_df["Label"] = surveys_df.apply(lambda x: 'Decoy' if x['Description'][1:len(str(args.label))+1]==str(args.label) else "Target", axis = 1)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
