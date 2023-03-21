@@ -19,7 +19,8 @@ def main(args):
     msffiles = [i for i in msffiles if i[-4:]=='.msf']
     logging.info(str(len(msffiles)) + " .msf files found. Converting to .tsv...")
     
-    allsurveys = []
+    if args.all:
+        allsurveys = []
     for i, j in enumerate(msffiles):
         logging.info(str(i) + " out of " + str(len(msffiles)) + "...")
         con = sqlite3.connect(os.path.join(args.dir, j))
@@ -45,14 +46,16 @@ def main(args):
             elif int(args.pd) == 2:
                 surveys_df = pd.read_sql_query("SELECT P.matchedionscount,P.totalionscount,P.sequence,ProteinAnnotations.description,P.searchenginerank,PeptideScores.ScoreValue,S.FirstScan,S.Charge from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=9;", con)
                 surveys_df["sp_score"] = pd.read_sql_query("SELECT PeptideScores.ScoreValue from SpectrumHeaders AS S, Peptides as P, PeptideScores, PeptidesProteins, ProteinAnnotations WHERE S.SpectrumID=P.SpectrumID AND P.PeptideID = PeptideScores.PeptideID AND P.PeptideID = PeptidesProteins.PeptideID AND PeptidesProteins.ProteinID = ProteinAnnotations.ProteinID AND PeptideScores.ScoreID=10;", con)
-                surveys_df["Label"] = surveys_df.apply(lambda x: 'Decoy' if x['Description'][:6]==">DECOY" else "Target", axis = 1)
+                surveys_df["Label"] = surveys_df.apply(lambda x: 'Decoy' if x['Description'][1:len(str(args.label))+1]==str(args.label) else "Target", axis = 1)
         outfile = os.path.join(args.dir, j[:-4] + ".tsv")
         surveys_df.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
         surveys_df["FILE"] = str(j)
-        allsurveys.append(surveys_df)
-    allsurveys = pd.concat(allsurveys)
-    outfile = os.path.join(args.dir, "ALL_MSFs.tsv")
-    allsurveys.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+        if args.all:
+            allsurveys.append(surveys_df)
+    if args.all:
+        allsurveys = pd.concat(allsurveys)
+        outfile = os.path.join(args.dir, "ALL_MSFs.tsv")
+        allsurveys.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -66,6 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('-d',  '--dir', required=True, help='Directory containing .MSF files')
     parser.add_argument('-s',  '--sequest', required=True, help='0 = Sequest, 1 = Sequest-HT')
     parser.add_argument('-p',  '--pd', required=True, help='0 = PD 2.4 or under, 1 = PD 2.5')
+    parser.add_argument('-l',  '--label', default="DECOY", help='Decoy label')
+    parser.add_argument('-a',  '--all', action='store_true', help='Write combined table')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
     args = parser.parse_args()
 
