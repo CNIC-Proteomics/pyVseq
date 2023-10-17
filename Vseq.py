@@ -854,7 +854,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
             color[len(plainseq)-1] = 'red'
         else:
-            color[abs(YDAGmax.to_list()[0])] = 'red'
+            color[abs(len(plainseq)-(YDAGmax.to_list()[0]+2))] = 'red'
     ax5.scatter(list(range(len(points2))), 1*points2, facecolors='none', edgecolors=color, marker='o', s=1200)
     # if len(plainseq) < 30:
     #     extra = np.ones(30 - len(plainseq))
