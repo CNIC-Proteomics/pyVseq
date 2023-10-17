@@ -1002,7 +1002,10 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     ## DM ##
     parental = getTheoMH(sub.Charge, plainseq, mods, pos, True, True, massconfig, standalone)
     mim = sub.MH
-    dm = mim - parental
+    if hasattr(sub, 'test_dm'):
+        dm = sub.test_dm
+    else:
+        dm = mim - parental
     #parentaldm = parental + dm
     #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
