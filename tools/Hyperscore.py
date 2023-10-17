@@ -19,7 +19,7 @@ def hyperscore(ions, proof, ftol=50):
     matched_ions = pd.merge(proof, ions, on="MZ")
     if len(matched_ions) == 0:
         hs = 0
-        return(hs, 0, [], [])
+        return(hs, 0, [], [], 0)
     ## 3. Adjust intensity
     matched_ions.MSF_INT = matched_ions.MSF_INT / 1E3
     ## 4. Hyperscore ##
@@ -50,7 +50,8 @@ def hyperscore(ions, proof, ftol=50):
     nions = len(temp)
     bions = list(temp[temp.SERIES=='b'].FRAGS)
     yions =list(temp[temp.SERIES=='y'].FRAGS)
-    return(hs, nions, bions, yions)
+    intions = matched_ions.MSF_INT.sum()
+    return(hs, nions, bions, yions, intions)
 
 # Problem 1 is that MGF and mzML conversion is different - always use same format for MSFragger and Vseq to compare
 # Problem 2 is that MSFragger does binning and Vseq does not. Build Recom-like with binning to check.
