@@ -1218,7 +1218,7 @@ if __name__ == '__main__':
 
         ''')
         
-    defaultconfig = os.path.join(os.path.dirname(__file__), "config/Vseq.ini")
+    defaultconfig = os.path.join(os.path.dirname(__file__), "Vseq.ini")
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
