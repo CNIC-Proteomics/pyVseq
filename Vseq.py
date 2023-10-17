@@ -1103,8 +1103,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
-    hscore, nions, bions, yions = Hyperscore.hyperscore(ions, proof, err)
-    intions = ions.INT.sum()
+    hscore, nions, bions, yions, intions = Hyperscore.hyperscore(ions, proof, err)
     
     ## PLOTS ##
     if standalone:
