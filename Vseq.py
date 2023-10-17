@@ -707,8 +707,8 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     header2 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
     header2[0].get_text().set_text("PTM PINPOINTING")
     if dm >= min_dm:
-        ypos = YDAGmax.to_list()[0]+1
-        yaa = PTMprob[YDAGmax.to_list()[0]]
+        ypos = len(plainseq) - (YDAGmax.to_list()[0]+1)
+        yaa = PTMprob[::-1][YDAGmax.to_list()[0]+1]
         if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
             ypos = len(plainseq)
             yaa = PTMprob[-1]
