@@ -1,9 +1,9 @@
-matplotlib==3.5.1
-numpy==1.21.5
-pandas==1.4.2
-pyopenms==2.7.0
-PyPDF2==2.3.1
-scipy==1.7.3
-seaborn==0.11.2
+matplotlib==3.8.0
+numpy==1.26.1
+pandas==2.1.1
+pyopenms==3.1.0
+PyPDF2==3.0.1
+scipy==1.11.3
+seaborn==0.13.0
 shutup==0.2.0
-tqdm==4.64.0
+tqdm==4.66.1
