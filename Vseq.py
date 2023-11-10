@@ -1185,7 +1185,7 @@ def main(args):
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
                 vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
-                       pathdict["var_name"], True, False, True, min_hscore, ppm_plot)
+                       pathdict["out"], True, False, True, min_hscore, ppm_plot)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
                 sub["v-score"] = vscore
