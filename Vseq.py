@@ -797,6 +797,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     for column in fppm.T:
         if (fppm.T[column]<50).any():
             try:
+                interdf[column][int(column[1:])-1] = None
                 interdf[column][int(column[1:])-1] = int(math.log(fragints[column]))
                 # intlist.append(math.log(fragints[column]))
             except KeyError:
