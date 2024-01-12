@@ -484,6 +484,7 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
+        logging.info("RAW: " + str(os.path.split(raw)[-1][:-4]))
         if raw[-4:].lower() == "mzml":
             mode = "mzml"
             mgf = pyopenms.MSExperiment()
@@ -495,7 +496,6 @@ def main(args):
         else:
             mode = "mgf"
             mgf = pd.read_csv(Path(raw), header=None, sep="\t")
-            logging.info("RAW: " + str(mgf))
             index_offset = getOffset(mgf)
             index2 = mgf.to_numpy() == 'END IONS'
             tquery = getTquery(mgf, mode)
