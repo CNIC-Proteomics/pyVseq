@@ -20,7 +20,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import pyopenms
-from PyPDF2 import PdfFileMerger
+from PyPDF2 import PdfMerger
 import re
 import shutup
 shutup.please()
@@ -422,7 +422,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     for f in allpagelist:
         if os.path.isfile(f):
             pagelist.append(f)
-    merger = PdfFileMerger()
+    merger = PdfMerger()
     for page in pagelist:
         merger.append(io.FileIO(page,"rb"))
     # logging.info("\tFound " + str(len(pagelist)) + " candidates with v-score > " + str(min_hscore))
@@ -665,7 +665,7 @@ def main(args):
                     for f in allpagelist:
                         if os.path.isfile(f):
                             pagelist.append(f)
-                    merger = PdfFileMerger()
+                    merger = PdfMerger()
                     for page in pagelist:
                         merger.append(io.FileIO(page,"rb"))
                     logging.info("\tFound " + str(len(pagelist)) + " candidates with " + str(fsort_by) + " > " + str(min_hscore))
