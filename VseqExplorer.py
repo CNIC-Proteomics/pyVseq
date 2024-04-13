@@ -7,6 +7,7 @@ Created on Tue Mar 29 10:42:30 2022
 
 # import modules
 import argparse
+from bisect import bisect_left
 import concurrent.futures
 import configparser
 import glob
@@ -155,6 +156,47 @@ def getTheoMZH(charge, sequence, mods, pos, nt, ct, mass):
         return MZ, MH
     else:
         return MH
+    
+def takeClosest(myNumber, myList):
+    """
+    Assumes myList is sorted. Returns closest value to myNumber.
+    If two numbers are equally close, return the smallest number.
+    """
+    pos = bisect_left(myList, myNumber)
+    if pos == 0:
+        return myList[0]
+    if pos == len(myList):
+        return myList[-1]
+    before = myList[pos - 1]
+    after = myList[pos]
+    if after - myNumber < myNumber - before:
+        return after
+    else:
+        return before
+    
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol):
+    '''
+    Get experimental spectrum.
+    '''
+    if mode == "mgf":
+        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
+        index3 = np.where(index2)[0]
+        index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+        ions = fr_ns.iloc[index1:index3,:]
+        ions[0] = ions[0].str.strip()
+        ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+        ions = ions.drop(ions.columns[0], axis=1)
+        ions = ions.apply(pd.to_numeric)
+    elif mode == "mzml":
+        s = fr_ns.getSpectrum(scan-1)
+        ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+        ions.columns = ["MZ", "INT"]
+    ions.reset_index(drop=True)
+    frags_diag = list(frags_diag)
+    ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
+    ions["PPM"] = (((ions.MZ - ions.FRAG)/ions.FRAG)*1000000).abs()
+    ions = ions[ions.PPM<=ftol].INT.sum()
+    return(ions)
 
 def theoSpectrum(seq, mods, pos, len_ions, dm, mass):
     '''
@@ -459,6 +501,7 @@ def main(args):
     Main function
     '''
     ## PARAMETERS ##
+    m_proton = mass.getfloat('Masses', 'm_proton')
     ptol = float(mass._sections['Parameters']['precursor_tolerance'])
     ftol = float(mass._sections['Parameters']['fragment_tolerance'])
     bestn = int(mass._sections['Parameters']['best_n'])
@@ -565,6 +608,8 @@ def main(args):
                     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
                     frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
                     dm_theo_spec.index = frags
+                    frags_diag = dm_theo_spec[frags_diag]
+                    frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
                     ## TOLERANCE ##
                     upper = query.MZ + ptol
                     lower = query.MZ - ptol
@@ -575,7 +620,6 @@ def main(args):
                                  + str(ptol) + " Th")
                     if subtquery.shape[0] == 0:
                         continue
-                    logging.info("\tComparing...")
                     subtquery['Protein'] = fullprot
                     subtquery['Sequence'] = query.Sequence
                     subtquery['MH'] = query.expMH
@@ -589,6 +633,12 @@ def main(args):
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
+                    # DIA: Filter by diagnostic ions
+                    logging.info("Filtering by diagnostic ions...")
+                    subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol), axis=1)
+                    subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
+                    subtquery = subtquery.sort_index()
+                    logging.info("\tComparing...")
                     # chunks = 100
                     # if len(rowSeries) <= 500:
                     #     chunks = 50
