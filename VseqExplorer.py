@@ -373,8 +373,9 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
     frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
     dm_theo_spec.index = frags
-    frags_diag = dm_theo_spec[frags_diag]
-    frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
+    if keep_n > 0:
+        frags_diag = dm_theo_spec[frags_diag]
+        frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
     ## TOLERANCE ##
     upper = query.MZ + ptol
     lower = query.MZ - ptol
@@ -397,9 +398,10 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc]
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
-    subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
-    subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
-    subtquery = subtquery.sort_index()
+    if keep_n > 0:
+        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
+        subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
+        subtquery = subtquery.sort_index()
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
         rowSeries = list(rowSeries)
@@ -620,8 +622,9 @@ def main(args):
                     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
                     frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
                     dm_theo_spec.index = frags
-                    frags_diag = dm_theo_spec[frags_diag]
-                    frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
+                    if keep_n > 0:
+                        frags_diag = dm_theo_spec[frags_diag]
+                        frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
                     ## TOLERANCE ##
                     upper = query.MZ + ptol
                     lower = query.MZ - ptol
@@ -647,9 +650,10 @@ def main(args):
                     tqdm.pandas(position=0, leave=True)
                     # DIA: Filter by diagnostic ions
                     logging.info("Filtering by diagnostic ions...")
-                    subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
-                    subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
-                    subtquery = subtquery.sort_index()
+                    if keep_n > 0:
+                        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
+                        subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
+                        subtquery = subtquery.sort_index()
                     logging.info("\tComparing...")
                     # chunks = 100
                     # if len(rowSeries) <= 500:
