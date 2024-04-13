@@ -147,7 +147,7 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, index_offset, scan, index2, mode):
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc):
     '''
     Prepare experimental spectrum.
     '''
@@ -177,7 +177,9 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode):
         s = fr_ns.getSpectrum(scan-1)
         ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
         ions.columns = ["MZ", "INT"]
-        
+    # DIA: Filter by intensity ratio
+    ions=ions[ions.INT>=ions.INT.max()*int_perc]
+    
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
@@ -979,7 +981,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     return
 
 def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
-           standalone, massconfig, dograph, min_hscore, ppm_plot):
+           standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc):
     if not standalone:
         mass = massconfig
     else:
@@ -1010,7 +1012,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     #parentaldm = parental + dm
     #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode, int_perc)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
     theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)
@@ -1139,6 +1141,7 @@ def main(args):
     int_mzrange = float(mass._sections['Parameters']['int_mzrange'])
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
+    int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -1186,7 +1189,7 @@ def main(args):
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
                 vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
-                       pathdict["out"], True, False, True, min_hscore, ppm_plot)
+                       pathdict["out"], True, False, True, min_hscore, ppm_plot, int_perc)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
                 sub["v-score"] = vscore
