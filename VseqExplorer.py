@@ -563,6 +563,7 @@ def main(args):
                     dm = mim - query.MH
                     dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
                     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
+                    frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
                     dm_theo_spec.index = frags
                     ## TOLERANCE ##
                     upper = query.MZ + ptol
