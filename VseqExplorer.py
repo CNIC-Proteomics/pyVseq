@@ -468,6 +468,9 @@ def main(args):
     min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
+    diag_ions = int(mass._sections['Parameters']['n_diagnostic_ions'])
+    keep_n = int(mass._sections['Parameters']['keep_n'])
+    int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
     outpath = Path(args.outpath)
     ## INPUT ##
     logging.info("Reading sequence table")
