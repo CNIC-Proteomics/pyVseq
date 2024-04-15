@@ -33,7 +33,7 @@ from Vseq import doVseq
 matplotlib.use('pdf')
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def read_csv_with_progress(file_path, sep):
+def read_csv_with_progress(file_path, sep, mode="mgf"):
     chunk_size = 50000  # Number of lines to read in each iteration # TODO: add to INI
     # Get the total number of lines in the CSV file
     # logging.info("Calculating average line length + getting file size")
@@ -92,23 +92,33 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
 
 def getTquery(fr_ns, mode):
     if mode == "mgf":
-        squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
-        squery = squery[0].str.replace("SCANS=","")
-        squery.reset_index(inplace=True, drop=True)
-        mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
-        mquery = mquery[0].str.replace("PEPMASS=","")
-        mquery.reset_index(inplace=True, drop=True)
-        cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
-        cquery = cquery[0].str.replace("CHARGE=","")
-        cquery.reset_index(inplace=True, drop=True)
-        rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
-        rquery = rquery[0].str.replace("RTINSECONDS=","")
-        rquery.reset_index(inplace=True, drop=True)
-        tquery = pd.concat([squery.rename('SCANS'),
-                            mquery.rename('PEPMASS'),
-                            cquery.rename('CHARGE'),
-                            rquery.rename('RT')],
-                           axis=1)
+        fr_ns = fr_ns.to_numpy()
+        fr_ns = fr_ns.flatten()
+        sindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('SCANS=')])
+        eindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('END IONS')])
+        squery = [i.replace("SCANS=","") for i in fr_ns[sindex]]
+        mquery = [i.replace("PEPMASS=","") for i in fr_ns[sindex-3]]
+        cquery = [i.replace("CHARGE=","") for i in fr_ns[sindex-2]]
+        rquery = [i.replace("RTINSECONDS=","") for i in fr_ns[sindex-1]]
+        tquery = pd.DataFrame([squery, mquery, cquery, rquery]).T
+        tquery.columns = ["SCANS", "PEPMASS", "CHARGE", "RT"]
+        # squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
+        # squery = squery[0].str.replace("SCANS=","")
+        # squery.reset_index(inplace=True, drop=True)
+        # mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
+        # mquery = mquery[0].str.replace("PEPMASS=","")
+        # mquery.reset_index(inplace=True, drop=True)
+        # cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
+        # cquery = cquery[0].str.replace("CHARGE=","")
+        # cquery.reset_index(inplace=True, drop=True)
+        # rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
+        # rquery = rquery[0].str.replace("RTINSECONDS=","")
+        # rquery.reset_index(inplace=True, drop=True)
+        # tquery = pd.concat([squery.rename('SCANS'),
+        #                     mquery.rename('PEPMASS'),
+        #                     cquery.rename('CHARGE'),
+        #                     rquery.rename('RT')],
+        #                     axis=1)
         try:
             tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
         except ValueError:
@@ -131,7 +141,8 @@ def getTquery(fr_ns, mode):
         tquery = tquery.apply(pd.to_numeric)
         tquery.SCANS = tquery.SCANS.astype(int)
         tquery.CHARGE = tquery.CHARGE.astype(int)
-    return tquery
+        squery = sindex = eindex = 0
+    return tquery, squery, sindex, eindex
 
 def getOffset(fr_ns):
     def _check(can):
@@ -199,16 +210,19 @@ def takeClosest(myNumber, myList):
     else:
         return before
     
-def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol, int_perc):
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
+                int_perc, squery=0, sindex=0, eindex=0):
     '''
     Get experimental spectrum.
     '''
     if mode == "mgf":
-        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
-        index3 = np.where(index2)[0]
-        index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-        ions = fr_ns.iloc[index1:index3,:]
-        ions[0] = ions[0].str.strip()
+        place = squery.index(str(scan))
+        ions = fr_ns.iloc[sindex[place]+1:eindex[place]]
+        # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
+        # index3 = np.where(index2)[0]
+        # index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+        # ions = fr_ns.iloc[index1:index3,:]
+        # ions[0] = ions[0].str.strip()
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
@@ -576,16 +590,18 @@ def main(args):
             pyopenms.MzMLFile().load(raw, mgf)
             index_offset = 0
             index2 = 0
-            tquery = getTquery(mgf, mode)
+            tquery, squery, sindex, eindex = getTquery(mgf, mode)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         else:
             mode = "mgf"
             # mgf = pd.read_csv(Path(raw), header=None, sep="\t")
             mgf = read_csv_with_progress(Path(raw), "\t")
-            logging.info("Building index...")
-            index_offset = getOffset(mgf)
+            logging.info("Getting index offset...")
+            index_offset = getOffset(mgf.head(10000)) # Only the first scan is needed
+            # logging.info("Building index...")
             index2 = mgf.to_numpy() == 'END IONS'
-            tquery = getTquery(mgf, mode)
+            logging.info("Building index...")
+            tquery, squery, sindex, eindex = getTquery(mgf, mode)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
@@ -676,7 +692,9 @@ def main(args):
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
-                        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
+                        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
+                                                                                        mode, frags_diag, ftol, int_perc,
+                                                                                        squery, sindex, eindex), axis=1)
                         subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
                         subtquery = subtquery.sort_index()
                     logging.info("\tKept " + str(subtquery.shape[0]) + " scans with highest diagnostic ion intensity")
