@@ -644,13 +644,15 @@ def main(args):
                     subtquery["RawCharge"] = subtquery.Charge
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
-                               False, mass, False, min_hscore, ppm_plot, index_offset, mode]
+                               False, mass, False, min_hscore, ppm_plot, index_offset, mode,
+                               int_perc]
                     # DIA: Filter by diagnostic ions
-                    logging.info("Filtering by diagnostic ions...")
+                    logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
                         subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
                         subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
                         subtquery = subtquery.sort_index()
+                    logging.info("\tKept " + str(subtquery.shape[0]) + " scans with highest diagnostic ion intensity")
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
@@ -711,7 +713,7 @@ def main(args):
                     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                     # f_subtquery["outpath"] = makeOutpath(outpath3, prot, f_subtquery.Sequence.astype(str), f_subtquery.FirstScan.astype(str), f_subtquery.Charge.astype(str), (f_subtquery.index.values+1).astype(str))
                     if f_subtquery.shape[0] > 0:
-                        logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
+                        logging.info("\tRunning Vseq on " + str(len(f_subtquery)) + " best candidates...")
                         f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
                         if not os.path.exists(Path(outpath3)):
                             os.mkdir(Path(outpath3))
