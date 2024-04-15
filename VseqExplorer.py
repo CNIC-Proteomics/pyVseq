@@ -90,42 +90,61 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
                                    "_cand" + str(cand) + "_" + str(counter) + ".pdf")
     return(outplot)
 
-def getTquery(fr_ns, mode):
+def getTquery(fr_ns, mode, rawpath):
     if mode == "mgf":
         fr_ns = fr_ns.to_numpy()
         fr_ns = fr_ns.flatten()
-        sindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('SCANS=')])
-        eindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('END IONS')])
-        squery = [i.replace("SCANS=","") for i in fr_ns[sindex]]
-        mquery = [i.replace("PEPMASS=","") for i in fr_ns[sindex-3]]
-        cquery = [i.replace("CHARGE=","") for i in fr_ns[sindex-2]]
-        rquery = [i.replace("RTINSECONDS=","") for i in fr_ns[sindex-1]]
-        tquery = pd.DataFrame([squery, mquery, cquery, rquery]).T
-        tquery.columns = ["SCANS", "PEPMASS", "CHARGE", "RT"]
-        # squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
-        # squery = squery[0].str.replace("SCANS=","")
-        # squery.reset_index(inplace=True, drop=True)
-        # mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
-        # mquery = mquery[0].str.replace("PEPMASS=","")
-        # mquery.reset_index(inplace=True, drop=True)
-        # cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
-        # cquery = cquery[0].str.replace("CHARGE=","")
-        # cquery.reset_index(inplace=True, drop=True)
-        # rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
-        # rquery = rquery[0].str.replace("RTINSECONDS=","")
-        # rquery.reset_index(inplace=True, drop=True)
-        # tquery = pd.concat([squery.rename('SCANS'),
-        #                     mquery.rename('PEPMASS'),
-        #                     cquery.rename('CHARGE'),
-        #                     rquery.rename('RT')],
-        #                     axis=1)
-        try:
-            tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
-        except ValueError:
-            tquery['MZ'] = tquery.PEPMASS
-        tquery['CHARGE'] = tquery.CHARGE.str[:-1]
-        tquery = tquery.drop("PEPMASS", axis=1)
+        # Check if index exists
+        if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):
+            tindex = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"), sep="\t")
+            squery = list(tindex.squery)
+            sindex = np.array(tindex.sindex)
+            eindex = np.array(tindex.eindex)
+        else:
+            sindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('SCANS=')])
+            eindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('END IONS')])
+            squery = [i.replace("SCANS=","") for i in fr_ns[sindex]]
+        if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
+            tquery = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"), sep="\t")
+        else:
+            mquery = [i.replace("PEPMASS=","") for i in fr_ns[sindex-3]]
+            cquery = [i.replace("CHARGE=","") for i in fr_ns[sindex-2]]
+            rquery = [i.replace("RTINSECONDS=","") for i in fr_ns[sindex-1]]
+            tquery = pd.DataFrame([squery, mquery, cquery, rquery]).T
+            tquery.columns = ["SCANS", "PEPMASS", "CHARGE", "RT"]
+            # squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
+            # squery = squery[0].str.replace("SCANS=","")
+            # squery.reset_index(inplace=True, drop=True)
+            # mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
+            # mquery = mquery[0].str.replace("PEPMASS=","")
+            # mquery.reset_index(inplace=True, drop=True)
+            # cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
+            # cquery = cquery[0].str.replace("CHARGE=","")
+            # cquery.reset_index(inplace=True, drop=True)
+            # rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
+            # rquery = rquery[0].str.replace("RTINSECONDS=","")
+            # rquery.reset_index(inplace=True, drop=True)
+            # tquery = pd.concat([squery.rename('SCANS'),
+            #                     mquery.rename('PEPMASS'),
+            #                     cquery.rename('CHARGE'),
+            #                     rquery.rename('RT')],
+            #                     axis=1)
+            try:
+                tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
+            except ValueError:
+                tquery['MZ'] = tquery.PEPMASS
+            tquery['CHARGE'] = tquery.CHARGE.str[:-1]
+            tquery = tquery.drop("PEPMASS", axis=1)
         tquery = tquery.apply(pd.to_numeric)
+        if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
+            tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
+                                       os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
+                          index=False, sep='\t', encoding='utf-8')
+        if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):  
+            tindex = pd.DataFrame([squery, sindex, eindex], index=["squery","sindex","eindex"]).T
+            tindex.to_csv(os.path.join(os.path.split(rawpath)[0],
+                                       os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
+                          index=False, sep='\t', encoding='utf-8')
     elif mode == "mzml":
         tquery = []
         for s in fr_ns.getSpectra():
@@ -590,7 +609,7 @@ def main(args):
             pyopenms.MzMLFile().load(raw, mgf)
             index_offset = 0
             index2 = 0
-            tquery, squery, sindex, eindex = getTquery(mgf, mode)
+            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         else:
             mode = "mgf"
@@ -601,7 +620,7 @@ def main(args):
             # logging.info("Building index...")
             index2 = mgf.to_numpy() == 'END IONS'
             logging.info("Building index...")
-            tquery, squery, sindex, eindex = getTquery(mgf, mode)
+            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
