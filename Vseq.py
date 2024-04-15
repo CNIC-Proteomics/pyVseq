@@ -147,7 +147,8 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc):
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
+                squery=0, sindex=0, eindex=0):
     '''
     Prepare experimental spectrum.
     '''
@@ -157,13 +158,16 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         # index1 = np.where(index1)[0][0]
-        index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
-        index3 = np.where(index2)[0]
-        index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-        
-        # try:
-        ions = fr_ns.iloc[index1:index3,:]
-        ions[0] = ions[0].str.strip()
+        if squery != 0:
+            place = squery.index(str(scan))
+            ions = fr_ns.iloc[sindex[place]+1:eindex[place]]
+        else:
+            index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
+            index3 = np.where(index2)[0]
+            index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+            # try:
+            ions = fr_ns.iloc[index1:index3,:]
+            ions[0] = ions[0].str.strip()
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
@@ -981,7 +985,8 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     return
 
 def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
-           standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc):
+           standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc,
+           squery=0, sindex=0, eindex=0):
     if not standalone:
         mass = massconfig
     else:
@@ -1012,7 +1017,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     #parentaldm = parental + dm
     #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode, int_perc)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode, int_perc, squery, sindex, eindex)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
     theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)

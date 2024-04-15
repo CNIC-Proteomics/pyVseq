@@ -330,19 +330,20 @@ def errorMatrix(mz, theo_spec):
 def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
-                     parlist[12], parlist[13], parlist[14])
+                     parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17])
     pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot,
-            index_offset, mode, int_perc):
+            index_offset, mode, int_perc, squery, sindex, eindex):
     ions_exp = []
     b_ions = []
     y_ions = []
     vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, min_dm,
                                              min_match, ftol, outpath, standalone,
-                                             massconfig, dograph, 0, ppm_plot, int_perc)
+                                             massconfig, dograph, 0, ppm_plot, int_perc,
+                                             squery, sindex, eindex)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -707,7 +708,7 @@ def main(args):
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
                                False, mass, False, min_hscore, ppm_plot, index_offset, mode,
-                               int_perc]
+                               int_perc, squery, sindex, eindex]
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
