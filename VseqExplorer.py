@@ -96,8 +96,9 @@ def getTquery(fr_ns, mode, rawpath):
         fr_ns = fr_ns.flatten()
         # Check if index exists
         if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):
+            logging.info("Existing index found")
             tindex = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"), sep="\t")
-            squery = list(tindex.squery)
+            squery = [str(i) for i in list(tindex.squery)]
             sindex = np.array(tindex.sindex)
             eindex = np.array(tindex.eindex)
         else:
@@ -105,6 +106,7 @@ def getTquery(fr_ns, mode, rawpath):
             eindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('END IONS')])
             squery = [i.replace("SCANS=","") for i in fr_ns[sindex]]
         if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
+            logging.info("Existing tquery found")
             tquery = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"), sep="\t")
         else:
             mquery = [i.replace("PEPMASS=","") for i in fr_ns[sindex-3]]
