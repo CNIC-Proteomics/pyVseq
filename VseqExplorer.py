@@ -801,7 +801,10 @@ def main(args):
                                                            True,
                                                            0,
                                                            ppm_plot,
-                                                           int_perc), axis = 1)
+                                                           int_perc,
+                                                           squery,
+                                                           sindex,
+                                                           eindex), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
                     for f in allpagelist:
