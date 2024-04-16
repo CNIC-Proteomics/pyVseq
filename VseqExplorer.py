@@ -432,7 +432,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     dm = mim - query.MH
     dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
-    frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
+    # frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
+    frags_diag = [i for i in frags if i[0]=="b" and int(i[1])>=diag_ions]+[i for i in frags if i[0]=="y" and int(i[1])>=diag_ions]
     dm_theo_spec.index = frags
     if keep_n > 0:
         frags_diag = dm_theo_spec[frags_diag]
@@ -586,7 +587,7 @@ def main(args):
     min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
     parallelize = str(mass._sections['Parameters']['parallelize'])
-    diag_ions = int(mass._sections['Parameters']['n_diagnostic_ions'])
+    diag_ions = int(mass._sections['Parameters']['diagnostic_ions'])
     keep_n = int(mass._sections['Parameters']['keep_n'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
     outpath = Path(args.outpath)
@@ -685,7 +686,8 @@ def main(args):
                     dm = mim - query.MH
                     dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
                     frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
-                    frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
+                    # frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
+                    frags_diag = [i for i in frags if i[0]=="b" and int(i[1])>=diag_ions]+[i for i in frags if i[0]=="y" and int(i[1])>=diag_ions]
                     dm_theo_spec.index = frags
                     if keep_n > 0:
                         frags_diag = dm_theo_spec[frags_diag]
