@@ -92,8 +92,7 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
 
 def getTquery(fr_ns, mode, rawpath):
     if mode == "mgf":
-        fr_ns = fr_ns.to_numpy()
-        fr_ns = fr_ns.flatten()
+        flag = True
         # Check if index exists
         if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):
             logging.info("Existing index found")
@@ -102,6 +101,9 @@ def getTquery(fr_ns, mode, rawpath):
             sindex = np.array(tindex.sindex)
             eindex = np.array(tindex.eindex)
         else:
+            fr_ns = fr_ns.to_numpy()
+            fr_ns = fr_ns.flatten()
+            flag = False
             sindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('SCANS=')])
             eindex = np.array([i for i, si in enumerate(fr_ns) if si.startswith('END IONS')])
             squery = [i.replace("SCANS=","") for i in fr_ns[sindex]]
@@ -109,28 +111,14 @@ def getTquery(fr_ns, mode, rawpath):
             logging.info("Existing tquery found")
             tquery = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"), sep="\t")
         else:
+            if flag:
+                fr_ns = fr_ns.to_numpy()
+                fr_ns = fr_ns.flatten()
             mquery = [i.replace("PEPMASS=","") for i in fr_ns[sindex-3]]
             cquery = [i.replace("CHARGE=","") for i in fr_ns[sindex-2]]
             rquery = [i.replace("RTINSECONDS=","") for i in fr_ns[sindex-1]]
             tquery = pd.DataFrame([squery, mquery, cquery, rquery]).T
             tquery.columns = ["SCANS", "PEPMASS", "CHARGE", "RT"]
-            # squery = fr_ns.loc[fr_ns[0].str.contains("SCANS=")]
-            # squery = squery[0].str.replace("SCANS=","")
-            # squery.reset_index(inplace=True, drop=True)
-            # mquery = fr_ns.loc[fr_ns[0].str.contains("PEPMASS=")]
-            # mquery = mquery[0].str.replace("PEPMASS=","")
-            # mquery.reset_index(inplace=True, drop=True)
-            # cquery = fr_ns.loc[fr_ns[0].str.contains("CHARGE=")]
-            # cquery = cquery[0].str.replace("CHARGE=","")
-            # cquery.reset_index(inplace=True, drop=True)
-            # rquery = fr_ns.loc[fr_ns[0].str.contains("RTINSECONDS=")]
-            # rquery = rquery[0].str.replace("RTINSECONDS=","")
-            # rquery.reset_index(inplace=True, drop=True)
-            # tquery = pd.concat([squery.rename('SCANS'),
-            #                     mquery.rename('PEPMASS'),
-            #                     cquery.rename('CHARGE'),
-            #                     rquery.rename('RT')],
-            #                     axis=1)
             try:
                 tquery[['MZ','INT']] = tquery.PEPMASS.str.split(" ",expand=True,)
             except ValueError:
