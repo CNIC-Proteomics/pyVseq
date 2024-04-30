@@ -1177,7 +1177,7 @@ def main(args):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
             mode = "mgf"
             logging.info("\tReading MGF file...")
-            fr_ns = pd.read_csv(msdata, header=None)
+            fr_ns = pd.read_csv(msdata, header=None, sep="\t")
             index2 = fr_ns.to_numpy() == 'END IONS'
             tquery = getTquery(fr_ns, mode)
             index_offset = getOffset(fr_ns)
