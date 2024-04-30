@@ -992,7 +992,8 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     else:
         logging.info("\t\t\tDM Operations...")
         mass = configparser.ConfigParser(inline_comment_prefixes='#')
-        mass.read(args.config)
+        with io.open(args.config, "r", encoding="utf-8") as my_config:
+            mass.readfp(my_config)
         if args.error is not None:
             mass.set('Parameters', 'ppm_error', str(args.error))
         if args.deltamass is not None:
