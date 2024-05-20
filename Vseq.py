@@ -33,9 +33,35 @@ import sys
 # import custom modules
 import tools.Hyperscore as Hyperscore
 import tools.ScanIntegrator as ScanIntegrator
+from tqdm import tqdm
 # module config
 matplotlib.use('pdf')
 pd.options.mode.chained_assignment = None  # default='warn'
+
+def read_csv_with_progress(file_path, sep, mode="mgf"):
+    chunk_size = 50000  # Number of lines to read in each iteration # TODO: add to INI
+    # Get the total number of lines in the CSV file
+    # logging.info("Calculating average line length + getting file size")
+    counter = 0
+    total_length = 0
+    num_to_sample = 10
+    for line in open(file_path, 'r'):
+        counter += 1
+        if counter > 1:
+            total_length += len(line)
+        if counter == num_to_sample + 1:
+            break
+    file_size = os.path.getsize(file_path)
+    avg_line_length = total_length / num_to_sample
+    avg_number_of_lines = int(file_size / avg_line_length)
+    chunks = []
+    with tqdm(total=avg_number_of_lines, desc='Reading MGF') as pbar:
+        for chunk in pd.read_csv(file_path, chunksize=chunk_size, low_memory=False, sep=sep, header=None):
+            chunks.append(chunk)
+            pbar.update(chunk.shape[0])
+    logging.info("Joining chunks...")
+    df = pd.concat(chunks, ignore_index=True)
+    return df
 
 def prepareWorkspace(exp, msdatapath, outpath):
     msdata = Path(msdatapath)
@@ -1178,7 +1204,8 @@ def main(args):
             msdata = os.path.join(pathdict["msdata"], exp + ".mgf")
             mode = "mgf"
             logging.info("\tReading MGF file...")
-            fr_ns = pd.read_csv(msdata, header=None, sep="\t")
+            # fr_ns = pd.read_csv(msdata, header=None, sep="\t")
+            fr_ns = read_csv_with_progress(msdata, "\t")
             index2 = fr_ns.to_numpy() == 'END IONS'
             tquery = getTquery(fr_ns, mode)
             index_offset = getOffset(fr_ns)
