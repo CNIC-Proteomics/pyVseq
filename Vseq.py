@@ -395,7 +395,7 @@ def makeAblines(texp, minv, assign, ions, min_match):
 
 def deltaPlot(parcialdm, parcial, ppmfinal):
     deltamplot = pd.DataFrame(np.array([parcialdm, parcial, ppmfinal]).max(0)) # Parallel maxima
-    deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) >= 0.01*deltamplot.shape[1]]
+    deltamplot = deltamplot[(deltamplot > 0).sum(axis=1) > 0]
     if deltamplot.empty:
         deltamplot = parcial
     #deltamplot.reset_index(inplace=True, drop=True)
