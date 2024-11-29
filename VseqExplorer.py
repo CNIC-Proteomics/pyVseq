@@ -14,8 +14,10 @@ import glob
 import io
 import itertools
 import logging
+import math
 import matplotlib
 import matplotlib.pyplot as plt
+import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
@@ -219,19 +221,23 @@ def takeClosest(myNumber, myList):
     else:
         return before
     
-def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
-                int_perc, squery=0, sindex=0, eindex=0):
+def _parallelProcessSpectrum(x, parlist, pbar):
     '''
     Get experimental spectrum.
     '''
+    fr_ns = parlist[0]
+    index_offset = parlist[1]
+    scan = int(x.SCANS)
+    index2 = parlist[2]
+    mode = parlist[3]
+    ftol = parlist[4]
+    int_perc = parlist[5]
+    squery = parlist[6]
+    sindex = parlist[7]
+    eindex = parlist[8]
     if mode == "mgf":
         place = squery.index(str(scan))
         ions = fr_ns.iloc[sindex[place]+1:eindex[place]]
-        # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
-        # index3 = np.where(index2)[0]
-        # index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
-        # ions = fr_ns.iloc[index1:index3,:]
-        # ions[0] = ions[0].str.strip()
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
@@ -242,6 +248,46 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
     ions.reset_index(drop=True)
     # DIA: Filter by intensity ratio
     ions = ions[ions.INT>=ions.INT.max()*int_perc]
+    pbar.update(1)
+    return(ions)
+
+def _parallelExpSpectrum(x, parlist):
+    relist = expSpectrum(parlist[0], parlist[1], x.FirstScan, parlist[2], parlist[3], parlist[4], parlist[5],
+                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], x.Diagnostic_data)
+    return(relist)
+    
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
+                int_perc, squery=0, sindex=0, eindex=0, preprocessmsdata=False,
+                diagnostic_data=0):
+    '''
+    Get experimental spectrum.
+    '''
+    if preprocessmsdata:
+        ions = diagnostic_data
+    else:
+        if mode == "mgf":
+            place = squery.index(str(scan))
+            ions = fr_ns.iloc[sindex[place]+1:eindex[place]]
+            # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + index_offset
+            # index3 = np.where(index2)[0]
+            # index3 = index3[np.searchsorted(index3,[index1,],side='right')[0]]
+            # ions = fr_ns.iloc[index1:index3,:]
+            # ions[0] = ions[0].str.strip()
+            ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
+            ions = ions.drop(ions.columns[0], axis=1)
+            ions = ions.apply(pd.to_numeric)
+        elif mode == "mzml":
+            s = fr_ns.getSpectrum(scan-1)
+            ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
+            ions.columns = ["MZ", "INT"]
+        ions.reset_index(drop=True)
+        # DIA: Filter by intensity ratio
+        ions = ions[ions.INT>=ions.INT.max()*int_perc]
+        # DIA: Filter by diagnostic ions
+        frags_diag = list(frags_diag)
+        ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
+        ions["PPM"] = (((ions.MZ - ions.FRAG)/ions.FRAG)*1000000).abs()
+        ions = ions[ions.PPM<=ftol].INT.sum()
     # DIA: Filter by diagnostic ions
     frags_diag = list(frags_diag)
     ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
@@ -579,6 +625,9 @@ def main(args):
     keep_n = int(mass._sections['Parameters']['keep_n'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
     outpath = Path(args.outpath)
+    preprocessmsdata = False
+    if ptol > 100:
+        preprocessmsdata = True
     ## INPUT ##
     logging.info("Reading sequence table")
     seqtable = pd.read_csv(args.table, sep='\t')
@@ -614,6 +663,21 @@ def main(args):
             logging.info("Building index...")
             tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
+        
+        logging.info("Extracting scan data...")
+        if preprocessmsdata:
+            eparlist = [mgf, index_offset, index2, mode, ftol, int_perc, squery, sindex, eindex]
+            indices, rowSeries = zip(*tquery.iterrows())
+            rowSeries = list(rowSeries)
+            tqdm.pandas(position=0, leave=True)
+            tquery_diagnostic = []
+            with tqdm(total=tquery.shape[0]) as pbar:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
+                    futures = [executor.submit(_parallelProcessSpectrum, row, eparlist, pbar) for row in rowSeries]
+                    for future in concurrent.futures.as_completed(futures):
+                        tquery_diagnostic.append(future.result())
+            tquery["Diagnostic_data"] = tquery_diagnostic
+            
         raw = Path(raw).stem
         outpath2 = os.path.join(outpath, str(raw))
         if not os.path.exists(Path(outpath2)):
@@ -704,9 +768,23 @@ def main(args):
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
-                        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
-                                                                                        mode, frags_diag, ftol, int_perc,
-                                                                                        squery, sindex, eindex), axis=1)
+                        if preprocessmsdata:
+                            chunks = math.ceil(len(subtquery)/args.n_workers)
+                            eparlist = [0, index_offset, index2, mode, frags_diag, ftol, int_perc, squery, sindex, eindex, preprocessmsdata]
+                            indices, rowSeries = zip(*subtquery.iterrows())
+                            rowSeries = list(rowSeries)
+                            with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                                diag = list(tqdm(executor.map(_parallelExpSpectrum,
+                                                                 rowSeries,
+                                                                 itertools.repeat(eparlist),
+                                                                 chunksize=chunks),
+                                                    total=len(rowSeries)))
+                            subtquery['Diagnostic'] = diag
+                        else:
+                            subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
+                                                                                            mode, frags_diag, ftol, int_perc,
+                                                                                            squery, sindex, eindex, preprocessmsdata,
+                                                                                            0), axis=1)
                         subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
                         subtquery = subtquery.sort_index()
                     logging.info("\tKept " + str(subtquery.shape[0]) + " scans with highest diagnostic ion intensity")
