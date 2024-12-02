@@ -283,11 +283,6 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
         ions.reset_index(drop=True)
         # DIA: Filter by intensity ratio
         ions = ions[ions.INT>=ions.INT.max()*int_perc]
-        # DIA: Filter by diagnostic ions
-        frags_diag = list(frags_diag)
-        ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
-        ions["PPM"] = (((ions.MZ - ions.FRAG)/ions.FRAG)*1000000).abs()
-        ions = ions[ions.PPM<=ftol].INT.sum()
     # DIA: Filter by diagnostic ions
     frags_diag = list(frags_diag)
     ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
