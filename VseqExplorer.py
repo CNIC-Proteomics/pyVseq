@@ -745,7 +745,7 @@ def main(args):
                     ## OPERATIONS ##
                     # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
                     subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
-                    logging.info("\t" + str(subtquery.shape[0]) + " scans found within ±"
+                    logging.info("\t" + str(subtquery.shape[0]) + " scans found within +-"
                                  + str(ptol) + " Th")
                     if subtquery.shape[0] == 0:
                         continue
