@@ -620,6 +620,8 @@ def main(args):
     diag_ions = int(mass._sections['Parameters']['diagnostic_ions'])
     keep_n = int(mass._sections['Parameters']['keep_n'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
+    score_mode = bool(int(mass._sections['Parameters']['score_mode']))
+    full_y = bool(int(mass._sections['Parameters']['full_y']))
     outpath = Path(args.outpath)
     preprocessmsdata = False
     if ptol > 100:

@@ -1174,6 +1174,8 @@ def main(args):
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
+    score_mode = bool(int(mass._sections['Parameters']['score_mode']))
+    full_y = bool(int(mass._sections['Parameters']['full_y']))
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
