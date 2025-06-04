@@ -31,7 +31,7 @@ import scipy.stats
 import statistics
 import sys
 # import custom modules
-import tools.Hyperscore as Hyperscore
+from tools.Hyperscore import scoreVseq
 import tools.ScanIntegrator as ScanIntegrator
 from tqdm import tqdm
 # module config
