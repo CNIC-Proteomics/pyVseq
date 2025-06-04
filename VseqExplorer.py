@@ -454,6 +454,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
             acc_pos += len(str(mods[i-1])) + 2
     ## MZ and MH ##
     query['expMH'] = query.MH
+    query['expMZ'] = query.expMH + (m_proton * (query.Charge-1)) / query.Charge
     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
     ## DM ##
@@ -468,8 +469,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         frags_diag = dm_theo_spec[frags_diag]
         frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
     ## TOLERANCE ##
-    upper = query.MZ + ptol
-    lower = query.MZ - ptol
+    upper = query.expMZ + ptol
+    lower = query.expMZ - ptol
     ## OPERATIONS ##
     # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
     subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
@@ -726,6 +727,7 @@ def main(args):
                     pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
                     ## MZ and MH ##
                     query['expMH'] = query.MH
+                    query['expMZ'] = query.expMH + (m_proton * (query.Charge-1)) / query.Charge
                     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
                     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
                     ## DM ##
@@ -740,8 +742,8 @@ def main(args):
                         frags_diag = dm_theo_spec[frags_diag]
                         frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
                     ## TOLERANCE ##
-                    upper = query.MZ + ptol
-                    lower = query.MZ - ptol
+                    upper = query.expMZ + ptol
+                    lower = query.expMZ - ptol
                     ## OPERATIONS ##
                     # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
                     subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
@@ -902,6 +904,13 @@ def main(args):
         #     bigtable = pd.concat(exploredseqs, ignore_index=True, sort=False)
         #     bigtable = bigtable[bigtable.Charge != 0]
         #     bigtable.to_csv(outfile, index=False, sep='\t', encoding='utf-8')
+    # files = []
+    # for r, d, f in os.walk(outpath):
+    #     for file in f:
+            # if file[-3:]=="tsv":
+                # files += [os.path.join(r, file)]
+    # dfs = [pd.read_csv(i, sep="\t") for i in files]
+    # dfs = [pd.read_csv(i, sep="\t").assign(**{"Raw": "_".join(os.path.basename(i).split("_")[:-2])}) for i in files]
     return
     
 
