@@ -149,37 +149,6 @@ def fragCheck(plainseq, blist, ylist, dm_pos, charge):
                    ['y'+str(i)+'*++++' if i >= len(plainseq)-dm_pos else 'y'+str(i)+'++++' for i in ylist])
     return(allowed)
 
-def findClosest(dm, dmdf, dmtol, pos):
-    cand = [i for i in range(len(dmdf[1])) if dmdf[1][i] > dm-dmtol and dmdf[1][i] < dm+dmtol]
-    closest = pd.DataFrame([dmdf[0][cand], dmdf[1][cand], dmdf[2][cand], dmdf[3][cand]]).T
-    closest.columns = ['name', 'mass', 'site', 'site_tiebreaker']
-    closest = pd.concat([closest, pd.Series({'name':'EXPERIMENTAL', 'mass':dm, 'site':[pos], 'site_tiebreaker':[pos]}).to_frame().T], ignore_index=True)
-    return(closest)
-
-def findPos(dm_set, plainseq): # TODO fix sites now that this is array instead of DF
-    def _where(sites, plainseq):
-        sites = sites.site
-        subpos = []
-        for s in sites:
-            if s == 'Anywhere' or s == 'exp':
-                subpos = list(range(0, len(plainseq)))
-                break
-            elif s == 'Non-modified':
-                subpos = [-1]
-                break
-            elif s == 'N-term':
-                subpos = [0]
-            elif s == 'C-term':
-                subpos = [len(plainseq) - 1]
-            else:
-                subpos = subpos + list(np.where(np.array(list(plainseq)) == str(s))[0])
-        subpos = list(dict.fromkeys(subpos))
-        subpos.sort()
-        return(subpos)
-    dm_set['idx'] = dm_set.apply(_where, plainseq=plainseq, axis=1)
-    dm_set = dm_set[dm_set.idx.apply(lambda x: len(x)) > 0]
-    return(dm_set)
-
 def getClosestIon(spectrum, ion):
     pos = bisect_left(spectrum, ion)
     if pos == 0:
@@ -213,7 +182,7 @@ def hyperscore(exp_spec, theo_spec, frags, ftol):
         hs = math.log((i_b) * (i_y)) + math.log(math.factorial((n_b))) + math.log(math.factorial(n_y))
     return(assigned_mz, assigned_int, assigned_frags, n_b, n_y, i_sum, hs)
 
-def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dmtol, dm, m_proton, m_hydrogen, m_oxygen, ttol, tmin, score_mode, full_y):
+def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dm, m_proton, m_hydrogen, m_oxygen, score_mode, full_y):
     ## ASSIGNDB ##
     # assigndblist = []
     # assigndb = []
