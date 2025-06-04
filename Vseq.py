@@ -1138,7 +1138,13 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
-    hscore, nions, bions, yions, intions = Hyperscore.hyperscore(ions, proof, err)
+    hscore, nions, bions, yions, intions, dm_pos = Hyperscore.hyperscore(ions, proof, err) # TODO replace with:
+    hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mods, pos, mass, err, dm,
+                                                             mass.getfloat('Masses', 'm_proton'),
+                                                             mass.getfloat('Masses', 'm_hydrogen'),
+                                                             mass.getfloat('Masses', 'm_oxygen'),
+                                                             mass.getfloat('Masses', 'score_mode'),
+                                                             mass.getfloat('Masses', 'full_y'))
     
     ## PLOTS ##
     if standalone:
