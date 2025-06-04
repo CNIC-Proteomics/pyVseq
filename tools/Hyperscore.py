@@ -213,7 +213,7 @@ def hyperscore(exp_spec, theo_spec, frags, ftol):
         hs = math.log((i_b) * (i_y)) + math.log(math.factorial((n_b))) + math.log(math.factorial(n_y))
     return(assigned_mz, assigned_int, assigned_frags, n_b, n_y, i_sum, hs)
 
-def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dmtol, dmdf, m_proton, m_hydrogen, m_oxygen, ttol, tmin, score_mode, full_y):
+def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dmtol, dm, m_proton, m_hydrogen, m_oxygen, ttol, tmin, score_mode, full_y):
     ## ASSIGNDB ##
     # assigndblist = []
     # assigndb = []
@@ -222,10 +222,6 @@ def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dmtol, dmdf, m_proton, m_hyd
     if charge >= 4: charge = 4
     frags, frags_m, blist, ylist = makeFrags(plainseq, charge, full_y)
     ## DM ##
-    exp_pos = 'exp'
-    dm_set = findClosest(sub.DM, dmdf, dmtol, exp_pos) # Contains experimental DM
-    dm_set = findPos(dm_set, plainseq)
-    dm_set = dm_set[dm_set.mass != 0]
     theo_spec = theoSpectrum(plainseq, blist, ylist, mods, pos, mass,
                              m_proton, m_hydrogen, m_oxygen, charge)
     flat_theo_spec = sum(sum(theo_spec, []), [])
@@ -234,45 +230,38 @@ def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dmtol, dmdf, m_proton, m_hyd
     
     ## NON-MODIFIED ##
     NM_mz, NM_int, NM_frags, NM_n_b, NM_n_y, NM_i, NM_hs = hyperscore(sub.Spectrum, flat_theo_spec, flat_frags, ftol)
-    nm_results = [NM_n_b+NM_n_y, NM_i, NM_hs, 'Non-modified', 0, None, NM_frags]
     
     ## DM OPERATIONS ##
-    mod_results = [0, 0, 0, None, None, None, None]
-    hyb_results = [0, 0, 0, None, None, None, None]
-    exp_results = [0, 0, 0, None, None, None, None]
-    for index, row in dm_set.iterrows():       
-        dm = row.mass
-        # TODO support both HYBRID and MOD scoring
-        for dm_pos in row.idx:
-            ## MOD HYPERSCORE ##
-            allowed_mod = fragCheck(plainseq, blist, ylist, dm_pos, charge) # TODO support charge states > 4
-            theo_spec_mod = [flat_theo_spec[i]+dm if '*' in allowed_mod[i] else flat_theo_spec[i] for i in range(0, f_len)]
-            MOD_mz, MOD_int, MOD_frags, MOD_n_b, MOD_n_y, MOD_i, MOD_hs = hyperscore(sub.Spectrum, theo_spec_mod, allowed_mod, ftol)
-            ## HYBRID HYPERSCORE ##
-            HYB_frags = [i for i in MOD_frags if i not in NM_frags]
-            if len(HYB_frags) == 0:
-                HYB_int, HYB_frags, HYB_n_b, HYB_n_y, HYB_i, HYB_hs = NM_int, NM_frags, NM_n_b, NM_n_y, NM_i, NM_hs
-            else:
-                HYB_int = [i for i in MOD_int if i not in NM_int] + NM_int
-                HYB_frags += NM_frags
-                HYB_n_b = len(set([f.replace('+', '').replace('*', '') for f in HYB_frags if f[0]=='b']))
-                HYB_n_y = len(set([f.replace('+', '').replace('*', '') for f in HYB_frags if f[0]=='y']))
-                HYB_int_mask = [f[0]=='b' for f in HYB_frags]
-                HYB_i_b = sum(list(itertools.compress(HYB_int, HYB_int_mask)))
-                HYB_i_y = sum(list(itertools.compress(HYB_int, ~np.array(HYB_int_mask))))
-                HYB_i = HYB_i_b + HYB_i_y
-                if HYB_i_b == 0: HYB_i_b = 1
-                if HYB_i_y == 0: HYB_i_y = 1
-                HYB_hs = math.log((HYB_i_b) * (HYB_i_y)) + math.log(math.factorial((HYB_n_b))) + math.log(math.factorial(HYB_n_y))
-            ## STORE RESULTS ##
-            if row['name'] == 'EXPERIMENTAL':
-                if score_mode and HYB_hs > exp_results[2]: # EXPERIMENTAL
-                        exp_results = [HYB_n_b+HYB_n_y, HYB_i, HYB_hs, row['name'], dm, dm_pos, HYB_frags]
-                if not score_mode and MOD_hs > exp_results[2]: # MOD
-                        exp_results = [MOD_n_b+MOD_n_y, MOD_i, MOD_hs, row['name'], dm, dm_pos, MOD_frags]
-            else:
-                if HYB_hs > hyb_results[2]: # TODO handle score ties
-                    hyb_results = [HYB_n_b+HYB_n_y, HYB_i, HYB_hs, row['name'], dm, dm_pos, HYB_frags]
-                if MOD_hs > mod_results[2]:
-                    mod_results = [MOD_n_b+MOD_n_y, MOD_i, MOD_hs, row['name'], dm, dm_pos, MOD_frags]
-    return(nm_results, exp_results, mod_results, hyb_results)
+    mod_results = [0, 0, 0, None, None]
+    hyb_results = [0, 0, 0, None, None]   
+    for dm_pos in range(len(plainseq)):
+        ## MOD HYPERSCORE ##
+        allowed_mod = fragCheck(plainseq, blist, ylist, dm_pos, charge) # TODO support charge states > 4
+        theo_spec_mod = [flat_theo_spec[i]+dm if '*' in allowed_mod[i] else flat_theo_spec[i] for i in range(0, f_len)]
+        MOD_mz, MOD_int, MOD_frags, MOD_n_b, MOD_n_y, MOD_i, MOD_hs = hyperscore(sub.Spectrum, theo_spec_mod, allowed_mod, ftol)
+        ## HYBRID HYPERSCORE ##
+        HYB_frags = [i for i in MOD_frags if i not in NM_frags]
+        if len(HYB_frags) == 0:
+            HYB_int, HYB_frags, HYB_n_b, HYB_n_y, HYB_i, HYB_hs = NM_int, NM_frags, NM_n_b, NM_n_y, NM_i, NM_hs
+        else:
+            HYB_int = [i for i in MOD_int if i not in NM_int] + NM_int
+            HYB_frags += NM_frags
+            HYB_n_b = len(set([f.replace('+', '').replace('*', '') for f in HYB_frags if f[0]=='b']))
+            HYB_n_y = len(set([f.replace('+', '').replace('*', '') for f in HYB_frags if f[0]=='y']))
+            HYB_int_mask = [f[0]=='b' for f in HYB_frags]
+            HYB_i_b = sum(list(itertools.compress(HYB_int, HYB_int_mask)))
+            HYB_i_y = sum(list(itertools.compress(HYB_int, ~np.array(HYB_int_mask))))
+            HYB_i = HYB_i_b + HYB_i_y
+            if HYB_i_b == 0: HYB_i_b = 1
+            if HYB_i_y == 0: HYB_i_y = 1
+            HYB_hs = math.log((HYB_i_b) * (HYB_i_y)) + math.log(math.factorial((HYB_n_b))) + math.log(math.factorial(HYB_n_y))
+        ## STORE RESULTS ##
+        if HYB_hs > hyb_results[2]:
+            hyb_results = [HYB_n_b+HYB_n_y, HYB_i, HYB_hs, dm_pos, HYB_frags]
+        if MOD_hs > mod_results[2]:
+            mod_results = [MOD_n_b+MOD_n_y, MOD_i, MOD_hs, dm_pos, MOD_frags]
+    # TODO calculate range of equal hyperscores for site
+    if score_mode:
+        return(HYB_hs, HYB_n_b+HYB_n_y, [f for f in HYB_frags if f[0]=='b'], [f for f in HYB_frags if f[0]=='y'], HYB_i, dm_pos)
+    else:
+        return(MOD_hs, MOD_n_b+MOD_n_y, [f for f in MOD_frags if f[0]=='b'], [f for f in MOD_frags if f[0]=='y'], MOD_i, dm_pos)
