@@ -361,20 +361,22 @@ def errorMatrix(mz, theo_spec):
 def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
-                     parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17])
+                     parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
+                     parlist[18], parlist[19])
     pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot,
-            index_offset, mode, int_perc, squery, sindex, eindex):
+            index_offset, mode, int_perc, squery, sindex, eindex,
+            spectra, spectra_n):
     ions_exp = []
     b_ions = []
     y_ions = []
-    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, min_dm,
-                                             min_match, ftol, outpath, standalone,
-                                             massconfig, dograph, 0, ppm_plot, int_perc,
-                                             squery, sindex, eindex)
+    vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, spectra,
+                                                                          spectra_n, min_dm, min_match, ftol, outpath, standalone,
+                                                                          massconfig, dograph, 0, ppm_plot, int_perc,
+                                                                          squery, sindex, eindex)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -438,7 +440,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_hscore, outpath3,
                     mass, n_workers, parallelize, ppm_plot, outfile, index_offset,
-                    mode, int_perc, m_proton, diag_ions, keep_n):
+                    mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
     #              + str(query.Charge))
@@ -487,7 +489,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc, spectra, spectra_n]
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
     if keep_n > 0:
@@ -556,6 +558,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                            tquery,
                                            mgf,
                                            index2,
+                                           spectra,
+                                           spectra_n,
                                            min_dm,
                                            min_match,
                                            ftol,
@@ -599,7 +603,8 @@ def _parallelSeqTable(x, parlist):
                              mgf=parlist[8], index2=parlist[9], min_dm=parlist[10], min_match=parlist[11],
                              min_hscore=parlist[12], outpath3=parlist[13], mass=parlist[14], n_workers=parlist[15],
                              parallelize=parlist[16], ppm_plot=parlist[17], outfile=parlist[18], index_offset=parlist[19],
-                             mode=parlist[20], int_perc=parlist[21], m_proton=parlist[22], diag_ions=parlist[23], keep_n=parlist[24])
+                             mode=parlist[20], int_perc=parlist[21], m_proton=parlist[22], diag_ions=parlist[23], keep_n=parlist[24],
+                             spectra=parlist[25], spectra_n=parlist[26])
     return(result)
 
 def main(args):
@@ -702,7 +707,7 @@ def main(args):
                 parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
                            mgf, index2, min_dm, min_match, min_hscore, outpath3,
                            mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset,
-                           mode, int_perc, m_proton, diag_ions, keep_n]
+                           mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n]
                 # chunks = 100
                 # if len(rowSeqs) <= 500:
                 #     chunks = 50
@@ -767,7 +772,7 @@ def main(args):
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
                                False, mass, False, min_hscore, ppm_plot, index_offset, mode,
-                               int_perc, squery, sindex, eindex]
+                               int_perc, squery, sindex, eindex, spectra, spectra_n]
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
