@@ -456,7 +456,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
             acc_pos += len(str(mods[i-1])) + 2
     ## MZ and MH ##
     query['expMH'] = query.MH
-    query['expMZ'] = (query.expMH + (m_proton * (query.Charge-1))) / query.Charge
+    query['expMZ'] = round((query.expMH + (m_proton * (query.Charge-1))) / query.Charge, 6)
     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
     ## DM ##
@@ -735,7 +735,7 @@ def main(args):
                     pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
                     ## MZ and MH ##
                     query['expMH'] = query.MH
-                    query['expMZ'] = (query.expMH + (m_proton * (query.Charge-1))) / query.Charge
+                    query['expMZ'] = round((query.expMH + (m_proton * (query.Charge-1))) / query.Charge, 6)
                     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
                     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
                     logging.info("\tExploring sequence " + str(query.Sequence) + ", "
