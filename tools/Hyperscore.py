@@ -274,6 +274,8 @@ def scoreVseq(sub, plainseq, mass, ftol, dm, m_proton, m_hydrogen, m_oxygen, sco
             mod_results = [MOD_n_b+MOD_n_y, MOD_i, MOD_hs, dm_pos, MOD_frags]
     # TODO calculate range of equal hyperscores for site
     if score_mode:
-        return(HYB_hs, HYB_n_b+HYB_n_y, [f for f in HYB_frags if f[0]=='b'], [f for f in HYB_frags if f[0]=='y'], HYB_i, dm_pos)
+        # return(HYB_hs, HYB_n_b+HYB_n_y, [f for f in HYB_frags if f[0]=='b'], [f for f in HYB_frags if f[0]=='y'], HYB_i, dm_pos)
+        return(hyb_results[2], hyb_results[0], [f for f in hyb_results[4] if f[0]=='b'], [f for f in hyb_results[4] if f[0]=='y'], hyb_results[1], hyb_results[3])
     else:
-        return(MOD_hs, MOD_n_b+MOD_n_y, [f for f in MOD_frags if f[0]=='b'], [f for f in MOD_frags if f[0]=='y'], MOD_i, dm_pos)
+        # return(MOD_hs, MOD_n_b+MOD_n_y, [f for f in MOD_frags if f[0]=='b'], [f for f in MOD_frags if f[0]=='y'], MOD_i, dm_pos)
+        return(mod_results[2], mod_results[0], [f for f in mod_results[4] if f[0]=='b'], [f for f in mod_results[4] if f[0]=='y'], mod_results[1], mod_results[3])
