@@ -1234,6 +1234,7 @@ def main(args):
                 vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_hscore, ppm_plot, int_perc)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
+                sub.drop("Spectrum", inplace=True)
                 sub["e-score"] = escore
                 sub["v-score"] = vscore
                 sub["hyperscore"] = hscore
