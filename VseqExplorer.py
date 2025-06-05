@@ -646,6 +646,8 @@ def main(args):
             mode = "mzml"
             mgf = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(raw, mgf)
+            spectra = mgf.getSpectra()
+            spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index_offset = 0
             index2 = 0
             tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
@@ -658,6 +660,8 @@ def main(args):
             index_offset = getOffset(mgf.head(10000)) # Only the first scan is needed
             # logging.info("Building index...")
             index2 = mgf.to_numpy() == 'END IONS'
+            spectra = 0
+            spectra_n = 0
             logging.info("Building index...")
             tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
@@ -857,6 +861,8 @@ def main(args):
                                                            tquery,
                                                            mgf,
                                                            index2,
+                                                           spectra,
+                                                           spectra_n,
                                                            min_dm,
                                                            min_match,
                                                            ftol,
