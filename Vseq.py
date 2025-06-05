@@ -1220,7 +1220,7 @@ def main(args):
             tquery = getTquery(fr_ns, mode)
             index_offset = getOffset(fr_ns)
         else:
-            logging.info("MGF or mzML file not found in " + str(msdata))
+            logging.info("MGF or mzML file not found in " + str(os.path.join(pathdict["msdata"], exp + ".mgf")) + " or " + str(os.path.join(pathdict["msdata"], exp + ".mzML")))
         tquery.to_csv(os.path.join(pathdict["out"], "tquery_"+ exp + ".csv"), index=False, sep=',', encoding='utf-8')
         for scan in list(sql.FirstScan.unique()):
             subs = sql.loc[sql.FirstScan==scan]
