@@ -31,7 +31,7 @@ import scipy.stats
 import statistics
 import sys
 # import custom modules
-from tools.Hyperscore import scoreVseq
+from tools.Hyperscore import scoreVseq, locateScan
 import tools.ScanIntegrator as ScanIntegrator
 from tqdm import tqdm
 # module config
@@ -1010,7 +1010,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
     ScanIntegrator.PlotIntegration(poisson_df, mz, apex_list, apexonly, outplot)
     return
 
-def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err, outpath,
+def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc,
            squery=0, sindex=0, eindex=0):
     if not standalone:
@@ -1138,7 +1138,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, er
     
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
-    hscore, nions, bions, yions, intions, dm_pos = Hyperscore.hyperscore(ions, proof, err) # TODO replace with:
+    sub['Spectrum'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2)
     hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mods, pos, mass, err, dm,
                                                              mass.getfloat('Masses', 'm_proton'),
                                                              mass.getfloat('Masses', 'm_hydrogen'),
@@ -1180,8 +1180,6 @@ def main(args):
     int_binwidth = float(mass._sections['Parameters']['int_binwidth'])
     t_poisson = float(mass._sections['Parameters']['poisson_threshold'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
-    score_mode = bool(int(mass._sections['Parameters']['score_mode']))
-    full_y = bool(int(mass._sections['Parameters']['full_y']))
     # try:
     #     arg_dm = float(args.deltamass)
     # except ValueError:
@@ -1205,6 +1203,8 @@ def main(args):
             logging.info("\tReading mzML file...")
             fr_ns = pyopenms.MSExperiment()
             pyopenms.MzMLFile().load(msdata, fr_ns)
+            spectra = fr_ns.getSpectra()
+            spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index2 = 0
             tquery = getTquery(fr_ns, mode)
             index_offset = 0
@@ -1214,6 +1214,8 @@ def main(args):
             logging.info("\tReading MGF file...")
             # fr_ns = pd.read_csv(msdata, header=None, sep="\t")
             fr_ns = read_csv_with_progress(msdata, "\t")
+            spectra = 0
+            spectra_n = 0
             index2 = fr_ns.to_numpy() == 'END IONS'
             tquery = getTquery(fr_ns, mode)
             index_offset = getOffset(fr_ns)
@@ -1229,7 +1231,7 @@ def main(args):
                 #seq2 = sub.Sequence[::-1]
                 sub2 = sub.copy()
                 logging.info("\t\tScan: " + str(scan))
-                vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, min_dm, min_match, err,
+                vscore, escore, hscore, dm, intions = doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err,
                        pathdict["out"], True, False, True, min_hscore, ppm_plot, int_perc)
                 mz = tquery[tquery.SCANS == sub.FirstScan].iloc[0].MZ
                 sub["e-score"] = escore
