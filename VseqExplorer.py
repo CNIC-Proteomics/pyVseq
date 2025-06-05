@@ -946,7 +946,7 @@ if __name__ == '__main__':
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     with io.open(args.config, "r", encoding="utf-8") as my_config:
-        mass.readfp(my_config)
+        mass.read_file(my_config)
     # if something is changed, write a copy of ini
     if mass.getint('Logging', 'create_ini') == 1:
         with open(os.path.dirname(args.table) + '/Vseq.ini', 'w') as newconfig:

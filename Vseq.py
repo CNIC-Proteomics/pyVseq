@@ -1277,7 +1277,7 @@ if __name__ == '__main__':
     # parse config
     mass = configparser.ConfigParser(inline_comment_prefixes='#')
     with io.open(args.config, "r", encoding="utf-8") as my_config:
-        mass.readfp(my_config)
+        mass.read_file(my_config)
     if args.error is not None:
         mass.set('Parameters', 'ppm_error', str(args.error))
     if args.deltamass is not None:
