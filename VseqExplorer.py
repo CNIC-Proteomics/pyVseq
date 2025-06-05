@@ -728,9 +728,6 @@ def main(args):
             elif parallelize == "peptide":
                 ## COMPARE EACH SEQUENCE ##
                 for index, query in seqtable.iterrows(): # TODO: parallelize
-                    logging.info("\tExploring sequence " + str(query.Sequence) + ", "
-                                 + str(query.MH) + " Th, Charge "
-                                 + str(query.Charge))
                     ## SEQUENCE ##
                     query.Sequence = str(query.Sequence).upper()
                     plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
@@ -741,6 +738,9 @@ def main(args):
                     query['expMZ'] = query.expMH + (m_proton * (query.Charge-1)) / query.Charge
                     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
                     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
+                    logging.info("\tExploring sequence " + str(query.Sequence) + ", "
+                                 + str(query.expMH) + " Da, Charge "
+                                 + str(query.Charge) + ", " + str(query.expMZ) + "Th")
                     ## DM ##
                     mim = query.expMH
                     dm = mim - query.MH
