@@ -2,13 +2,8 @@ import math
 import numpy as np
 import pandas as pd
 from bisect import bisect_left
-import glob
 import itertools
 import logging
-import os
-from pathlib import Path
-import pyopenms
-import re
 import sys
 
 def _decimal_places(x):
@@ -44,7 +39,7 @@ def getTheoMH(sequence, nt, ct, mass,
     # MH = total_aas - m_proton
     return(total_aas)
 
-def theoSpectrum(seq, blist, ylist, mods, pos, mass,
+def theoSpectrum(seq, blist, ylist, mass,
                  m_proton, m_hydrogen, m_oxygen, charge, dm=0):
     ## Y SERIES ##
     outy = []
@@ -230,7 +225,7 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2):
         ions = np.array(temp.T)
     return(ions)
 
-def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dm, m_proton, m_hydrogen, m_oxygen, score_mode, full_y):
+def scoreVseq(sub, plainseq, mass, ftol, dm, m_proton, m_hydrogen, m_oxygen, score_mode, full_y):
     ## ASSIGNDB ##
     # assigndblist = []
     # assigndb = []
@@ -239,7 +234,7 @@ def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dm, m_proton, m_hydrogen, m_
     if charge >= 4: charge = 4
     frags, frags_m, blist, ylist = makeFrags(plainseq, charge, full_y)
     ## DM ##
-    theo_spec = theoSpectrum(plainseq, blist, ylist, mods, pos, mass,
+    theo_spec = theoSpectrum(plainseq, blist, ylist, mass,
                              m_proton, m_hydrogen, m_oxygen, charge)
     flat_theo_spec = sum(sum(theo_spec, []), [])
     flat_frags = sum(sum(frags, []), [])

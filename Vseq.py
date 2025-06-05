@@ -1139,12 +1139,11 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
     sub['Spectrum'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2)
-    hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mods, pos, mass, err, dm,
                                                              mass.getfloat('Masses', 'm_proton'),
                                                              mass.getfloat('Masses', 'm_hydrogen'),
                                                              mass.getfloat('Masses', 'm_oxygen'),
-                                                             mass.getfloat('Masses', 'score_mode'),
-                                                             mass.getfloat('Masses', 'full_y'))
+                                                             mass.getfloat('Parameters', 'score_mode'),
+                                                             mass.getfloat('Parameters', 'full_y'))
     
     ## PLOTS ##
     if standalone:
