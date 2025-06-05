@@ -182,8 +182,7 @@ def hyperscore(exp_spec, theo_spec, frags, ftol):
         hs = math.log((i_b) * (i_y)) + math.log(math.factorial((n_b))) + math.log(math.factorial(n_y))
     return(assigned_mz, assigned_int, assigned_frags, n_b, n_y, i_sum, hs)
 
-def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, top_n, bin_top_n, min_ratio,
-               min_frag_mz, max_frag_mz, m_proton, deiso, max_charge):
+def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         try:
@@ -216,40 +215,19 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, top_n, bin_top_n, 
             logging.info("\tERROR: Scan number " + str(scan) + " not found in mzML file.")
             sys.exit()
         peaks = s.get_peaks()
-        ions = np.array([peaks[0], peaks[1]])
-        ions0 = [np.array(p[0]) for p in peaks]
-        ions1 = [np.array(p[1]) for p in peaks]
+        ions0 = peaks[0]
+        ions1 = peaks[1]
     # Normalize intensity
-    ions1 = [(ions1[i]/max(ions1[i]))*100 for i in range(len(ions))]
-    # Remove peaks below min_ratio
-    if min_ratio > 0:
-        cutoff1 = [i/max(i) >= min_ratio for i in ions1]
-        ions0 = [ions0[i][cutoff1[i]] for i in range(len(ions))]
-        ions1 = [ions1[i][cutoff1[i]] for i in range(len(ions))]
-    # Return only top N peaks
-    if bin_top_n:
-        bins = np.digitize(ions[0], np.arange(55,max(ions[0]),110))
-        ions_f = []
-        for i in np.unique(bins):
-            ions_t = np.array([ions[0][np.where(bins==i)], ions[1][np.where(bins==i)]])
-            cutoff = len(ions_t[0])-top_n
-            if (cutoff < 0) or (cutoff >= len(ions_t[0])): cutoff = 0
-            ions_f += [np.array([ions_t[0][ions_t[1].argsort()][cutoff:], ions_t[1][ions_t[1].argsort()][cutoff:]])]
-        ions = np.concatenate(ions_f, axis=1)
-    elif top_n > 0:
-        cutoff1 = [i >= i[np.argsort(i)[len(i)-top_n]] if len(i)>top_n else i>0 for i in ions1]
-        ions0 = [ions0[i][cutoff1[i]] for i in range(len(ions))]
-        ions1 = [ions1[i][cutoff1[i]] for i in range(len(ions))]
-        ions = [np.array([ions0[i],ions1[i]]) for i in range(len(ions))]
-    # # Duplicate m/z measurement
-    check = [len(np.unique(i)) != len(i) for i in ions0]
-    for i in range(len(check)):
-        if check[i] == True:
-            temp = ions[i].copy()
-            temp = pd.DataFrame(temp).T
-            temp = temp[temp.groupby(0)[1].rank(ascending=False)<2]
-            temp.drop_duplicates(subset=0, inplace=True)
-            ions[i] = np.array(temp.T)
+    ions1 = (ions1/max(ions1))*100
+    ions = np.array([ions0,ions1])
+    # Duplicate m/z measurement
+    check = len(np.unique(ions0)) != len(ions0)
+    if check == True:
+        temp = ions.copy()
+        temp = pd.DataFrame(temp).T
+        temp = temp[temp.groupby(0)[1].rank(ascending=False)<2]
+        temp.drop_duplicates(subset=0, inplace=True)
+        ions = np.array(temp.T)
     return(ions)
 
 def scoreVseq(sub, plainseq, mods, pos, mass, ftol, dm, m_proton, m_hydrogen, m_oxygen, score_mode, full_y):
