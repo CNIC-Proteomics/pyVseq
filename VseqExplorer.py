@@ -456,7 +456,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
             acc_pos += len(str(mods[i-1])) + 2
     ## MZ and MH ##
     query['expMH'] = query.MH
-    query['expMZ'] = query.expMH + (m_proton * (query.Charge-1)) / query.Charge
+    query['expMZ'] = (query.expMH + (m_proton * (query.Charge-1))) / query.Charge
     query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
     ## DM ##
