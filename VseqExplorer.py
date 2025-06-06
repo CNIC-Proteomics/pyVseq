@@ -31,6 +31,7 @@ import sys
 from tqdm import tqdm
 # import custom modules
 from Vseq import doVseq
+from tools.Hyperscore import locateScan
 # module config
 matplotlib.use('pdf')
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -94,6 +95,7 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
 
 def getTquery(fr_ns, mode, rawpath):
     if mode == "mgf":
+        index2 = fr_ns.to_numpy() == 'END IONS'
         flag = True
         # Check if index exists
         if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):
@@ -128,6 +130,8 @@ def getTquery(fr_ns, mode, rawpath):
             tquery['CHARGE'] = tquery.CHARGE.str[:-1]
             tquery = tquery.drop("PEPMASS", axis=1)
         tquery = tquery.apply(pd.to_numeric)
+        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, 0, 0, index2),
+                                          axis=1)
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
@@ -138,6 +142,8 @@ def getTquery(fr_ns, mode, rawpath):
                                        os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
                           index=False, sep='\t', encoding='utf-8')
     elif mode == "mzml":
+        spectra = fr_ns.getSpectra()
+        spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
         tquery = []
         for s in fr_ns.getSpectra():
             if s.getMSLevel() == 2:
@@ -152,6 +158,8 @@ def getTquery(fr_ns, mode, rawpath):
         tquery = tquery.apply(pd.to_numeric)
         tquery.SCANS = tquery.SCANS.astype(int)
         tquery.CHARGE = tquery.CHARGE.astype(int)
+        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0),
+                                          axis=1)
         squery = sindex = eindex = 0
     return tquery, squery, sindex, eindex
 
