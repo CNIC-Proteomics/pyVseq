@@ -181,7 +181,7 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         try:
-            index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
+            index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(int(scan))].index[0] + 1
             # index1 = np.where(index1)[0][0]
         except IndexError:
             logging.info("\tERROR: Scan number " + str(scan) + " not found in MGF file.")
