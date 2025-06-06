@@ -130,7 +130,6 @@ def getTquery(fr_ns, mode, rawpath):
             tquery['CHARGE'] = tquery.CHARGE.str[:-1]
             tquery = tquery.drop("PEPMASS", axis=1)
         tquery = tquery.apply(pd.to_numeric)
-        print("START")
         index1 = (fr_ns2.to_numpy() == 'BEGIN IONS').flatten()
         index2 = (fr_ns2.to_numpy() == 'END IONS').flatten()
         index3 = np.array([i for i in range(0,len(fr_ns2))])
@@ -155,8 +154,6 @@ def getTquery(fr_ns, mode, rawpath):
                 temp.drop_duplicates(subset=0, inplace=True)
                 allspectra[i] = np.array(temp.T)
         tquery["SPECTRUM"] = allspectra
-        # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns2, 0, 0, index2),
-        #                                   axis=1)
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
