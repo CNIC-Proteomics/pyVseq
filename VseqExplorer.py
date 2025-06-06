@@ -95,7 +95,7 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
 
 def getTquery(fr_ns, mode, rawpath):
     if mode == "mgf":
-        index2 = fr_ns.to_numpy() == 'END IONS'
+        fr_ns2 = fr_ns.copy()
         flag = True
         # Check if index exists
         if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):
@@ -130,8 +130,33 @@ def getTquery(fr_ns, mode, rawpath):
             tquery['CHARGE'] = tquery.CHARGE.str[:-1]
             tquery = tquery.drop("PEPMASS", axis=1)
         tquery = tquery.apply(pd.to_numeric)
-        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, 0, 0, index2),
-                                          axis=1)
+        print("START")
+        index1 = (fr_ns2.to_numpy() == 'BEGIN IONS').flatten()
+        index2 = (fr_ns2.to_numpy() == 'END IONS').flatten()
+        index3 = np.array([i for i in range(0,len(fr_ns2))])
+        index4 = index3[index1]+6
+        index5 = index3[index2]
+        fr_ns2 = fr_ns2.to_numpy()
+        allspectra = [fr_ns2[index4[i]:index5[i]] for i in range(0,len(index4))]
+        allspectra = [[j[0].split(' ') for j in i] for i in allspectra]
+        allspectra = [np.transpose(np.array([[float(k) for k in j] for j in i])) for i in allspectra]
+        # Normalize intensity
+        allspectra0 = [np.array(i[0]) for i in allspectra]
+        allspectra1 = [np.array(i[1]) for i in allspectra]
+        allspectra1 = [(allspectra1[i]/max(allspectra1[i]))*100 for i in range(len(allspectra))]
+        allspectra = [np.array([allspectra0[i], allspectra1[i]]) for i in range(len(allspectra))]
+        # Duplicate m/z measurement
+        check = [len(np.unique(i)) != len(i) for i in allspectra0]
+        for i in range(len(check)):
+            if check[i] == True:
+                temp = allspectra[i].copy()
+                temp = pd.DataFrame(temp).T
+                temp = temp[temp.groupby(0)[1].rank(ascending=False)<2]
+                temp.drop_duplicates(subset=0, inplace=True)
+                allspectra[i] = np.array(temp.T)
+        tquery["SPECTRUM"] = allspectra
+        # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns2, 0, 0, index2),
+        #                                   axis=1)
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
