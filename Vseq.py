@@ -1012,7 +1012,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
 
 def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc,
-           squery=0, sindex=0, eindex=0):
+           squery=0, sindex=0, eindex=0, calc_hs=1, hs=0):
     if not standalone:
         mass = massconfig
     else:
@@ -1138,14 +1138,16 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
-    sub['Spectrum'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2)
-    hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mass, err, dm,
-                                                             mass.getfloat('Masses', 'm_proton'),
-                                                             mass.getfloat('Masses', 'm_hydrogen'),
-                                                             mass.getfloat('Masses', 'm_oxygen'),
-                                                             mass.getfloat('Parameters', 'score_mode'),
-                                                             mass.getfloat('Parameters', 'full_y'))
-    
+    if calc_hs != 0:
+        sub['Spectrum'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2)
+        hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mass, err, dm,
+                                                                 mass.getfloat('Masses', 'm_proton'),
+                                                                 mass.getfloat('Masses', 'm_hydrogen'),
+                                                                 mass.getfloat('Masses', 'm_oxygen'),
+                                                                 mass.getfloat('Parameters', 'score_mode'),
+                                                                 mass.getfloat('Parameters', 'full_y'))
+    else: hscore = hs
+        
     ## PLOTS ##
     if standalone:
         logging.info("\t\t\tPlotting...") # TODO should we have min_vscore take effect here or not

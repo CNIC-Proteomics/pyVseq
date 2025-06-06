@@ -880,7 +880,9 @@ def main(args):
                                                            int_perc,
                                                            squery,
                                                            sindex,
-                                                           eindex), axis = 1)
+                                                           eindex,
+                                                           calc_hs=0,
+                                                           hs=x.hyperscore), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
                     for f in allpagelist:
