@@ -1128,8 +1128,18 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
                                                                  mass.getfloat('Parameters', 'score_mode'),
                                                                  mass.getfloat('Parameters', 'full_y'))
     else: hscore = hs
-    if not sortby:
-        sortby = vscore
+    if sortby == "ions_matched":
+        sortby = int(nions)
+    elif sortby == "e_score":
+        sortby = float(escore)
+    elif sortby == "product":
+        sortby = float(nions * escore)
+    elif sortby == "v_score":
+        sortby = float(vscore)
+    elif sortby == "hyperscore":
+        sortby = float(hscore)
+    else:
+        sortby = float(vscore)
         
     ## PLOTS ##
     if standalone:
