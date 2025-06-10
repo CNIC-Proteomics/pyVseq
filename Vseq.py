@@ -4,10 +4,6 @@ Created on Wed Mar  2 14:10:14 2022
 
 @author: alaguillog
 """
-# mgf = 'S:\\U_Proteomica\\UNIDAD\\DatosCrudos\\LopezOtin\\COVID\\COVID_TMT\\COVID_TMT1_F2.mgf'
-# infile = 'C:\\Users\\alaguillog\\GitHub\\vseq_input_data.csv'
-# massfile = 'C:\\Users\\alaguillog\\GitHub\\pyVseq\\massfile_original.ini'
-# seq2 = kLETEVMq
 
 # import modules
 import argparse
@@ -156,7 +152,6 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     m_oxygen = mass.getfloat('Masses', 'm_oxygen')
     total_aas = 2*m_hydrogen + m_oxygen
     total_aas += charge*m_proton
-    #total_aas += float(MODs['nt']) + float(MODs['ct'])
     if nt:
         total_aas += float(MODs['nt'])
     if ct:
@@ -178,12 +173,7 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
     '''
     Prepare experimental spectrum.
     '''
-    # index1 = fr_ns.loc[fr_ns[0]=='SCANS='+str(scan)].index[0] + 1
-    # index2 = fr_ns.drop(index=fr_ns.index[:index1], axis=0).loc[fr_ns[0]=='END IONS'].index[0]
-    
     if mode == "mgf":
-        # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
-        # index1 = np.where(index1)[0][0]
         if squery != 0:
             place = squery.index(str(scan))
             ions = fr_ns.iloc[sindex[place]+1:eindex[place]]
@@ -197,12 +187,6 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
         ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
-        # except ValueError:
-        #     ions = fr_ns.iloc[index1+4:index3,:]
-        #     ions[0] = ions[0].str.strip()
-        #     ions[['MZ','INT']] = ions[0].str.split(" ",expand=True,)
-        #     ions = ions.drop(ions.columns[0], axis=1)
-        #     ions = ions.apply(pd.to_numeric)
     elif mode == "mzml":
         s = fr_ns.getSpectrum(scan-1)
         ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
@@ -214,9 +198,6 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
     ions.reset_index(drop=True)
-    
-    #bind = pd.DataFrame(list(itertools.chain(*set(zip(list(ions['CCU']),list(ions['MZ']))))), columns=["MZ"])
-    #bind["REL_INT"] = list(itertools.chain(*set(zip(list(ions['ZERO']),list(ions['INT'])))))
     bind = pd.DataFrame(list(itertools.chain.from_iterable(zip(list(ions['CCU']),list(ions['MZ'])))), columns=["MZ"])
     bind["REL_INT"] = list(itertools.chain.from_iterable(zip(list(ions['ZERO']),list(ions['INT']))))
     bind["ZERO"] = 0
@@ -343,12 +324,10 @@ def assignIons(theo_spec, dm_theo_spec, frags, dm, arg_dm, massconfig, standalon
     assign["*"] = dm_theo_spec.iloc[0]
     assign["*++"] = (dm_theo_spec.iloc[0]+m_proton)/2
     
-    #c_assign = pd.DataFrame(list(assign["+"]) + list(assign["++"]) + list(assign["+++"]) + list(assign["*"]) + list(assign["*++"]))
     c_assign = pd.DataFrame(list(assign["+"]) + list(assign["++"]) + list(assign["+++"]))
     if dm >= arg_dm:
         c_assign = pd.concat([c_assign, pd.DataFrame(list(assign["*"])), pd.DataFrame(list(assign["*++"]))])
     c_assign.columns = ["MZ"]
-    #c_assign["FRAGS"] = list(frags.by) + list(frags.by + "++") + list(frags.by + "+++") + list(frags.by + "*") + list(frags.by + "*++")
     c_assign_frags = pd.DataFrame(list(frags.by) + list(frags.by + "++") + list(frags.by + "+++"))
     if dm >= arg_dm:
         c_assign_frags = pd.concat([c_assign_frags, pd.DataFrame(list(frags.by + "*")), pd.DataFrame(list(frags.by + "*++"))])
