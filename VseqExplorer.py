@@ -397,7 +397,7 @@ def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
                      parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
-                     parlist[18], parlist[19])
+                     parlist[18], parlist[19], parlist[20])
     pbar.update(1)
     return([relist, x.FirstScan])
 
@@ -524,7 +524,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc, spectra, spectra_n]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc, spectra, spectra_n, fsort_by]
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
     if keep_n > 0:
@@ -807,7 +807,7 @@ def main(args):
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
                                False, mass, False, min_hscore, ppm_plot, index_offset, mode,
-                               int_perc, squery, sindex, eindex, spectra, spectra_n]
+                               int_perc, squery, sindex, eindex, spectra, spectra_n, fsort_by]
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
