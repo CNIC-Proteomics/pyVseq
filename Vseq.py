@@ -1012,7 +1012,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
 
 def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc,
-           squery=0, sindex=0, eindex=0, calc_hs=1, hs=0):
+           squery=0, sindex=0, eindex=0, calc_hs=1, hs=0, sortby=None):
     if not standalone:
         mass = massconfig
     else:
@@ -1148,15 +1148,19 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
                                                                  mass.getfloat('Parameters', 'score_mode'),
                                                                  mass.getfloat('Parameters', 'full_y'))
     else: hscore = hs
+    if not sortby:
+        sortby = vscore
         
     ## PLOTS ##
     if standalone:
         logging.info("\t\t\tPlotting...") # TODO should we have min_vscore take effect here or not
-    if dograph and vscore >= min_hscore:
-        proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
-        plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                      proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
-                      min_dm, outpath, massconfig, standalone, ppm_plot)
+    if dograph and sortby >= min_hscore:
+        if proof.iloc[0].MZ == 0: return
+        else:
+            proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
+            plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+                          proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
+                          min_dm, outpath, massconfig, standalone, ppm_plot)
     if standalone:
         if not args.integrate:
             logging.info("\t\t\tDone.")

@@ -399,14 +399,14 @@ def _parallelGetIons(x, parlist, pbar):
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot,
             index_offset, mode, int_perc, squery, sindex, eindex,
-            spectra, spectra_n):
+            spectra, spectra_n, fsort_by):
     ions_exp = []
     b_ions = []
     y_ions = []
     vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, spectra,
                                                                           spectra_n, min_dm, min_match, ftol, outpath, standalone,
                                                                           massconfig, dograph, 0, ppm_plot, int_perc,
-                                                                          squery, sindex, eindex)
+                                                                          squery, sindex, eindex, sortby=fsort_by)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -912,7 +912,8 @@ def main(args):
                                                            sindex,
                                                            eindex,
                                                            calc_hs=0,
-                                                           hs=x.hyperscore), axis = 1)
+                                                           hs=x.hyperscore,
+                                                           sortby=fsort_by), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
                     for f in allpagelist:
