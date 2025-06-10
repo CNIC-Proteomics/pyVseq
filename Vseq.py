@@ -1175,6 +1175,7 @@ def main(args):
     #scan_info = pd.read_csv(args.infile, sep=r'\,|\t', engine="python")
     scan_info = pd.read_csv(args.infile, sep='\t', engine="python")
     scan_info = scan_info[scan_info.Sequence.notna()]
+    scan_info.FirstScan = scan_info.FirstScan.astype(int)
     exps = list(scan_info.Raw.unique())
     for exp in exps:
         #logging.info("Experiment: " + str(exp))
