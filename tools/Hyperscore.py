@@ -214,9 +214,10 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, int_perc):
         ions1 = peaks[1]
     # Normalize intensity
     ions1 = (ions1/max(ions1))*100
-    # Filter by percentage
-    ions0 = ions0[ions1/100>=int_perc]
-    ions1 = ions1[ions1/100>=int_perc]
+    # Filter by ratio
+    if int_perc > 0:
+        ions0 = ions0[ions1/100>=int_perc]
+        ions1 = ions1[ions1/100>=int_perc]
     ions = np.array([ions0,ions1])
     # Duplicate m/z measurement
     check = len(np.unique(ions0)) != len(ions0)

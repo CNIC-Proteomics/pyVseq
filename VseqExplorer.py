@@ -142,6 +142,11 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
             allspectra0 = [np.array(i[0]) for i in allspectra]
             allspectra1 = [np.array(i[1]) for i in allspectra]
             allspectra1 = [(allspectra1[i]/max(allspectra1[i]))*100 for i in range(len(allspectra))]
+            # Filter by ratio
+            if int_perc > 0:
+                cutoff1 = [i/max(i) >= int_perc for i in allspectra1]
+                allspectra0 = [allspectra0[i][cutoff1[i]] for i in range(len(allspectra))]
+                allspectra1 = [allspectra1[i][cutoff1[i]] for i in range(len(allspectra))]
             allspectra = [np.array([allspectra0[i], allspectra1[i]]) for i in range(len(allspectra))]
             # Duplicate m/z measurement
             check = [len(np.unique(i)) != len(i) for i in allspectra0]

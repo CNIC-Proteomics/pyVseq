@@ -192,8 +192,8 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
         ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
         ions.columns = ["MZ", "INT"]
     # DIA: Filter by intensity ratio
-    ions=ions[ions.INT>=ions.INT.max()*int_perc]
-    
+    if int_perc > 0:
+        ions=ions[ions.INT>=ions.INT.max()*int_perc]
     ions["ZERO"] = 0
     #ions["CCU"] = 0.01
     ions["CCU"] = ions.MZ - 0.01
