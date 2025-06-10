@@ -760,6 +760,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     # start fixed mod annotation
     ions.reset_index(drop=True,inplace=True)
     ions_check = pd.DataFrame(ions.iloc[posmatrix[(posmatrix=='⬤').any(axis=1)].index.to_list()].MZ.copy())
+    ions_check.MZ = ions_check.MZ.astype(float)
     ions_check["ID"] = ions_check.index
     ions_check = pd.merge(proof, ions_check)
     ions_check = ions_check.loc[ions_check.DIFF!=0]
@@ -1118,7 +1119,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
     if "SPECTRUM" not in sub:
-        sub['SPECTRUM'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2)
+        sub['SPECTRUM'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2, int_perc)
     if calc_hs != 0:
         hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mass, err, dm,
                                                                  mass.getfloat('Masses', 'm_proton'),

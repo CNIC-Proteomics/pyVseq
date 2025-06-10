@@ -177,7 +177,7 @@ def hyperscore(exp_spec, theo_spec, frags, ftol):
         hs = math.log((i_b) * (i_y)) + math.log(math.factorial((n_b))) + math.log(math.factorial(n_y))
     return(assigned_mz, assigned_int, assigned_frags, n_b, n_y, i_sum, hs)
 
-def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2):
+def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, int_perc):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         try:
@@ -214,6 +214,9 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2):
         ions1 = peaks[1]
     # Normalize intensity
     ions1 = (ions1/max(ions1))*100
+    # Filter by percentage
+    ions0 = ions0[ions1/100>=int_perc]
+    ions1 = ions1[ions1/100>=int_perc]
     ions = np.array([ions0,ions1])
     # Duplicate m/z measurement
     check = len(np.unique(ions0)) != len(ions0)

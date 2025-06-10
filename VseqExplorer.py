@@ -93,7 +93,7 @@ def makeOutpath(outpath3, prot, sequence, firstscan, charge, cand):
                                    "_cand" + str(cand) + "_" + str(counter) + ".pdf")
     return(outplot)
 
-def getTquery(fr_ns, mode, rawpath):
+def getTquery(fr_ns, mode, rawpath, int_perc):
     if mode == "mgf":
         fr_ns2 = fr_ns.copy()
         flag = True
@@ -180,7 +180,7 @@ def getTquery(fr_ns, mode, rawpath):
         tquery = tquery.apply(pd.to_numeric)
         tquery.SCANS = tquery.SCANS.astype(int)
         tquery.CHARGE = tquery.CHARGE.astype(int)
-        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0),
+        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
                                           axis=1)
         squery = sindex = eindex = 0
     return tquery, squery, sindex, eindex
@@ -685,7 +685,7 @@ def main(args):
             spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index_offset = 0
             index2 = 0
-            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
+            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw, int_perc)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         else:
             mode = "mgf"
@@ -698,7 +698,7 @@ def main(args):
             spectra = 0
             spectra_n = 0
             logging.info("Building index...")
-            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw)
+            tquery, squery, sindex, eindex = getTquery(mgf, mode, raw, int_perc)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         
         logging.info("Extracting scan data...")
