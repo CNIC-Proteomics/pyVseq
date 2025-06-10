@@ -938,6 +938,7 @@ def main(args):
                     #exploredseqs.append(subtquery)
                     subtquery = subtquery[subtquery.Charge != 0]
                     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
+                    subtquery.drop("SPECTRUM", axis=1, inplace=True)
                     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                                      mode='a', header=not os.path.exists(outfile))
                 
