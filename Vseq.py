@@ -238,11 +238,12 @@ def theoSpectrum(seq, mods, pos, len_ions, dm, massconfig, standalone):
     ## Y SERIES ##
     #ipar = list(range(1,len(seq)))
     outy = pd.DataFrame(np.nan, index=list(range(1,len(seq)+1)), columns=list(range(1,len_ions+1)))
+    pos_y = [len(seq)-1-i for i in pos]
     for i in range(0,len(seq)):
         yn = list(seq[i:])
         if i > 0: nt = False
         else: nt = True
-        fragy = getTheoMH(0,yn,mods,pos,nt,True, massconfig, standalone) + dm
+        fragy = getTheoMH(0,yn,mods,pos_y,nt,True, massconfig, standalone) + dm
         outy[i:] = fragy
         
     ## B SERIES ##
