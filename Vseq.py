@@ -168,8 +168,8 @@ def getTheoMH(charge, sequence, mods, pos, nt, ct, massconfig, standalone):
     MH = total_aas - (charge-1)*m_proton
     return MH
 
-def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
-                squery=0, sindex=0, eindex=0):
+def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc, spectra,
+                spectra_n, squery=0, sindex=0, eindex=0):
     '''
     Prepare experimental spectrum.
     '''
@@ -188,7 +188,7 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, int_perc,
         ions = ions.drop(ions.columns[0], axis=1)
         ions = ions.apply(pd.to_numeric)
     elif mode == "mzml":
-        s = fr_ns.getSpectrum(scan-1)
+        s = spectra[spectra_n.index(scan)]
         ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
         ions.columns = ["MZ", "INT"]
     # DIA: Filter by intensity ratio
@@ -1025,7 +1025,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     #parentaldm = parental + dm
     #dmdm = mim - parentaldm
     #query = tquery[(tquery["CHARGE"]==sub.Charge) & (tquery["SCANS"]==sub.FirstScan)]
-    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode, int_perc, squery, sindex, eindex)
+    exp_spec, ions, spec_correction = expSpectrum(fr_ns, index_offset, sub.FirstScan, index2, mode, int_perc, spectra, spectra_n, squery, sindex, eindex)
     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:   
     #     a
     theo_spec = theoSpectrum(plainseq, mods, pos, len(ions), 0, massconfig, standalone)
