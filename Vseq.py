@@ -1269,8 +1269,8 @@ if __name__ == '__main__':
     
     parser.add_argument('-i',  '--infile', required=True, help='Input file')
     parser.add_argument('-c', '--config', default=defaultconfig, help='Path to custom config.ini file')
-    parser.add_argument('-e', '--error', default=15, help='Maximum ppm error to consider')
-    parser.add_argument('-d', '--deltamass', default=3, help='Minimum deltamass to consider')
+    parser.add_argument('-e', '--error', default=None, help='Maximum ppm error to consider')
+    parser.add_argument('-d', '--deltamass', default=None, help='Minimum deltamass to consider')
     parser.add_argument('-n', '--integrate', action="store_true", help='Perform scan integration')
     parser.add_argument('-w',  '--n_workers', type=int, default=4, help='Number of threads/n_workers (default: %(default)s)')
     parser.add_argument('-v', dest='verbose', action='store_true', help="Increase output verbosity")
