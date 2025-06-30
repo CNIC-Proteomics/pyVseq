@@ -718,7 +718,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     header[0].get_text().set_text("SCAN INFO")
     header2 = [ytable.add_cell(10,0, ytable.get_celld()[(0,0)].get_width(), ytable.get_celld()[(0,0)].get_height(), loc="center", facecolor="lightcoral")]
     header2[0].get_text().set_text("PTM PINPOINTING")
-    if dm >= min_dm:
+    if abs(dm) >= min_dm:
         ypos = len(plainseq) - (YDAGmax.to_list()[0])
         yaa = PTMprob[::-1][YDAGmax.to_list()[0]]
         if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
@@ -771,7 +771,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
         posmatrix2.at[row.ID, row.A_LENGTH] = '◢'
     # end fixed mod annotation
     # ax2 = fig.add_subplot(3,6,(3,6))
-    if dm >= min_dm and not (fppm == 50).all().all():
+    if abs(dm) >= min_dm and not (fppm == 50).all().all():
         sns.heatmap(fppm.T, annot=posmatrix, fmt='', annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "white", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]},
                     cmap=frag_palette, xticklabels=list(frags.by), yticklabels=False, cbar_kws={'label': 'ppm error'})
         sns.heatmap(fppm.T, cmap=frag_palette, cbar=False, annot=posmatrix2, fmt='', yticklabels=False, annot_kws={"size": 40 / np.sqrt(len(fppm.T)), "color": "lightblue", "path_effects":[path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()]})
@@ -863,7 +863,7 @@ def plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_
     if len(plainseq) < 30:
         color += ['white'] * (30-len(plainseq))
         points2 = np.ones(30)
-    if dm >= min_dm:
+    if abs(dm) >= min_dm:
         color[bpos] = 'red'
         if len(plainseq)-YDAGmax.to_list()[0] > len(plainseq):
             color[len(plainseq)-1] = 'red'
