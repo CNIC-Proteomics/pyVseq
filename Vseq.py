@@ -556,7 +556,7 @@ def vScore(qscore, sub, sublen, proofb, proofy, assign):
         SS5y = statistics.median(pd.to_numeric(proofy_vscore.ION))
         SS6y = statistics.median(pd.to_numeric(proofy_vscore.PPM))
     SS5 = SS5b + SS5y
-    SS6 = SS6b + SS6y/2
+    SS6 = (SS6b + SS6y)/2
     if SS6b == 0 or SS6y == 0:
         SS6 = SS6b + SS6y
     if SS6 < 16:
