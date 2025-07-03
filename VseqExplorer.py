@@ -972,8 +972,6 @@ def main(args):
     for f in all_outfiles:
         try:
             temp = pd.read_csv(os.path.join(f), delimiter='\t')
-            # adding original filename column as per request
-            temp['origin'] = f
             all_data.append(temp)
         except pd.errors.EmptyDataError:
             continue
