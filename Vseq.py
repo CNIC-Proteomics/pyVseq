@@ -59,6 +59,15 @@ def read_csv_with_progress(file_path, sep, mode="mgf"):
     df = pd.concat(chunks, ignore_index=True)
     return df
 
+def read_mzml_with_progress(inputfile):
+    ondisc_exp = pyopenms.OnDiscMSExperiment()
+    ondisc_exp.openFile(inputfile)
+    mgf = pyopenms.MSExperiment()
+    for i in tqdm(range(ondisc_exp.getNrSpectra()), desc="Loading spectra"):
+        spectrum = ondisc_exp.getSpectrum(i)
+        mgf.addSpectrum(spectrum)
+    return mgf
+
 def prepareWorkspace(exp, msdatapath, outpath):
     msdata = Path(msdatapath)
     outpath = Path(outpath)
@@ -1200,8 +1209,9 @@ def main(args):
             msdata = os.path.join(pathdict["msdata"], exp + ".mzML")
             mode = "mzml"
             logging.info("\tReading mzML file...")
-            fr_ns = pyopenms.MSExperiment()
-            pyopenms.MzMLFile().load(msdata, fr_ns)
+            # fr_ns = pyopenms.MSExperiment()
+            # pyopenms.MzMLFile().load(msdata, fr_ns)
+            fr_ns = read_mzml_with_progress(msdata)
             spectra = fr_ns.getSpectra()
             spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index2 = 0

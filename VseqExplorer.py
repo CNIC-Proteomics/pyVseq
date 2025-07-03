@@ -61,6 +61,15 @@ def read_csv_with_progress(file_path, sep, mode="mgf"):
     df = pd.concat(chunks, ignore_index=True)
     return df
 
+def read_mzml_with_progress(inputfile):
+    ondisc_exp = pyopenms.OnDiscMSExperiment()
+    ondisc_exp.openFile(inputfile)
+    mgf = pyopenms.MSExperiment()
+    for i in tqdm(range(ondisc_exp.getNrSpectra()), desc="Loading spectra"):
+        spectrum = ondisc_exp.getSpectrum(i)
+        mgf.addSpectrum(spectrum)
+    return mgf
+
 def checkMGFs(mgfs, mgflist):
     checklist = list(mgfs.groups.keys())
     checklist = [i + ".mgf" for i in checklist]
@@ -681,11 +690,12 @@ def main(args):
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
     for raw, rawtable in raws:
-        logging.info("RAW: " + str(os.path.split(raw)[-1][:-4]))
         if raw[-4:].lower() == "mzml":
+            logging.info("MZML: " + str(os.path.split(raw)[-1][:-5]))
             mode = "mzml"
-            mgf = pyopenms.MSExperiment()
-            pyopenms.MzMLFile().load(raw, mgf)
+            # mgf = pyopenms.MSExperiment()
+            # pyopenms.MzMLFile().load(raw, mgf)
+            mgf = read_mzml_with_progress(raw)
             spectra = mgf.getSpectra()
             spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index_offset = 0
@@ -693,6 +703,7 @@ def main(args):
             tquery, squery, sindex, eindex = getTquery(mgf, mode, raw, int_perc)
             tquery = tquery.drop_duplicates(subset=['SCANS'])
         else:
+            logging.info("MGF: " + str(os.path.split(raw)[-1][:-4]))
             mode = "mgf"
             # mgf = pd.read_csv(Path(raw), header=None, sep="\t")
             mgf = read_csv_with_progress(Path(raw), "\t")
