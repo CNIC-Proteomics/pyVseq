@@ -167,7 +167,10 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
                     temp.drop_duplicates(subset=0, inplace=True)
                     allspectra[i] = np.array(temp.T)
             tquery["SPECTRUM"] = allspectra
-        tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']] = tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']].apply(pd.to_numeric)
+        try:
+            tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']] = tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']].apply(pd.to_numeric)
+        except KeyError:
+            tquery[['SCANS', 'CHARGE', 'RT', 'MZ']] = tquery[['SCANS', 'CHARGE', 'RT', 'MZ']].apply(pd.to_numeric)
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
