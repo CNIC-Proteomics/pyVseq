@@ -526,7 +526,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     if subtquery.shape[0] == 0:
         return # TODO can this be nothing or do we need a dummy DF
     # logging.info("\tComparing...")
-    subtquery['Protein'] = fullprot
+    subtquery['Protein'] = prot
     subtquery['Sequence'] = query.Sequence
     subtquery['MH'] = query.expMH
     subtquery['DeltaMassLabel'] = query.DeltaMassLabel
@@ -693,6 +693,7 @@ def main(args):
     raws = mgftable.groupby(0)
     # if not checkMGFs(raws, list(mgftable[0])):
     #     sys.exit()
+    all_outfiles = []
     for raw, rawtable in raws:
         if raw[-4:].lower() == "mzml":
             logging.info("MZML: " + str(os.path.split(raw)[-1][:-5]))
@@ -747,6 +748,7 @@ def main(args):
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(outpath, str(raw), str(prot))
             outfile = os.path.join(outpath3, str(Path(raw).stem) + "_" + str(prot) + "_EXPLORER.tsv")
+            all_outfiles += [outfile]
             # if not os.path.exists(Path(outpath3)):
             #     os.mkdir(Path(outpath3))
                 
@@ -812,7 +814,7 @@ def main(args):
                                  + str(ptol) + " Th")
                     if subtquery.shape[0] == 0:
                         continue
-                    subtquery['Protein'] = fullprot
+                    subtquery['Protein'] = prot
                     subtquery['Sequence'] = query.Sequence
                     subtquery['MH'] = query.expMH
                     subtquery['DeltaMassLabel'] = query.DeltaMassLabel
@@ -965,7 +967,22 @@ def main(args):
                     subtquery.drop("SPECTRUM", axis=1, inplace=True)
                     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                                      mode='a', header=not os.path.exists(outfile))
-                
+    logging.info("Creating joined results file...")
+    all_data = []
+    for f in all_outfiles:
+        try:
+            temp = pd.read_csv(os.path.join(f), delimiter='\t')
+            # adding original filename column as per request
+            temp['origin'] = f
+            all_data.append(temp)
+        except pd.errors.EmptyDataError:
+            continue
+    all_data = pd.concat(all_data)
+    all_data['QC_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
+                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(x.Charge)+"_best5.pdf"), axis=1)
+    all_data['RT_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Rraw), str(x.Protein),
+                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(x.Charge)+"_RT_plots.pdf"), axis=1)
+    all_data.to_csv(os.path.join(outpath, "VSEQ_EXPLORER_RESULTS.tsv"), sep='\t', index=False)
         # if exploredseqs:    
         #     logging.info("Writing output table")
         #     # outfile = os.path.join(os.path.split(Path(args.table))[0],
