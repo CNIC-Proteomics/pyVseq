@@ -327,12 +327,13 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
         ions.reset_index(drop=True)
         # DIA: Filter by intensity ratio
         ions = ions[ions.INT>=ions.INT.max()*int_perc]
-    # DIA: Filter by diagnostic ions
+    # DIA: Filter by number diagnostic ions (if there is a tie, use total intensity)
     frags_diag = list(frags_diag)
     ions["FRAG"] = ions.MZ.apply(takeClosest, myList=frags_diag)
     ions["PPM"] = (((ions.MZ - ions.FRAG)/ions.FRAG)*1000000).abs()
-    ions = ions[ions.PPM<=ftol].INT.sum()
-    return(ions)
+    nions = len(ions[ions.PPM<=ftol])
+    iions = ions[ions.PPM<=ftol].INT.sum()
+    return(nions, iions)
 
 def theoSpectrum(seq, mods, pos, len_ions, dm, mass):
     '''
@@ -537,8 +538,11 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
     if keep_n > 0:
-        subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
-        subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
+        subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
+        subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
+        subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
+        subtquery = subtquery.drop('temp_diagnostic', axis = 1)
+        subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
         subtquery = subtquery.sort_index()
     if parallelize == "both":
         indices, rowSeries = zip(*subtquery.iterrows())
@@ -833,15 +837,18 @@ def main(args):
                                                                  itertools.repeat(eparlist),
                                                                  chunksize=chunks),
                                                     total=len(rowSeries)))
-                            subtquery['Diagnostic'] = diag
+                            subtquery['temp_diagnostic'] = diag
                         else:
-                            subtquery["Diagnostic"] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
+                            subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
                                                                                             mode, frags_diag, ftol, int_perc,
                                                                                             squery, sindex, eindex, preprocessmsdata,
                                                                                             0), axis=1)
-                        subtquery = subtquery.nlargest(keep_n, 'Diagnostic')
+                        subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
+                        subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
+                        subtquery = subtquery.drop('temp_diagnostic', axis = 1)
+                        subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
                         subtquery = subtquery.sort_index()
-                    logging.info("\tKept " + str(subtquery.shape[0]) + " scans with highest diagnostic ion intensity")
+                    logging.info("\tKept " + str(subtquery.shape[0]) + " scans with more diagnostic ions and highest diagnostic ion intensity")
                     indices, rowSeries = zip(*subtquery.iterrows())
                     rowSeries = list(rowSeries)
                     tqdm.pandas(position=0, leave=True)
