@@ -1006,7 +1006,7 @@ def main(args):
                     #exploredseqs.append(subtquery)
                     subtquery = subtquery[subtquery.Charge != 0]
                     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    subtquery.drop("SPECTRUM", axis=1, inplace=True)
+                    # subtquery.drop("SPECTRUM", axis=1, inplace=True)
                     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
                                      mode='a', header=not os.path.exists(outfile))
     logging.info("Creating joined results file...")
@@ -1020,7 +1020,7 @@ def main(args):
     all_data = pd.concat(all_data)
     all_data['QC_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
                                                                 str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(x.Charge)+"_best5.pdf"), axis=1)
-    all_data['RT_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Rraw), str(x.Protein),
+    all_data['RT_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
                                                                 str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(x.Charge)+"_RT_plots.pdf"), axis=1)
     all_data.to_csv(os.path.join(outpath, "VSEQ_EXPLORER_RESULTS.tsv"), sep='\t', index=False)
         # if exploredseqs:    
