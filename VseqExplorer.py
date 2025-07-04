@@ -857,7 +857,8 @@ def main(args):
                     subtquery.Charge = query.Charge
                     parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
                                False, mass, False, min_hscore, ppm_plot, index_offset, mode,
-                               int_perc, squery, sindex, eindex, spectra, spectra_n, fsort_by]
+                               int_perc, squery, sindex, eindex, spectra, spectra_n, fsort_by,
+                               od]
                     # DIA: Filter by diagnostic ions
                     logging.info("\tFiltering by diagnostic ions...")
                     if keep_n > 0:
@@ -971,7 +972,8 @@ def main(args):
                                                            eindex,
                                                            calc_hs=0,
                                                            hs=x.hyperscore,
-                                                           sortby=fsort_by), axis = 1)
+                                                           sortby=fsort_by,
+                                                           od=od), axis = 1)
                     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
                     pagelist = []
                     for f in allpagelist:
