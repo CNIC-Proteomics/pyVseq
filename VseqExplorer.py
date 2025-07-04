@@ -329,12 +329,13 @@ def _parallelProcessSpectrum(x, parlist, pbar):
 
 def _parallelExpSpectrum(x, parlist):
     relist = expSpectrum(parlist[0], parlist[1], x.FirstScan, parlist[2], parlist[3], parlist[4], parlist[5],
-                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], x.Diagnostic_data)
+                     parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], x.Diagnostic_data, od=parlist[11],
+                     spectra=parlist[12])
     return(relist)
     
 def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
                 int_perc, squery=0, sindex=0, eindex=0, preprocessmsdata=False,
-                diagnostic_data=0):
+                diagnostic_data=0, od=None, spectra=None):
     '''
     Get experimental spectrum.
     '''
@@ -353,7 +354,9 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
             ions = ions.drop(ions.columns[0], axis=1)
             ions = ions.apply(pd.to_numeric)
         elif mode == "mzml":
-            s = fr_ns.getSpectrum(scan-1)
+            # s = fr_ns.getSpectrum(scan-1)
+            nativeid = '='.join(spectra[0].getNativeID().split('=')[:-1]) + '=' + str(scan)
+            s = od.getSpectrumByNativeId(nativeid)
             ions = pd.DataFrame([s.get_peaks()[0], s.get_peaks()[1]]).T
             ions.columns = ["MZ", "INT"]
         ions.reset_index(drop=True)
@@ -572,7 +575,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
     if keep_n > 0:
-        subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc), axis=1)
+        subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2, mode, frags_diag, ftol, int_perc, od=od, spectra=spectra), axis=1)
         subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
         subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
         subtquery = subtquery.drop('temp_diagnostic', axis = 1)
@@ -871,7 +874,7 @@ def main(args):
                     if keep_n > 0:
                         if preprocessmsdata:
                             chunks = math.ceil(len(subtquery)/args.n_workers)
-                            eparlist = [0, index_offset, index2, mode, frags_diag, ftol, int_perc, squery, sindex, eindex, preprocessmsdata]
+                            eparlist = [0, index_offset, index2, mode, frags_diag, ftol, int_perc, squery, sindex, eindex, preprocessmsdata, od, spectra]
                             indices, rowSeries = zip(*subtquery.iterrows())
                             rowSeries = list(rowSeries)
                             with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
@@ -885,7 +888,7 @@ def main(args):
                             subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
                                                                                             mode, frags_diag, ftol, int_perc,
                                                                                             squery, sindex, eindex, preprocessmsdata,
-                                                                                            0), axis=1)
+                                                                                            0, od=od, spectra=spectra), axis=1)
                         subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
                         subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
                         subtquery = subtquery.drop('temp_diagnostic', axis = 1)
