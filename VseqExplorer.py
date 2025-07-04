@@ -59,16 +59,17 @@ def read_csv_with_progress(file_path, sep, mode="mgf"):
             pbar.update(chunk.shape[0])
     logging.info("Joining chunks...")
     df = pd.concat(chunks, ignore_index=True)
-    return df
+    return(df)
 
 def read_mzml_with_progress(inputfile):
     ondisc_exp = pyopenms.OnDiscMSExperiment()
     ondisc_exp.openFile(inputfile)
-    mgf = pyopenms.MSExperiment()
-    for i in tqdm(range(ondisc_exp.getNrSpectra()), desc="Loading spectra"):
-        spectrum = ondisc_exp.getSpectrum(i)
-        mgf.addSpectrum(spectrum)
-    return mgf
+    # mgf = pyopenms.MSExperiment()
+    # for i in tqdm(range(ondisc_exp.getNrSpectra()), desc="Loading spectra"):
+    #     spectrum = ondisc_exp.getSpectrum(i)
+    #     mgf.addSpectrum(spectrum)
+    mgf = ondisc_exp.getMetaData()
+    return(mgf, ondisc_exp)
 
 def checkMGFs(mgfs, mgflist):
     checklist = list(mgfs.groups.keys())
@@ -182,24 +183,48 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
                           index=False, sep='\t', encoding='utf-8')
     elif mode == "mzml":
         spectra = fr_ns.getSpectra()
-        spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
-        tquery = []
-        for s in fr_ns.getSpectra():
+        # spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
+        # tquery = []
+        # for s in spectra:
+        #     if s.getMSLevel() == 2:
+        #         df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
+        #                   s.getPrecursors()[0].getCharge(), # Precursor Charge
+        #                   s.getRT(), # Precursor Retention Time
+        #                   s.getPrecursors()[0].getMZ(), # Precursor MZ
+        #                   s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
+        #         df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
+        #         tquery.append(df)
+        # tquery = pd.concat(tquery)
+        rows = []
+        for s in spectra:
             if s.getMSLevel() == 2:
-                df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
-                          s.getPrecursors()[0].getCharge(), # Precursor Charge
-                          s.getRT(), # Precursor Retention Time
-                          s.getPrecursors()[0].getMZ(), # Precursor MZ
-                          s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
-                df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
-                tquery.append(df)
-        tquery = pd.concat(tquery)
+                native_id = s.getNativeID()
+                scan = int(native_id.rsplit('scan=', 1)[-1])
+                precursor = s.getPrecursors()[0]
+        
+                rows.append([
+                    scan,
+                    precursor.getCharge(),
+                    s.getRT(),
+                    precursor.getMZ(),
+                    precursor.getIntensity()
+                ])
+        tquery = pd.DataFrame(rows, columns=["SCANS", "CHARGE", "RT", "MZ", "INT"])
         tquery = tquery.apply(pd.to_numeric)
         tquery.SCANS = tquery.SCANS.astype(int)
         tquery.CHARGE = tquery.CHARGE.astype(int)
-        tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
-                                          axis=1)
+        # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
+        #                                   axis=1)
         squery = sindex = eindex = 0
+        if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
+            tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
+                                       os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
+                          index=False, sep='\t', encoding='utf-8')
+        if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):  
+            tindex = pd.DataFrame([squery, sindex, eindex], index=["squery","sindex","eindex"]).T
+            tindex.to_csv(os.path.join(os.path.split(rawpath)[0],
+                                       os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
+                          index=False, sep='\t', encoding='utf-8')
     return tquery, squery, sindex, eindex
 
 def getOffset(fr_ns):
@@ -410,21 +435,22 @@ def _parallelGetIons(x, parlist, pbar):
     relist = getIons(x, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
                      parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
-                     parlist[18], parlist[19], parlist[20])
+                     parlist[18], parlist[19], parlist[20], parlist[21])
     pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
             standalone, massconfig, dograph, min_hscore, ppm_plot,
             index_offset, mode, int_perc, squery, sindex, eindex,
-            spectra, spectra_n, fsort_by):
+            spectra, spectra_n, fsort_by, od):
     ions_exp = []
     b_ions = []
     y_ions = []
     vscore, escore, hscore, nions, bions, yions, ppmfinal, frags = doVseq(mode, index_offset, x, tquery, mgf, index2, spectra,
                                                                           spectra_n, min_dm, min_match, ftol, outpath, standalone,
                                                                           massconfig, dograph, 0, ppm_plot, int_perc,
-                                                                          squery, sindex, eindex, sortby=fsort_by)
+                                                                          squery, sindex, eindex, sortby=fsort_by,
+                                                                          od=od)
     ppmfinal = ppmfinal.drop("minv", axis=1)
     ppmfinal.columns = frags.by
     ppmfinal[ppmfinal>ftol] = 0
@@ -488,7 +514,8 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
 def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                     prot, mgf, index2, min_dm, min_match, min_hscore, outpath3,
                     mass, n_workers, parallelize, ppm_plot, outfile, index_offset,
-                    mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n):
+                    mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n,
+                    od):
     # logging.info("\tExploring sequence " + str(query.Sequence) + ", "
     #              + str(query.MH) + " Th, Charge "
     #              + str(query.Charge))
@@ -537,7 +564,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
     subtquery["RawCharge"] = subtquery.Charge
     subtquery.Charge = query.Charge
-    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc, spectra, spectra_n, fsort_by]
+    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3), False, mass, False, min_hscore, ppm_plot, index_offset, mode, int_perc, spectra, spectra_n, fsort_by, od]
     # # DIA: Filter by diagnostic ions
     # logging.info("Filtering by diagnostic ions...")
     if keep_n > 0:
@@ -573,7 +600,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                                                   ppm_plot,
                                                                   index_offset,
                                                                   mode,
-                                                                  int_perc)
+                                                                  int_perc,
+                                                                  od)
                                                 #if x.b_series and x.y_series else 0
                                                 , axis = 1)
     subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
@@ -619,7 +647,8 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
                                            mass,
                                            True,
                                            0,
-                                           ppm_plot), axis = 1)
+                                           ppm_plot,
+                                           od=od), axis = 1)
     allpagelist = list(map(Path, list(f_subtquery["outpath"])))
     pagelist = []
     for f in allpagelist:
@@ -703,7 +732,7 @@ def main(args):
             mode = "mzml"
             # mgf = pyopenms.MSExperiment()
             # pyopenms.MzMLFile().load(raw, mgf)
-            mgf = read_mzml_with_progress(raw)
+            mgf, od = read_mzml_with_progress(raw)
             spectra = mgf.getSpectra()
             spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
             index_offset = 0
@@ -715,6 +744,7 @@ def main(args):
             mode = "mgf"
             # mgf = pd.read_csv(Path(raw), header=None, sep="\t")
             mgf = read_csv_with_progress(Path(raw), "\t")
+            od = None
             logging.info("Getting index offset...")
             index_offset = getOffset(mgf.head(10000)) # Only the first scan is needed
             # logging.info("Building index...")

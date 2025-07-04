@@ -1002,7 +1002,7 @@ def plotIntegration(sub, mz, scanrange, mzrange, bin_width, t_poisson, mzmlpath,
 
 def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, min_dm, min_match, err, outpath,
            standalone, massconfig, dograph, min_hscore, ppm_plot, int_perc,
-           squery=0, sindex=0, eindex=0, calc_hs=1, hs=0, sortby=None):
+           squery=0, sindex=0, eindex=0, calc_hs=1, hs=0, sortby=None, od=None):
     if not standalone:
         mass = massconfig
     else:
@@ -1129,7 +1129,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     ## SCORE ##
     vscore = vScore(qscore, sub, len(plainseq), proofb, proofy, assign)
     if "SPECTRUM" not in sub:
-        sub['SPECTRUM'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2, int_perc)
+        sub['SPECTRUM'] = locateScan(sub.FirstScan, mode, fr_ns, spectra, spectra_n, index2, int_perc, od)
     if calc_hs != 0:
         hscore, nions, bions, yions, intions, dm_pos = scoreVseq(sub, plainseq, mass, err, dm,
                                                                  mass.getfloat('Masses', 'm_proton'),

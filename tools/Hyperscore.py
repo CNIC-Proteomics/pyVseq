@@ -177,7 +177,7 @@ def hyperscore(exp_spec, theo_spec, frags, ftol):
         hs = math.log((i_b) * (i_y)) + math.log(math.factorial((n_b))) + math.log(math.factorial(n_y))
     return(assigned_mz, assigned_int, assigned_frags, n_b, n_y, i_sum, hs)
 
-def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, int_perc):
+def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, int_perc, od=None):
     if mode == "mgf":
         # index1 = fr_ns.to_numpy() == 'SCANS='+str(int(scan))
         try:
@@ -209,6 +209,8 @@ def locateScan(scan, mode, fr_ns, spectra, spectra_n, index2, int_perc):
         except AssertionError or OverflowError:
             logging.info("\tERROR: Scan number " + str(scan) + " not found in mzML file.")
             sys.exit()
+        nativeid = '='.join(spectra[0].getNativeID().split('=')[:-1]) + '=' + str(scan)
+        s = od.getSpectrumByNativeId(nativeid)
         peaks = s.get_peaks()
         ions0 = peaks[0]
         ions1 = peaks[1]
