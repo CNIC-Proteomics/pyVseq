@@ -846,7 +846,8 @@ def main(args):
                     dm_theo_spec.index = frags
                     if keep_n > 0:
                         frags_diag = dm_theo_spec[frags_diag]
-                        # frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
+                        # for i in range(2,query.Charge+1):
+                        #     frags_diag = pd.concat([frags_diag, (frags_diag+(m_proton*i))/i])
                     ## TOLERANCE ##
                     upper = query.expMZ + ptol
                     lower = query.expMZ - ptol
