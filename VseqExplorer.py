@@ -443,7 +443,6 @@ def _parallelGetIons(x, parlist, pbar):
                      parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
                      parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
                      parlist[18], parlist[19], parlist[20], parlist[21])
-    pbar.update(1)
     return([relist, x.FirstScan])
 
 def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
@@ -918,11 +917,14 @@ def main(args):
                     vseqs = []
                     scans = []
                     with tqdm(total=len(rowSeries)) as pbar:
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
-                            futures = [executor.submit(_parallelGetIons, row, parlist, pbar) for row in rowSeries]
-                            for future in concurrent.futures.as_completed(futures):
-                                vseqs.append(future.result()[0])
-                                scans.append(future.result()[1])
+                        for row in rowSeries:
+                            vseq = getIons(row, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
+                                             parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
+                                             parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
+                                             parlist[18], parlist[19], parlist[20], parlist[21])
+                            vseqs.append(vseq)
+                            scans.append(row.FirstScan)
+                            pbar.update(1)
                     order = pd.DataFrame([vseqs, scans]).T
                     order.columns = ['vseqs', 'FirstScan']
                     order = order.sort_values(by='FirstScan')
