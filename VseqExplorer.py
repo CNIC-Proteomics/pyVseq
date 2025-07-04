@@ -845,7 +845,7 @@ def main(args):
                     dm_theo_spec.index = frags
                     if keep_n > 0:
                         frags_diag = dm_theo_spec[frags_diag]
-                        frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
+                        # frags_diag = (frags_diag+(m_proton*query.Charge))/query.Charge
                     ## TOLERANCE ##
                     upper = query.expMZ + ptol
                     lower = query.expMZ - ptol
@@ -885,9 +885,9 @@ def main(args):
                             subtquery['temp_diagnostic'] = diag
                         else:
                             subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
-                                                                                            mode, frags_diag, ftol, int_perc,
-                                                                                            squery, sindex, eindex, preprocessmsdata,
-                                                                                            0, od=od, spectra=spectra), axis=1)
+                                                                                                 mode, frags_diag, ftol, int_perc,
+                                                                                                 squery, sindex, eindex, preprocessmsdata,
+                                                                                                 0, od=od, spectra=spectra), axis=1)
                         subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
                         subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
                         subtquery = subtquery.drop('temp_diagnostic', axis = 1)
