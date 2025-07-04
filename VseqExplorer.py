@@ -36,6 +36,10 @@ from tools.Hyperscore import locateScan
 matplotlib.use('pdf')
 pd.options.mode.chained_assignment = None  # default='warn'
 
+def checkSeqTable(seqtable):
+    cols = ['Sequence', 'Charge', 'MH', 'DeltaMassLabel', 'q']
+    return(all(x in seqtable.columns for x in cols))
+
 def read_csv_with_progress(file_path, sep, mode="mgf"):
     chunk_size = 50000  # Number of lines to read in each iteration # TODO: add to INI
     # Get the total number of lines in the CSV file
@@ -715,6 +719,9 @@ def main(args):
     logging.info("Reading sequence table")
     seqtable = pd.read_csv(args.table, sep='\t')
     seqtable = seqtable[seqtable.Sequence.notna()]
+    if not checkSeqTable(seqtable):
+        logging.error("Cannot read sequence table")
+        sys.exit()
     prots = seqtable.groupby("q")
     #raws = seqtable.groupby("Raw")
     logging.info("Reading MS file(s)")
