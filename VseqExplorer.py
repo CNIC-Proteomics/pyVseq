@@ -694,6 +694,34 @@ def _parallelSeqTable(x, parlist):
                              spectra=parlist[25], spectra_n=parlist[26])
     return(result)
 
+def writeExcel(outpath, df):
+    with pd.ExcelWriter(outpath, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="VSeqExplorerResults")
+        worksheet = writer.sheets["VSeqExplorerResults"]
+        # Make clickable hyperlinks
+        path_col_idx = df.columns.get_loc("QC_Plot")
+        for row_num, path in enumerate(df["QC_Plot"], start=1):
+            if os.path.isfile(path):
+                url = f"file:///{path.replace(os.sep, '/')}"
+                worksheet.write_url(row_num, path_col_idx, url, string=path)
+            else:
+                worksheet.write(row_num, path_col_idx, "")
+        path_col_idx = df.columns.get_loc("RT_Plot")
+        for row_num, path in enumerate(df["RT_Plot"], start=1):
+            if os.path.isfile(path):
+                url = f"file:///{path.replace(os.sep, '/')}"
+                worksheet.write_url(row_num, path_col_idx, url, string=path)
+            else:
+                worksheet.write(row_num, path_col_idx, "")
+
+def excelHyperlink(path):
+    if pd.isna(path):
+        return ""
+    path = str(path).replace('"', '""')  # Escape quotes for Excel
+    chunks = [f'"{path[i:i+255]}"' for i in range(0, len(path), 255)]
+    joined = "&".join(chunks)
+    return(f'=HYPERLINK({joined}; "Link")')
+
 def main(args):
     '''
     Main function
@@ -1029,7 +1057,13 @@ def main(args):
                                                                 str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(int(x.Charge))+"_best5.pdf"), axis=1)
     all_data['RT_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
                                                                 str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(int(x.Charge))+"_RT_plots.pdf"), axis=1)
+    # all_data["QC_Plot"] = all_data["QC_Plot"].apply(lambda p: f'=HYPERLINK("{p}"; "Link")')
+    # all_data["RT_Plot"] = all_data["RT_Plot"].apply(lambda p: f'=HYPERLINK("{p}"; "Link")')
+    # all_data["QC_Plot"] = all_data["QC_Plot"].apply(excelHyperlink)
+    # all_data["RT_Plot"] = all_data["RT_Plot"].apply(excelHyperlink)
     all_data.to_csv(os.path.join(outpath, "VSEQ_EXPLORER_RESULTS.tsv"), sep='\t', index=False)
+    # all_data.to_excel(os.path.join(outpath, "VSEQ_EXPLORER_RESULTS.xlsx"))
+    # writeExcel(os.path.join(outpath, "VSEQ_EXPLORER_RESULTS.xlsx"), all_data)
         # if exploredseqs:    
         #     logging.info("Writing output table")
         #     # outfile = os.path.join(os.path.split(Path(args.table))[0],
