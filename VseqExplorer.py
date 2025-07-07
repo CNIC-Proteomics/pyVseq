@@ -119,6 +119,7 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
             sindex = np.array(tindex.sindex)
             eindex = np.array(tindex.eindex)
         else:
+            logging.info("Writing index...")
             fr_ns = fr_ns.to_numpy()
             fr_ns = fr_ns.flatten()
             flag = False
@@ -129,6 +130,7 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
             logging.info("Existing tquery found")
             tquery = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"), sep="\t")
         else:
+            logging.info("Writing tquery...")
             if flag:
                 fr_ns = fr_ns.to_numpy()
                 fr_ns = fr_ns.flatten()
@@ -176,6 +178,7 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
             tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']] = tquery[['SCANS', 'CHARGE', 'RT', 'MZ', 'INT']].apply(pd.to_numeric)
         except KeyError:
             tquery[['SCANS', 'CHARGE', 'RT', 'MZ']] = tquery[['SCANS', 'CHARGE', 'RT', 'MZ']].apply(pd.to_numeric)
+        tquery.RT = tquery.RT/60
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
@@ -220,6 +223,7 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
         # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
         #                                   axis=1)
         squery = sindex = eindex = 0
+        tquery.RT = tquery.RT/60
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
@@ -475,7 +479,7 @@ def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     outgraph = str(prot) + "_" + titleseq + "_M" + str(subtquery.MH.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
-    subtquery.RetentionTime = subtquery.RetentionTime / 60
+    subtquery.RetentionTime = subtquery.RetentionTime
     subtquery.reset_index(drop=True, inplace=True)
     for index, row in subtquery.iterrows():
         before = pd.Series([0]*row.shape[0], index=row.index)
@@ -674,10 +678,11 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
         ## PLOT RT vs E-SCORE and MATCHED IONS ##
         subtquery.loc[len(subtquery)] = 0
-        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
+        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT
         subtquery.loc[len(subtquery)] = 0
-        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT
+        plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT, tquery.iloc[-1].RT)
     subtquery = subtquery[subtquery.Charge != 0]
     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
     subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
@@ -1034,10 +1039,10 @@ def main(args):
                         #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
                         ## PLOT RT vs E-SCORE and MATCHED IONS ##
                         subtquery.loc[len(subtquery)] = 0
-                        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT/60
+                        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT
                         subtquery.loc[len(subtquery)] = 0
-                        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT/60
-                        plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
+                        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT
+                        plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT, tquery.iloc[-1].RT)
                     #exploredseqs.append(subtquery)
                     subtquery = subtquery[subtquery.Charge != 0]
                     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
