@@ -1166,6 +1166,15 @@ if __name__ == '__main__':
 
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
+    logging.info('OUTPUT PATH: ' + str(args.outpath))
+    if os.path.exists(args.outpath):
+        logging.warn('Output path already exists. Files may be overwritten!')
+        user_input = input("Do you want to continue? (Y/N): ")
+        if user_input.lower() == "y":
+            logging.info("Continuing...")
+        else:
+            logging.info("Stopping...")
+            sys.exit()
     try:
         main(args)
     except:
