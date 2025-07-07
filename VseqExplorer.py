@@ -880,7 +880,7 @@ def main(args):
                     query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
                     logging.info("\tExploring sequence " + str(query.Sequence) + ", "
                                  + str(query.expMH) + " Da, Charge "
-                                 + str(query.Charge) + ", " + str(query.expMZ) + "Th")
+                                 + str(query.Charge) + ", " + str(query.expMZ) + " Th")
                     ## DM ##
                     mim = query.expMH
                     dm = mim - query.MH
