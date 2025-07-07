@@ -1157,7 +1157,7 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
     if standalone:
         logging.info("\t\t\tPlotting...") # TODO should we have min_vscore take effect here or not
     if dograph and sortby >= min_hscore:
-        if proof.iloc[0].MZ == 0: return(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        if proof.iloc[0].MZ == 0: return(0, 0, 0, 0, 0)
         else:
             proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
             plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
