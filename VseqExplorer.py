@@ -751,7 +751,7 @@ def main(args):
     fsort_by = str(mass._sections['Parameters']['sort_by'])
     min_hscore = float(mass._sections['Parameters']['vseq_threshold'])
     ppm_plot = float(mass._sections['Parameters']['ppm_plot'])
-    parallelize = str(mass._sections['Parameters']['parallelize'])
+    # parallelize = str(mass._sections['Parameters']['parallelize'])
     diag_ions = int(mass._sections['Parameters']['diagnostic_ions'])
     keep_n = int(mass._sections['Parameters']['keep_n'])
     int_perc = float(mass._sections['Parameters']['intensity_percent_threshold'])
@@ -840,229 +840,229 @@ def main(args):
             # if not os.path.exists(Path(outpath3)):
             #     os.mkdir(Path(outpath3))
                 
-            if parallelize == "protein" or parallelize == "both":
-                indices, rowSeqs = zip(*seqtable.iterrows())
-                rowSeqs = list(rowSeqs)
+            # if parallelize == "protein" or parallelize == "both":
+            #     indices, rowSeqs = zip(*seqtable.iterrows())
+            #     rowSeqs = list(rowSeqs)
+            #     tqdm.pandas(position=0, leave=True)
+            #     parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
+            #                mgf, index2, min_dm, min_match, min_hscore, outpath3,
+            #                mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset,
+            #                mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n]
+            #     # chunks = 100
+            #     # if len(rowSeqs) <= 500:
+            #     #     chunks = 50
+            #     subtqueries = []
+            #     with tqdm(total=len(rowSeqs)) as pbar:
+            #         with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
+            #             futures = [executor.submit(_parallelSeqTable, rowSeqs, parlist)
+            #                        for row in rowSeqs]
+            #             for future in concurrent.futures.as_completed(futures):
+            #                 pbar.update(1)
+            #                 subtqueries.append(future.result())
+            #     # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+            #     #     exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
+            #     #                                           rowSeqs,
+            #     #                                           itertools.repeat(parlist),
+            #     #                                           chunksize=chunks),
+            #     #                       total=len(rowSeqs)))
+            # elif parallelize == "peptide":
+            ## COMPARE EACH SEQUENCE ##
+            for index, query in seqtable.iterrows(): # TODO: parallelize
+                ## SEQUENCE ##
+                query.Sequence = str(query.Sequence).upper()
+                plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
+                mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", query.Sequence) if i]
+                pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
+                ## MZ and MH ##
+                query['expMH'] = query.MH
+                query['expMZ'] = round((query.expMH + (m_proton * (query.Charge-1))) / query.Charge, 6)
+                query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
+                query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
+                logging.info("\tExploring sequence " + str(query.Sequence) + ", "
+                             + str(query.expMH) + " Da, Charge "
+                             + str(query.Charge) + ", " + str(query.expMZ) + " Th")
+                ## DM ##
+                mim = query.expMH
+                dm = mim - query.MH
+                dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
+                frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
+                # frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
+                frags_diag = [i for i in frags if i[0]=="b" and int(i[1])>=diag_ions]+[i for i in frags if i[0]=="y" and int(i[1])>=diag_ions]
+                dm_theo_spec.index = frags
+                if keep_n > 0:
+                    frags_diag = dm_theo_spec[frags_diag]
+                    # for i in range(2,query.Charge+1):
+                    #     frags_diag = pd.concat([frags_diag, (frags_diag+(m_proton*i))/i])
+                ## TOLERANCE ##
+                upper = query.expMZ + ptol
+                lower = query.expMZ - ptol
+                ## OPERATIONS ##
+                # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
+                subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
+                logging.info("\t" + str(subtquery.shape[0]) + " scans found within +-"
+                             + str(ptol) + " Th")
+                if subtquery.shape[0] == 0:
+                    continue
+                subtquery['Protein'] = prot
+                subtquery['Sequence'] = query.Sequence
+                subtquery['MH'] = query.expMH
+                subtquery['DeltaMassLabel'] = query.DeltaMassLabel
+                subtquery['DeltaMass'] = dm
+                subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
+                subtquery["RawCharge"] = subtquery.Charge
+                subtquery.Charge = query.Charge
+                parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
+                           False, mass, False, min_hscore, ppm_plot, index_offset, mode,
+                           int_perc, squery, sindex, eindex, spectra, spectra_n, fsort_by,
+                           od]
+                # DIA: Filter by diagnostic ions
+                logging.info("\tFiltering by diagnostic ions...")
+                if keep_n > 0:
+                    if preprocessmsdata:
+                        chunks = math.ceil(len(subtquery)/args.n_workers)
+                        eparlist = [0, index_offset, index2, mode, frags_diag, ftol, int_perc, squery, sindex, eindex, preprocessmsdata, od, spectra]
+                        indices, rowSeries = zip(*subtquery.iterrows())
+                        rowSeries = list(rowSeries)
+                        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
+                            diag = list(tqdm(executor.map(_parallelExpSpectrum,
+                                                             rowSeries,
+                                                             itertools.repeat(eparlist),
+                                                             chunksize=chunks),
+                                                total=len(rowSeries)))
+                        subtquery['temp_diagnostic'] = diag
+                    else:
+                        subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
+                                                                                             mode, frags_diag, ftol, int_perc,
+                                                                                             squery, sindex, eindex, preprocessmsdata,
+                                                                                             0, od=od, spectra=spectra), axis=1)
+                    subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
+                    subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
+                    subtquery = subtquery.drop('temp_diagnostic', axis = 1)
+                    subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
+                    subtquery = subtquery.sort_index()
+                logging.info("\tKept " + str(subtquery.shape[0]) + " scans with more diagnostic ions and highest diagnostic ion intensity")
+                indices, rowSeries = zip(*subtquery.iterrows())
+                rowSeries = list(rowSeries)
                 tqdm.pandas(position=0, leave=True)
-                parlist = [raw, tquery, ptol, ftol, fsort_by, bestn, fullprot, prot,
-                           mgf, index2, min_dm, min_match, min_hscore, outpath3,
-                           mass, args.n_workers, parallelize, ppm_plot, outfile, index_offset,
-                           mode, int_perc, m_proton, diag_ions, keep_n, spectra, spectra_n]
+                logging.info("\tComparing...")
                 # chunks = 100
-                # if len(rowSeqs) <= 500:
+                # if len(rowSeries) <= 500:
                 #     chunks = 50
-                subtqueries = []
-                with tqdm(total=len(rowSeqs)) as pbar:
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=args.n_workers) as executor:
-                        futures = [executor.submit(_parallelSeqTable, rowSeqs, parlist)
-                                   for row in rowSeqs]
-                        for future in concurrent.futures.as_completed(futures):
-                            pbar.update(1)
-                            subtqueries.append(future.result())
                 # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-                #     exploredseqs = list(tqdm(executor.map(_parallelSeqTable,
-                #                                           rowSeqs,
-                #                                           itertools.repeat(parlist),
-                #                                           chunksize=chunks),
-                #                       total=len(rowSeqs)))
-            elif parallelize == "peptide":
-                ## COMPARE EACH SEQUENCE ##
-                for index, query in seqtable.iterrows(): # TODO: parallelize
-                    ## SEQUENCE ##
-                    query.Sequence = str(query.Sequence).upper()
-                    plainseq = ''.join(re.findall("[A-Z]+", query.Sequence))
-                    mods = [round(float(i),6) for i in re.findall("\d*\.?\d*", query.Sequence) if i]
-                    pos = [int(j)-1 for j, k in enumerate(query.Sequence) if k.lower() == '[']
-                    ## MZ and MH ##
-                    query['expMH'] = query.MH
-                    query['expMZ'] = round((query.expMH + (m_proton * (query.Charge-1))) / query.Charge, 6)
-                    query['MZ'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[0]
-                    query['MH'] = getTheoMZH(query.Charge, plainseq, mods, pos, True, True, mass)[1]
-                    logging.info("\tExploring sequence " + str(query.Sequence) + ", "
-                                 + str(query.expMH) + " Da, Charge "
-                                 + str(query.Charge) + ", " + str(query.expMZ) + " Th")
-                    ## DM ##
-                    mim = query.expMH
-                    dm = mim - query.MH
-                    dm_theo_spec = theoSpectrum(plainseq, mods, pos, len(plainseq), dm, mass).loc[0]
-                    frags = ["b" + str(i) for i in list(range(1,len(plainseq)+1))] + ["y" + str(i) for i in list(range(1,len(plainseq)+1))[::-1]]
-                    # frags_diag = [i for i in frags if i[0]=="b"][len([i for i in frags if i[0]=="b"])//2-diag_ions//2:len([i for i in frags if i[0]=="b"])//2-diag_ions//2+diag_ions] + [i for i in frags if i[0]=="y"][len([i for i in frags if i[0]=="y"])//2-diag_ions//2:len([i for i in frags if i[0]=="y"])//2-diag_ions//2+diag_ions]
-                    frags_diag = [i for i in frags if i[0]=="b" and int(i[1])>=diag_ions]+[i for i in frags if i[0]=="y" and int(i[1])>=diag_ions]
-                    dm_theo_spec.index = frags
-                    if keep_n > 0:
-                        frags_diag = dm_theo_spec[frags_diag]
-                        # for i in range(2,query.Charge+1):
-                        #     frags_diag = pd.concat([frags_diag, (frags_diag+(m_proton*i))/i])
-                    ## TOLERANCE ##
-                    upper = query.expMZ + ptol
-                    lower = query.expMZ - ptol
-                    ## OPERATIONS ##
-                    # subtquery = tquery[(tquery.CHARGE==query.Charge) & (tquery.MZ>=lower) & (tquery.MZ<=upper)]
-                    subtquery = tquery[(tquery.MZ>=lower) & (tquery.MZ<=upper)]
-                    logging.info("\t" + str(subtquery.shape[0]) + " scans found within +-"
-                                 + str(ptol) + " Th")
-                    if subtquery.shape[0] == 0:
-                        continue
-                    subtquery['Protein'] = prot
-                    subtquery['Sequence'] = query.Sequence
-                    subtquery['MH'] = query.expMH
-                    subtquery['DeltaMassLabel'] = query.DeltaMassLabel
-                    subtquery['DeltaMass'] = dm
-                    subtquery.rename(columns={'SCANS': 'FirstScan', 'CHARGE': 'Charge', 'RT':'RetentionTime'}, inplace=True)
-                    subtquery["RawCharge"] = subtquery.Charge
-                    subtquery.Charge = query.Charge
-                    parlist = [tquery, mgf, index2, min_dm, min_match, ftol, Path(outpath3),
-                               False, mass, False, min_hscore, ppm_plot, index_offset, mode,
-                               int_perc, squery, sindex, eindex, spectra, spectra_n, fsort_by,
-                               od]
-                    # DIA: Filter by diagnostic ions
-                    logging.info("\tFiltering by diagnostic ions...")
-                    if keep_n > 0:
-                        if preprocessmsdata:
-                            chunks = math.ceil(len(subtquery)/args.n_workers)
-                            eparlist = [0, index_offset, index2, mode, frags_diag, ftol, int_perc, squery, sindex, eindex, preprocessmsdata, od, spectra]
-                            indices, rowSeries = zip(*subtquery.iterrows())
-                            rowSeries = list(rowSeries)
-                            with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-                                diag = list(tqdm(executor.map(_parallelExpSpectrum,
-                                                                 rowSeries,
-                                                                 itertools.repeat(eparlist),
-                                                                 chunksize=chunks),
-                                                    total=len(rowSeries)))
-                            subtquery['temp_diagnostic'] = diag
-                        else:
-                            subtquery['temp_diagnostic'] = subtquery.apply(lambda x: expSpectrum(mgf, index_offset, x.FirstScan, index2,
-                                                                                                 mode, frags_diag, ftol, int_perc,
-                                                                                                 squery, sindex, eindex, preprocessmsdata,
-                                                                                                 0, od=od, spectra=spectra), axis=1)
-                        subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
-                        subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
-                        subtquery = subtquery.drop('temp_diagnostic', axis = 1)
-                        subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
-                        subtquery = subtquery.sort_index()
-                    logging.info("\tKept " + str(subtquery.shape[0]) + " scans with more diagnostic ions and highest diagnostic ion intensity")
-                    indices, rowSeries = zip(*subtquery.iterrows())
-                    rowSeries = list(rowSeries)
-                    tqdm.pandas(position=0, leave=True)
-                    logging.info("\tComparing...")
-                    # chunks = 100
-                    # if len(rowSeries) <= 500:
-                    #     chunks = 50
-                    # with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers) as executor:
-                    #     # with tqdm(total=len(rowSeries)) as progress_bar:
-                    #     #     futures = {}
-                    #     #     for idx, dt in enumerate(rowSeries):
-                    #     #         future = executor.submit(_parallelGetIons, dt, itertools.repeat(parlist))
-                    #     #         futures[future] = idx
-                    #     #     vseqs = [None] * len(rowSeries)
-                    #     #     for future in concurrent.futures.as_completed(futures):
-                    #     #         idx = futures[future]
-                    #     #         vseqs[idx] = future.result()
-                    #     #         progress_bar.update(1)
-                    #     vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
-                    #                       total=len(rowSeries)))
-                    vseqs = []
-                    scans = []
-                    with tqdm(total=len(rowSeries)) as pbar:
-                        for row in rowSeries:
-                            vseq = getIons(row, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
-                                             parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
-                                             parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
-                                             parlist[18], parlist[19], parlist[20], parlist[21])
-                            vseqs.append(vseq)
-                            scans.append(row.FirstScan)
-                            pbar.update(1)
-                    order = pd.DataFrame([vseqs, scans]).T
-                    order.columns = ['vseqs', 'FirstScan']
-                    order = order.sort_values(by='FirstScan')
-                    subtquery = subtquery.sort_values(by='FirstScan')
-                    subtquery['templist'] = list(order.vseqs)
-                    # subtquery['templist'] = vseqs
-                    subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
-                    #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
-                    subtquery['ions_total'] = len(plainseq) * 2
-                    subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
-                    subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
-                    subtquery['Raw'] = str(raw)
-                    subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
-                    subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
-                    subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
-                    subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
-                    subtquery['QC_Plot'] = ''
-                    subtquery = subtquery.drop('templist', axis = 1)
-                    ## SORT BY ions_matched ##
-                    logging.info("\tSorting by " +  str(fsort_by) + "...")
-                    try:
-                        subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
-                        subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    except KeyError:
-                        subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    # subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    subtquery.reset_index(drop=True, inplace=True)
-                    subtquery['QC_Plot'].iloc[0:bestn] = 'YES'
-                    f_subtquery = subtquery.iloc[0:bestn]
-                    f_subtquery.reset_index(drop=True, inplace=True)
-                    # f_subtquery["shortseq"] = f_subtquery.apply(lambda x: x.Sequence if len(x.Sequence)>= else x.Sequence[:len(x.Sequence)//2] + "_trunc", axis=1)
-                    f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
-                    # f_subtquery["outpath"] = makeOutpath(outpath3, prot, f_subtquery.Sequence.astype(str), f_subtquery.FirstScan.astype(str), f_subtquery.Charge.astype(str), (f_subtquery.index.values+1).astype(str))
-                    if f_subtquery.shape[0] > 0:
-                        logging.info("\tRunning Vseq on " + str(len(f_subtquery)) + " best candidates...")
-                        f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
-                        if not os.path.exists(Path(outpath3)):
-                            os.mkdir(Path(outpath3))
-                        f_subtquery.apply(lambda x: doVseq(mode,
-                                                           index_offset,
-                                                           x,
-                                                           tquery,
-                                                           mgf,
-                                                           index2,
-                                                           spectra,
-                                                           spectra_n,
-                                                           min_dm,
-                                                           min_match,
-                                                           ftol,
-                                                           Path(x.outpath),
-                                                           False,
-                                                           mass,
-                                                           True,
-                                                           0,
-                                                           ppm_plot,
-                                                           int_perc,
-                                                           squery,
-                                                           sindex,
-                                                           eindex,
-                                                           calc_hs=0,
-                                                           hs=x.hyperscore,
-                                                           sortby=fsort_by,
-                                                           od=od), axis = 1)
-                    allpagelist = list(map(Path, list(f_subtquery["outpath"])))
-                    pagelist = []
-                    for f in allpagelist:
-                        if os.path.isfile(f):
-                            pagelist.append(f)
-                    merger = PdfMerger()
-                    for page in pagelist:
-                        merger.append(io.FileIO(page,"rb"))
-                    logging.info("\tFound " + str(len(pagelist)) + " candidates with " + str(fsort_by) + " > " + str(min_hscore))
-                    if len(pagelist) > 0:
-                        outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
-                        with open(outmerge, 'wb') as f:
-                            merger.write(f)
-                        for page in pagelist:
-                            os.remove(page)
-                        #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
-                        ## PLOT RT vs E-SCORE and MATCHED IONS ##
-                        subtquery.loc[len(subtquery)] = 0
-                        subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT
-                        subtquery.loc[len(subtquery)] = 0
-                        subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT
-                        plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT, tquery.iloc[-1].RT)
-                    #exploredseqs.append(subtquery)
-                    subtquery = subtquery[subtquery.Charge != 0]
+                #     # with tqdm(total=len(rowSeries)) as progress_bar:
+                #     #     futures = {}
+                #     #     for idx, dt in enumerate(rowSeries):
+                #     #         future = executor.submit(_parallelGetIons, dt, itertools.repeat(parlist))
+                #     #         futures[future] = idx
+                #     #     vseqs = [None] * len(rowSeries)
+                #     #     for future in concurrent.futures.as_completed(futures):
+                #     #         idx = futures[future]
+                #     #         vseqs[idx] = future.result()
+                #     #         progress_bar.update(1)
+                #     vseqs = list(tqdm(executor.map(_parallelGetIons, rowSeries, itertools.repeat(parlist), chunksize=chunks),
+                #                       total=len(rowSeries)))
+                vseqs = []
+                scans = []
+                with tqdm(total=len(rowSeries)) as pbar:
+                    for row in rowSeries:
+                        vseq = getIons(row, parlist[0], parlist[1], parlist[2], parlist[3], parlist[4], parlist[5],
+                                         parlist[6], parlist[7], parlist[8], parlist[9], parlist[10], parlist[11],
+                                         parlist[12], parlist[13], parlist[14], parlist[15], parlist[16], parlist[17],
+                                         parlist[18], parlist[19], parlist[20], parlist[21])
+                        vseqs.append(vseq)
+                        scans.append(row.FirstScan)
+                        pbar.update(1)
+                order = pd.DataFrame([vseqs, scans]).T
+                order.columns = ['vseqs', 'FirstScan']
+                order = order.sort_values(by='FirstScan')
+                subtquery = subtquery.sort_values(by='FirstScan')
+                subtquery['templist'] = list(order.vseqs)
+                # subtquery['templist'] = vseqs
+                subtquery['ions_matched'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 0]. tolist()
+                #subtquery['ions_exp'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 1]. tolist()
+                subtquery['ions_total'] = len(plainseq) * 2
+                subtquery['b_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 2]. tolist()
+                subtquery['y_series'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 3]. tolist()
+                subtquery['Raw'] = str(raw)
+                subtquery['v_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 4]. tolist()
+                subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
+                subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
+                subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
+                subtquery['QC_Plot'] = ''
+                subtquery = subtquery.drop('templist', axis = 1)
+                ## SORT BY ions_matched ##
+                logging.info("\tSorting by " +  str(fsort_by) + "...")
+                try:
+                    subtquery.sort_values(by=['INT'], inplace=True, ascending=False)
                     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
-                    # subtquery.drop("SPECTRUM", axis=1, inplace=True)
-                    subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
-                                     mode='a', header=not os.path.exists(outfile))
+                except KeyError:
+                    subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
+                # subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
+                subtquery.reset_index(drop=True, inplace=True)
+                subtquery['QC_Plot'].iloc[0:bestn] = 'YES'
+                f_subtquery = subtquery.iloc[0:bestn]
+                f_subtquery.reset_index(drop=True, inplace=True)
+                # f_subtquery["shortseq"] = f_subtquery.apply(lambda x: x.Sequence if len(x.Sequence)>= else x.Sequence[:len(x.Sequence)//2] + "_trunc", axis=1)
+                f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
+                # f_subtquery["outpath"] = makeOutpath(outpath3, prot, f_subtquery.Sequence.astype(str), f_subtquery.FirstScan.astype(str), f_subtquery.Charge.astype(str), (f_subtquery.index.values+1).astype(str))
+                if f_subtquery.shape[0] > 0:
+                    logging.info("\tRunning Vseq on " + str(len(f_subtquery)) + " best candidates...")
+                    f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
+                    if not os.path.exists(Path(outpath3)):
+                        os.mkdir(Path(outpath3))
+                    f_subtquery.apply(lambda x: doVseq(mode,
+                                                       index_offset,
+                                                       x,
+                                                       tquery,
+                                                       mgf,
+                                                       index2,
+                                                       spectra,
+                                                       spectra_n,
+                                                       min_dm,
+                                                       min_match,
+                                                       ftol,
+                                                       Path(x.outpath),
+                                                       False,
+                                                       mass,
+                                                       True,
+                                                       0,
+                                                       ppm_plot,
+                                                       int_perc,
+                                                       squery,
+                                                       sindex,
+                                                       eindex,
+                                                       calc_hs=0,
+                                                       hs=x.hyperscore,
+                                                       sortby=fsort_by,
+                                                       od=od), axis = 1)
+                allpagelist = list(map(Path, list(f_subtquery["outpath"])))
+                pagelist = []
+                for f in allpagelist:
+                    if os.path.isfile(f):
+                        pagelist.append(f)
+                merger = PdfMerger()
+                for page in pagelist:
+                    merger.append(io.FileIO(page,"rb"))
+                logging.info("\tFound " + str(len(pagelist)) + " candidates with " + str(fsort_by) + " > " + str(min_hscore))
+                if len(pagelist) > 0:
+                    outmerge = os.path.join(Path(outpath3), str(prot) + "_" + str(query.Sequence) + "_M" + str(round(query.expMH,4)) + "_ch" + str(query.Charge) + "_best" + str(bestn) + ".pdf")
+                    with open(outmerge, 'wb') as f:
+                        merger.write(f)
+                    for page in pagelist:
+                        os.remove(page)
+                    #if len(x.b_series)>1 and len(x.y_series)>1 else logging.info("\t\tSkipping one candidate with empty fragmentation series...")
+                    ## PLOT RT vs E-SCORE and MATCHED IONS ##
+                    subtquery.loc[len(subtquery)] = 0
+                    subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT
+                    subtquery.loc[len(subtquery)] = 0
+                    subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT
+                    plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT, tquery.iloc[-1].RT)
+                #exploredseqs.append(subtquery)
+                subtquery = subtquery[subtquery.Charge != 0]
+                subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
+                # subtquery.drop("SPECTRUM", axis=1, inplace=True)
+                subtquery.to_csv(outfile, index=False, sep='\t', encoding='utf-8',
+                                 mode='a', header=not os.path.exists(outfile))
     logging.info("Creating joined results file...")
     all_data = []
     for f in all_outfiles:
