@@ -487,7 +487,7 @@ def getIons(x, tquery, mgf, index2, min_dm, min_match, ftol, outpath,
 def plotRT(subtquery, outpath, prot, charge, startRT, endRT):
     titleseq = str(subtquery.Sequence.loc[0])
     titledm = str(round(subtquery.DeltaMass.loc[0],6))
-    outgraph = str(prot) + "_" + titleseq + "_M" + str(subtquery.MH.loc[0]) + "_ch" + str(charge) + "_RT_plots.pdf"
+    outgraph = str(prot) + "_" + titleseq + "_M" + str(round(subtquery.MH.loc[0],4)) + "_ch" + str(charge) + "_RT_plots.pdf"
     ## DUMMY RT VALUES ##  
     subtquery.sort_values(by=['RetentionTime'], inplace=True)
     subtquery.RetentionTime = subtquery.RetentionTime
