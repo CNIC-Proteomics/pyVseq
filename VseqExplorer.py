@@ -40,6 +40,12 @@ def checkSeqTable(seqtable):
     cols = ['Sequence', 'Charge', 'MH', 'DeltaMassLabel', 'q']
     return(all(x in seqtable.columns for x in cols))
 
+def checkIndex(mzML, search_bytes=10000):
+    with open(mzML, 'rb') as f:
+        f.seek(-search_bytes, 2)  # Seek to near file end
+        tail = f.read().decode('utf-8', errors='ignore')
+    return('</indexList>' in tail)
+
 def read_csv_with_progress(file_path, sep, mode="mgf"):
     chunk_size = 50000  # Number of lines to read in each iteration # TODO: add to INI
     # Get the total number of lines in the CSV file
@@ -189,51 +195,56 @@ def getTquery(fr_ns, mode, rawpath, int_perc):
                                        os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
                           index=False, sep='\t', encoding='utf-8')
     elif mode == "mzml":
-        spectra = fr_ns.getSpectra()
-        # spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
-        # tquery = []
-        # for s in spectra:
-        #     if s.getMSLevel() == 2:
-        #         df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
-        #                   s.getPrecursors()[0].getCharge(), # Precursor Charge
-        #                   s.getRT(), # Precursor Retention Time
-        #                   s.getPrecursors()[0].getMZ(), # Precursor MZ
-        #                   s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
-        #         df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
-        #         tquery.append(df)
-        # tquery = pd.concat(tquery)
-        rows = []
-        for s in spectra:
-            if s.getMSLevel() == 2:
-                native_id = s.getNativeID()
-                scan = int(native_id.rsplit('scan=', 1)[-1])
-                precursor = s.getPrecursors()[0]
-        
-                rows.append([
-                    scan,
-                    precursor.getCharge(),
-                    s.getRT(),
-                    precursor.getMZ(),
-                    precursor.getIntensity()
-                ])
-        tquery = pd.DataFrame(rows, columns=["SCANS", "CHARGE", "RT", "MZ", "INT"])
-        tquery = tquery.apply(pd.to_numeric)
-        tquery.SCANS = tquery.SCANS.astype(int)
-        tquery.CHARGE = tquery.CHARGE.astype(int)
-        # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
-        #                                   axis=1)
+        if os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
+            logging.info("Existing tquery found")
+            tquery = pd.read_csv(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"), sep="\t")
+        else:
+            logging.info("Writing tquery...")
+            spectra = fr_ns.getSpectra()
+            # spectra_n = [int(s.getNativeID().split("=")[-1]) for s in spectra]
+            # tquery = []
+            # for s in spectra:
+            #     if s.getMSLevel() == 2:
+            #         df = pd.DataFrame([int(s.getNativeID().split(' ')[-1][5:]), # Scan
+            #                   s.getPrecursors()[0].getCharge(), # Precursor Charge
+            #                   s.getRT(), # Precursor Retention Time
+            #                   s.getPrecursors()[0].getMZ(), # Precursor MZ
+            #                   s.getPrecursors()[0].getIntensity()]).T # Precursor Intensity
+            #         df.columns = ["SCANS", "CHARGE", "RT", "MZ", "INT"]
+            #         tquery.append(df)
+            # tquery = pd.concat(tquery)
+            rows = []
+            for s in spectra:
+                if s.getMSLevel() == 2:
+                    native_id = s.getNativeID()
+                    scan = int(native_id.rsplit('scan=', 1)[-1])
+                    precursor = s.getPrecursors()[0]
+            
+                    rows.append([
+                        scan,
+                        precursor.getCharge(),
+                        s.getRT(),
+                        precursor.getMZ(),
+                        precursor.getIntensity()
+                    ])
+            tquery = pd.DataFrame(rows, columns=["SCANS", "CHARGE", "RT", "MZ", "INT"])
+            tquery = tquery.apply(pd.to_numeric)
+            tquery.SCANS = tquery.SCANS.astype(int)
+            tquery.CHARGE = tquery.CHARGE.astype(int)
+            # tquery["SPECTRUM"] = tquery.apply(lambda x: locateScan(x.SCANS, mode, fr_ns, spectra, spectra_n, 0, int_perc),
+            #                                   axis=1)
+            tquery.RT = tquery.RT/60
         squery = sindex = eindex = 0
-        tquery.RT = tquery.RT/60
         if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv")):
             tquery.to_csv(os.path.join(os.path.split(rawpath)[0],
                                        os.path.split(rawpath)[1].split(".")[0]+"_tquery.tsv"),
                           index=False, sep='\t', encoding='utf-8')
-        if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):  
-            tindex = pd.DataFrame([squery, sindex, eindex], index=["squery","sindex","eindex"]).T
-            tindex.to_csv(os.path.join(os.path.split(rawpath)[0],
-                                       os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
-                          index=False, sep='\t', encoding='utf-8')
-    return tquery, squery, sindex, eindex
+        # if not os.path.exists(os.path.join(os.path.split(rawpath)[0], os.path.split(rawpath)[1].split(".")[0]+"_index.tsv")):  
+        #     tindex = pd.DataFrame([squery, sindex, eindex], index=["squery","sindex","eindex"]).T
+        #     tindex.to_csv(os.path.join(os.path.split(rawpath)[0],
+        #                                os.path.split(rawpath)[1].split(".")[0]+"_index.tsv"),
+        #                   index=False, sep='\t', encoding='utf-8')
+    return(tquery, squery, sindex, eindex)
 
 def getOffset(fr_ns):
     def _check(can):
@@ -770,8 +781,10 @@ def main(args):
     all_outfiles = []
     for raw, rawtable in raws:
         if raw[-4:].lower() == "mzml":
-            logging.info("MZML: " + str(os.path.split(raw)[-1][:-5]))
+            logging.info("mzML: " + str(os.path.split(raw)[-1][:-5]))
             mode = "mzml"
+            if not checkIndex(raw):
+                logging.warn("mzML file is not indexed. Search may be slow.")
             # mgf = pyopenms.MSExperiment()
             # pyopenms.MzMLFile().load(raw, mgf)
             mgf, od = read_mzml_with_progress(raw)
