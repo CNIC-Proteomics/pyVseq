@@ -988,6 +988,7 @@ def main(args):
                     subtquery['e_score'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 5]. tolist()
                     subtquery['hyperscore'] = pd.DataFrame(subtquery.templist.tolist()).iloc[:, 6]. tolist()
                     subtquery['product'] = subtquery['ions_matched'] * subtquery['e_score']
+                    subtquery['QC_Plot'] = ''
                     subtquery = subtquery.drop('templist', axis = 1)
                     ## SORT BY ions_matched ##
                     logging.info("\tSorting by " +  str(fsort_by) + "...")
@@ -998,6 +999,7 @@ def main(args):
                         subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                     # subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                     subtquery.reset_index(drop=True, inplace=True)
+                    subtquery['QC_Plot'].iloc[0:bestn] = 'YES'
                     f_subtquery = subtquery.iloc[0:bestn]
                     f_subtquery.reset_index(drop=True, inplace=True)
                     # f_subtquery["shortseq"] = f_subtquery.apply(lambda x: x.Sequence if len(x.Sequence)>= else x.Sequence[:len(x.Sequence)//2] + "_trunc", axis=1)
@@ -1071,9 +1073,11 @@ def main(args):
             continue
     all_data = pd.concat(all_data)
     all_data['QC_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
-                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(int(x.Charge))+"_best5.pdf"), axis=1)
+                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(round(x.MH,4))+"_ch"+str(int(x.Charge))+"_best5.pdf") if x.QC_Plot=='YES' else '',
+                                         axis=1)
     all_data['RT_Plot'] = all_data.apply(lambda x: os.path.join(outpath, str(x.Raw), str(x.Protein),
-                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(x.MH)+"_ch"+str(int(x.Charge))+"_RT_plots.pdf"), axis=1)
+                                                                str(x.Protein)+"_"+x.Sequence+"_M"+str(round(x.MH,4))+"_ch"+str(int(x.Charge))+"_RT_plots.pdf") if x.QC_Plot=='YES' else '',
+                                         axis=1)
     # all_data["QC_Plot"] = all_data["QC_Plot"].apply(lambda p: f'=HYPERLINK("{p}"; "Link")')
     # all_data["RT_Plot"] = all_data["RT_Plot"].apply(lambda p: f'=HYPERLINK("{p}"; "Link")')
     # all_data["QC_Plot"] = all_data["QC_Plot"].apply(excelHyperlink)
