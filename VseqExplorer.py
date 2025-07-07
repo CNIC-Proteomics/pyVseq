@@ -680,7 +680,6 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
         subtquery.loc[len(subtquery)] = 0
         subtquery.iloc[-1].RetentionTime = tquery.iloc[0].RT
         subtquery.loc[len(subtquery)] = 0
-        plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT/60, tquery.iloc[-1].RT/60)
         subtquery.iloc[-1].RetentionTime = tquery.iloc[-1].RT
         plotRT(subtquery, outpath3, prot, query.Charge, tquery.iloc[0].RT, tquery.iloc[-1].RT)
     subtquery = subtquery[subtquery.Charge != 0]
