@@ -999,13 +999,13 @@ def main(args):
                     subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                 # subtquery.sort_values(by=[fsort_by], inplace=True, ascending=False)
                 subtquery.reset_index(drop=True, inplace=True)
-                subtquery['QC_Plot'].iloc[0:bestn] = 'YES'
                 f_subtquery = subtquery.iloc[0:bestn]
                 f_subtquery.reset_index(drop=True, inplace=True)
                 # f_subtquery["shortseq"] = f_subtquery.apply(lambda x: x.Sequence if len(x.Sequence)>= else x.Sequence[:len(x.Sequence)//2] + "_trunc", axis=1)
                 f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                 # f_subtquery["outpath"] = makeOutpath(outpath3, prot, f_subtquery.Sequence.astype(str), f_subtquery.FirstScan.astype(str), f_subtquery.Charge.astype(str), (f_subtquery.index.values+1).astype(str))
                 if f_subtquery.shape[0] > 0:
+                    subtquery['QC_Plot'].iloc[0:list(subtquery[subtquery[fsort_by]>min_hscore].index)[-1]+1] = 'YES'
                     logging.info("\tRunning Vseq on " + str(len(f_subtquery)) + " best candidates...")
                     f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
                     if not os.path.exists(Path(outpath3)):
