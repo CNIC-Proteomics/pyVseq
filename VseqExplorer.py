@@ -1005,9 +1005,11 @@ def main(args):
                 f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
                 # f_subtquery["outpath"] = makeOutpath(outpath3, prot, f_subtquery.Sequence.astype(str), f_subtquery.FirstScan.astype(str), f_subtquery.Charge.astype(str), (f_subtquery.index.values+1).astype(str))
                 if f_subtquery.shape[0] > 0:
-                    subtquery['QC_Plot'].iloc[0:list(subtquery[subtquery[fsort_by]>min_hscore].index)[-1]+1] = 'YES'
+                    try: end_index = list(subtquery[subtquery[fsort_by]>=min_hscore].index)[-1]+1
+                    except: end_index = 0
+                    subtquery['QC_Plot'].iloc[0:end_index] = 'YES'
                     logging.info("\tRunning Vseq on " + str(len(f_subtquery)) + " best candidates...")
-                    f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
+                    f_subtquery = f_subtquery[f_subtquery[fsort_by]>=min_hscore]
                     if not os.path.exists(Path(outpath3)):
                         os.mkdir(Path(outpath3))
                     f_subtquery.apply(lambda x: doVseq(mode,
