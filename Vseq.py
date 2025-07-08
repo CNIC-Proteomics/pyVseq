@@ -1160,9 +1160,12 @@ def doVseq(mode, index_offset, sub, tquery, fr_ns, index2, spectra, spectra_n, m
         if proof.iloc[0].MZ == 0: return(0, 0, 0, 0, 0)
         else:
             proof = locateFixedMods(proof, plainseq, mods, pos, massconfig, standalone)
-            plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
-                          proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
-                          min_dm, outpath, massconfig, standalone, ppm_plot)
+            try:
+                plotPpmMatrix(sub, plainseq, fppm, dm, frags, zoom, ions, err, specpar, exp_spec,
+                              proof, deltamplot, escore, vscore, hscore, BDAGmax, YDAGmax, bpos, ypos,
+                              min_dm, outpath, massconfig, standalone, ppm_plot)
+            except:
+                logging.exception("\t\t\tPlotting failed.", exc_info=1)
     if standalone:
         if not args.integrate:
             logging.info("\t\t\tDone.")
