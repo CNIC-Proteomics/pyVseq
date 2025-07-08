@@ -650,7 +650,7 @@ def processSeqTable(query, raw, tquery, ptol, ftol, fsort_by, bestn, fullprot,
     f_subtquery["outpath"] = str(outpath3) + "/" + str(prot) + "_" + f_subtquery.Sequence.astype(str) + "_" + f_subtquery.FirstScan.astype(str) + "_ch" + f_subtquery.Charge.astype(str) + "_cand" + (f_subtquery.index.values+1).astype(str) + ".pdf"
     if f_subtquery.shape[0] > 0:
         # logging.info("\tRunning Vseq on " + str(bestn) + " best candidates...")
-        f_subtquery = f_subtquery[f_subtquery[fsort_by]>min_hscore]
+        f_subtquery = f_subtquery[f_subtquery[fsort_by]>=min_hscore]
         if not os.path.exists(Path(outpath3)):
             os.mkdir(Path(outpath3))
         f_subtquery.apply(lambda x: doVseq(mode,
