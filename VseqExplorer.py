@@ -1142,11 +1142,13 @@ if __name__ == '__main__':
             mass.write(newconfig)
     
     # make outdir
+    out_exists = True
     if args.outpath:
         args.outpath = os.path.join(Path(args.outpath),"Vseq_Results")
     else:
         args.outpath = os.path.join(os.path.dirname(Path(args.table)),"Vseq_Results")
     if not os.path.exists(args.outpath):
+        out_exists = False
         Path(args.outpath).mkdir(parents=True, exist_ok=True)
 
     # logging debug level. By default, info level
@@ -1169,7 +1171,7 @@ if __name__ == '__main__':
     # start main function
     logging.info('start script: '+"{0}".format(" ".join([x for x in sys.argv])))
     logging.info('OUTPUT PATH: ' + str(args.outpath))
-    if os.path.exists(args.outpath):
+    if out_exists:
         logging.warn('Output path already exists. Files may be overwritten!')
         user_input = input("Do you want to continue? (Y/N): ")
         if user_input.lower() == "y":
