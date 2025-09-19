@@ -76,6 +76,7 @@ def prepareWorkspace(exp, msdatapath, outpath):
     # Create output directory
     if not os.path.exists(outpath):
         os.mkdir(outpath)
+    if not os.path.exists(var_name_path):
         os.mkdir(var_name_path)
     logging.info("Experiment: " + exp)
     logging.info("msdatapath: " + str(msdata))
