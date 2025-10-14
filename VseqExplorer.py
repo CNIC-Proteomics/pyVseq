@@ -833,6 +833,7 @@ def main(args):
                 prot = re.search(r'(?<=\|)[a-zA-Z0-9-_]+(?=\|)', fullprot).group(0)
             except AttributeError:
                 prot = fullprot
+            prot = re.sub(r'[^\w_. -]', '_', prot)
             logging.info("\tPROTEIN: " + str(prot))
             outpath3 = os.path.join(outpath, str(raw), str(prot))
             outfile = os.path.join(outpath3, str(Path(raw).stem) + "_" + str(prot) + "_EXPLORER.tsv")
