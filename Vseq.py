@@ -5,6 +5,9 @@ Created on Wed Mar  2 14:10:14 2022
 @author: alaguillog
 """
 
+import warnings
+warnings.filterwarnings("ignore")
+
 # import modules
 import argparse
 import configparser
