@@ -944,6 +944,9 @@ def main(args):
                     subtquery = subtquery.drop('temp_diagnostic', axis = 1)
                     subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
                     subtquery = subtquery.sort_index()
+                if subtquery.shape[0] == 0:
+                    logging.info("\tNo scans with diagnostic ions found")
+                    continue
                 logging.info("\tKept " + str(subtquery.shape[0]) + " scans with more diagnostic ions and highest diagnostic ion intensity")
                 indices, rowSeries = zip(*subtquery.iterrows())
                 rowSeries = list(rowSeries)
