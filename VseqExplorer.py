@@ -377,6 +377,8 @@ def expSpectrum(fr_ns, index_offset, scan, index2, mode, frags_diag, ftol,
         ions.reset_index(drop=True)
         # DIA: Filter by intensity ratio
         ions = ions[ions.INT>=ions.INT.max()*int_perc]
+    if ions.empty:
+        logging.warn("\tEMPTY SCAN FOUND: " + str(scan))
     # DIA: Filter by number diagnostic ions (if there is a tie, use total intensity)
     frags_diag.sort_values(ascending=True, inplace=True)
     frags_diag = list(frags_diag)
@@ -938,6 +940,7 @@ def main(args):
                                                                                              0, od=od, spectra=spectra), axis=1)
                     subtquery['Diagnostic_Ions'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 0]. tolist()
                     subtquery['Diagnostic_Intensity'] = pd.DataFrame(subtquery.temp_diagnostic.tolist()).iloc[:, 1]. tolist()
+                    subtquery = subtquery[subtquery.Diagnostic_Ions > 0]
                     subtquery = subtquery.drop('temp_diagnostic', axis = 1)
                     subtquery = subtquery.nlargest(keep_n, ['Diagnostic_Ions', 'Diagnostic_Intensity'])
                     subtquery = subtquery.sort_index()
